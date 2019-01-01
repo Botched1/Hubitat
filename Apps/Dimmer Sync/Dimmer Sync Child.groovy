@@ -160,7 +160,7 @@ def masterONOFFHandler(evt){
 	if(evt.value == "off"){
 		LOGDEBUG("OFF Check True")
 		slaveDimmer.each{
-			LOGDEBUG("Turning ON " + it)
+			LOGDEBUG("Turning OFF " + it)
 			it.off()
 		}
 	}
