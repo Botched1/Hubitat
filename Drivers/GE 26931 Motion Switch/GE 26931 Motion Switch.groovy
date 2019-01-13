@@ -24,21 +24,19 @@
  *
  *
  *  HUBITAT PORT
- *  1.0.5 (01/13/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
- *                       Kept version same as ST version for future update considerations. 
- *                       Original author info left in namespace as no major functionality added/removed.
+ *  1.0.5b (01/13/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
+ *                        Kept version same as ST version for future update considerations. 
+ *                        Fixed triple tap ON timer over ride. Removed triple tap OFF mode over ride.
  *
  *
  */
 metadata {
-	definition (name: "GE Motion Switch 26931", namespace: "MichaelStruck", author: "Michael Struck", vid: "generic-switch") {
+	definition (name: "GE Motion Switch 26931", namespace: "Botched1", author: "Jason Bottjen", vid: "generic-switch") {
 		capability "Motion Sensor"
         capability "Actuator"
  		capability "Switch"
-		//capability "Polling"
 		capability "Refresh"
 		capability "Sensor"
-		//capability "Health Check"
 		capability "Light"
         capability "PushableButton"
 
@@ -101,16 +99,6 @@ metadata {
                 ],
                 required: false
             )
-            input (name: "modeOverride", title: "Triple Press Operating Mode Override",
-            	description: "Physically press 'off' three times within 10 seconds to override the current operating mode",
-                type: "enum",
-                options: [
-                    "1" : "Manual (no auto-on/no auto-off)",
-                    "2" : "Vacancy (no auto-on/auto-off)",
-                    "3" : "Occupancy (auto-on/auto-off)"
-                ],
-                required: false
-            )
             //param 6
             input "motion", "bool", title: "Enable Motion Sensor", defaultValue:tru
 			input (name: "motionsensitivity", title: "Motion Sensitivity (When Motion Sensor Enabled)",
@@ -149,6 +137,7 @@ metadata {
         	input (name: "requestedGroup3", title: "Association Group 3 Members (Max of 4):", description: "Use the 'Device Network ID' for each device", type: "text", required: false )
     }
 }
+
 def parse(String description) {
     def result = null
 	if (description != "updated") {
@@ -163,65 +152,37 @@ def parse(String description) {
 	return result
 	if (result?.name == 'hail' && hubFirmwareLessThan("000.011.00602")) {
 		result = [result, response(zwave.basicV1.basicGet())]
-		log.debug "Was hailed: requesting state update"
+		//log.debug "Was hailed: requesting state update"
 	}
 	return result
 }
+
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
-	log.debug("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
+	//log.debug("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
 	def encapsulatedCommand = zwave.commandClass(cmd.commandClass)?.command(cmd.command)?.parse(cmd.data)
 	if (!encapsulatedCommand) {
-		log.debug("zwaveEvent(): Could not extract command from ${cmd}")
+		//log.debug("zwaveEvent(): Could not extract command from ${cmd}")
 	} else {
 		return zwaveEvent(encapsulatedCommand)
 	}
 }
+
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
+    //log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"	
 	[name: "switch", value: cmd.value ? "on" : "off", type: "physical"]
 }
+
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
     //log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
-    def result = []
+
+	def result = []
     result << createEvent([name: "switch", value: cmd.value ? "on" : "off", type: "physical"])
-    if (cmd.value == 255) {
-        result << createEvent([name: "button", value: "pushed", data: [buttonNumber: "1"], descriptionText: "On/Up on (button 1) $device.displayName was pushed", isStateChange: true, type: "physical"])
-    	if (timeoutdurationPress){
-        	if (modeOverride) state.offCounter=0
-            if (!state.onCounter || state.onCounter > 2 || (now()-state.Timer) > 10000) state.onCounter=0
-            state.onCounter = state.onCounter + 1
-            if (state.onCounter==1) state.Timer=now()
-            log.debug "On button push:" + state.onCounter 
-        	if (state.onCounter==3 && (now()-state.Timer)<10000) {
-                log.info "Triple press of on button in less than 10 seconds - Overriding timeout"
-                def cmds=[]
-                cmds << zwave.configurationV1.configurationSet(configurationValue: [timeoutdurationPress.toInteger()], parameterNumber: 1, size: 1)
-                cmds << zwave.configurationV1.configurationGet(parameterNumber: 1)
-                delayBetween(cmds, 1000)
-                showDashboard(timeoutdurationPress.toInteger(), "", "")
-            }
-        }
-    }
-	else if (cmd.value == 0) {
-    	result << createEvent([name: "button", value: "pushed", data: [buttonNumber: "2"], descriptionText: "Off/Down (button 2) on $device.displayName was pushed", isStateChange: true, type: "physical"])
-    	if (modeOverride) {
-        	if (timeoutdurationPress) state.onCounter=0
-            if (!state.offCounter || state.offCounter >2 || (now()-state.timerOff)>10000) state.offCounter=0
-            state.offCounter = state.offCounter + 1
-            if (state.offCounter==1) state.timerOff=now()
-            log.debug "Off button push:" + state.offCounter
-            if (state.offCounter==3 && (now()-state.timerOff)<10000) {
-                log.info "Triple press of off button in less than 10 seconds - Overriding mode"
-                def cmds=[]
-                cmds << zwave.configurationV1.configurationSet(configurationValue: [modeOverride.toInteger()], parameterNumber: 3, size: 1)
-                cmds << zwave.configurationV1.configurationGet(parameterNumber: 3)
-                delayBetween(cmds, 1000)
-            }
-        }
-    }
+
     return result
 }
+
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
-	log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
+	//log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
     state.group3 = "1,2"
     if (cmd.groupingIdentifier == 3) {
     	if (cmd.nodeId.contains(zwaveHubNodeId)) {
@@ -236,6 +197,7 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
         }
     }
 }
+
 def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	//log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
     def config = cmd.scaledConfigurationValue
@@ -267,20 +229,47 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
     	def value = config == 0 ? "Normal" : "Inverted"
     	result << createEvent([name:"SwitchOrientation", value: value, displayed:true, isStateChange:true])
     } 
+	
    return result
 }
+
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
     //log.debug "---BINARY SWITCH REPORT V1--- ${device.displayName} sent ${cmd}"
-    if (cmd.value==0 && timeoutdurationPress){
-    	log.info "Resetting timeout duration"
+
+    def result = []
+    result << createEvent([name: "switch", value: cmd.value ? "on" : "off", type: "digital"])
+
+	if (cmd.value == 255) {
+        result << createEvent([name: "pushed", value: 1, descriptionText: "On/Up on (button 1) $device.displayName was toggled", isStateChange: true, type: "digital"])
+    	if (timeoutdurationPress){
+            if (!state.onCounter || state.onCounter > 2 || (now()-state.Timer) > 10000) state.onCounter=0
+            state.onCounter = state.onCounter + 1
+            if (state.onCounter==1) state.Timer=now()
+            //log.debug "On button push:" + state.onCounter 
+        	if (state.onCounter==3 && (now()-state.Timer)<10000) {
+                log.info "Triple press of on button in less than 10 seconds - Overriding timeout"
+                def cmds=[]
+                cmds << zwave.configurationV1.configurationSet(configurationValue: [timeoutdurationPress.toInteger()], parameterNumber: 1, size: 1)
+                cmds << zwave.configurationV1.configurationGet(parameterNumber: 1)
+                delayBetween(cmds, 1000)
+                showDashboard(timeoutdurationPress.toInteger(), "", "")
+            }
+        }
+    }
+
+	if (cmd.value==0){
+    	result << createEvent([name: "pushed", value: 2, descriptionText: "Off/Down (button 2) on $device.displayName was toggled", isStateChange: true, type: "digital"])
+		log.info "Resetting timeout duration"
         def cmds=[],timeoutValue = timeoutduration ? timeoutduration.toInteger() : 5
         cmds << zwave.configurationV1.configurationSet(configurationValue: [timeoutValue], parameterNumber: 1, size: 1)
        	cmds << zwave.configurationV1.configurationGet(parameterNumber: 1)
         delayBetween(cmds, 1000)
         showDashboard(timeoutValue, "", "")
     }
-    createEvent([name: "switch", value: cmd.value ? "on" : "off", type: "digital"])
+
+    return result
 }
+
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
     log.debug "---MANUFACTURER SPECIFIC REPORT V2--- ${device.displayName} sent ${cmd}"
 	log.debug "manufacturerId:   ${cmd.manufacturerId}"
@@ -292,72 +281,77 @@ def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecifi
 	updateDataValue("MSR", msr)	
     sendEvent([descriptionText: "$device.displayName MSR: $msr", isStateChange: false])
 }
+
 def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
 	def fw = "${cmd.applicationVersion}.${cmd.applicationSubVersion}"
 	updateDataValue("fw", fw)
 	log.debug "---VERSION REPORT V1--- ${device.displayName} is running firmware version: $fw, Z-Wave version: ${cmd.zWaveProtocolVersion}.${cmd.zWaveProtocolSubVersion}"
 }
+
 def zwaveEvent(hubitat.zwave.commands.hailv1.Hail cmd) {
+	log.debug "---HAIL cmd received---"
 	[name: "hail", value: "hail", descriptionText: "Switch button was pressed", displayed: false]
 }
+
 def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd)
 {
-	log.debug "---NOTIFICATION REPORT V3--- ${device.displayName} sent ${cmd}"
+	//log.debug "---NOTIFICATION REPORT V3--- ${device.displayName} sent ${cmd}"
 	def result = []
 	if (cmd.notificationType == 0x07) {
 		if ((cmd.event == 0x00)) { 
-			result << createEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped")
+			result << createEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped", isStateChange: true)
 		} else if (cmd.event == 0x08) {
-			result << createEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion")
+			result << createEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion", isStateChange: true)
 		} 
 	} 
 	result
 }
+
 def zwaveEvent(hubitat.zwave.Command cmd) {
     log.warn "${device.displayName} received unhandled command: ${cmd}"
 }
+
 def on() {
 	delayBetween([
 		zwave.basicV1.basicSet(value: 0xFF).format(),
 		zwave.switchBinaryV1.switchBinaryGet().format()
 	],100)
 }
+
 def off() {
     delayBetween([
 		zwave.basicV1.basicSet(value: 0x00).format(),
 		zwave.switchBinaryV1.switchBinaryGet().format()
 	],100)  
 }
-def poll() {
-	delayBetween([
-		zwave.switchBinaryV1.switchBinaryGet().format(),
-		zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
-	],100)
-}
-/**
-  * PING is used by Device-Watch in attempt to reach the Device
-**/
-def ping() { refresh() }
+
 def refresh() {
-	log.debug "refresh() is called"
+	//log.debug "refresh is called"
     delayBetween([
         zwave.switchBinaryV1.switchBinaryGet().format(),
 		zwave.notificationV3.notificationGet(notificationType: 7).format()    
 	],100)
     showVersion()
 }
+
 def toggleMode() {
-	log.debug("Toggling Mode") 
+	//log.debug("Toggling Mode") 
     def cmds = []
     if (device.currentValue("operatingMode") == "Manual")  vacancy()
     else if (device.currentValue("operatingMode") == "Vacancy") occupancy()
     else if (device.currentValue("operatingMode") == "Occupancy") manual()
 }
+
 def setTimeout5Seconds() { setTimeoutMinutes(0) }
+
 def setTimeout1Minute() { setTimeoutMinutes(1) }
+
 def setTimeout5Minutes() { setTimeoutMinutes(5) }
+
 def setTimeout15Minutes() { setTimeoutMinutes(15) }
+
 def setTimeout30Minutes() { setTimeoutMinutes(30) }
+
 def setTimeoutMinutes(value){
     def cmds = [], newTimeOut
     if (value==0) newTimeOut="5 seconds"
@@ -369,76 +363,94 @@ def setTimeoutMinutes(value){
     cmds << zwave.configurationV1.configurationGet(parameterNumber: 1)
     delayBetween(cmds, 1000)
     showDashboard(value, "", "")
-    log.debug "Setting timeout duration to: ${newTimeOut}"
+    //log.debug "Setting timeout duration to: ${newTimeOut}"
 }
+
 def occupied() { occupancy() }
+
 def occupancy() {
-	log.debug "Setting operating mode to: Occupancy"
+	//log.debug "Setting operating mode to: Occupancy"
     def cmds = []
     cmds << zwave.configurationV1.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1)
     cmds << zwave.configurationV1.configurationGet(parameterNumber: 3)
     delayBetween(cmds, 1000)
 }
+
 def vacant() { vacancy() }
+
 def vacancy() {
-	log.debug "Setting operating mode to: Vacancy"
+	//log.debug "Setting operating mode to: Vacancy"
 	def cmds = []
     cmds << zwave.configurationV1.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1)
     cmds << zwave.configurationV1.configurationGet(parameterNumber: 3)
 	delayBetween(cmds, 1000)
 }
+
 def manual() {
-	log.debug "Setting operating mode to: Manual"
+	//log.debug "Setting operating mode to: Manual"
 	def cmds = []
     cmds << zwave.configurationV1.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1)
     cmds << zwave.configurationV1.configurationGet(parameterNumber: 3)
 	delayBetween(cmds, 1000)
 }
+
 def setMotionSenseLow(){ setMotionSensitivity(3) }
+
 def setMotionSenseMed(){ setMotionSensitivity(2) }
+
 def setMotionSenseHigh(){ setMotionSensitivity(1) }
+
 def setMotionSenseOff(){ setMotionSensitivity(0) }
+
 def setMotionSensitivity(value) {
       def cmds = []
       if (value>0){
       	def mode=value==1 ? "High" : value==2 ? "Medium" : "Low"
-      	log.debug("Setting motion sensitivity to: ${mode}")
+      	//log.debug("Setting motion sensitivity to: ${mode}")
         cmds << zwave.configurationV1.configurationSet(configurationValue: [1], parameterNumber: 6, size: 1)
         cmds << zwave.configurationV1.configurationGet(parameterNumber: 6)
       	cmds << zwave.configurationV1.configurationSet(configurationValue: [value] , parameterNumber: 13, size: 1)
         cmds << zwave.configurationV1.configurationGet(parameterNumber: 13)     
       }
       else if (value==0){
-      	log.debug("Turning off motion sensor")
+      	//log.debug("Turning off motion sensor")
         cmds << zwave.configurationV1.configurationSet(configurationValue: [0], parameterNumber: 6, size: 1)
         cmds << zwave.configurationV1.configurationGet(parameterNumber: 6)
      }
      delayBetween(cmds, 1000)
      showDashboard("", value, "")
 }
+
 def lightSenseOn() {
-	log.debug("Setting Light Sense On") 
+	//log.debug("Setting Light Sense On") 
     def cmds = []
     cmds << zwave.configurationV1.configurationSet(configurationValue: [1], parameterNumber: 14, size: 1)
     cmds << zwave.configurationV1.configurationGet(parameterNumber: 14)
     delayBetween(cmds, 1000)
     showDashboard("", "", 1)
 }
+
 def lightSenseOff() {
-	log.debug("Setting Light Sense Off") 
+	//log.debug("Setting Light Sense Off") 
     def cmds = []
     cmds << zwave.configurationV1.configurationSet(configurationValue: [0], parameterNumber: 14, size: 1)
     cmds << zwave.configurationV1.configurationGet(parameterNumber: 14)
     delayBetween(cmds, 1000)
     showDashboard("", "", 0)
 }
+
 def installed() {
+	log.debug "Installed..."
 	updated()
 }
+
 def Configure() {
+	log.debug "Configuring..."
 	updated()
 }
+
 def updated() {
+	log.debug "Updating..."
 	sendEvent(name: "checkInterval", value: 2 * 15 * 60 + 2 * 60, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
     if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
     state.lastUpdated = now()
@@ -489,7 +501,7 @@ def updated() {
     //param 5 invert switch
     cmds << zwave.configurationV1.configurationSet(configurationValue: [invertSwitch ? 1 : 0 ], parameterNumber: 5, size: 1)
     cmds << zwave.configurationV1.configurationGet(parameterNumber: 5)
-    // Make sure lifeline is associated - was missing on a dimmer:
+    // Make sure lifeline is associated
 	cmds << zwave.associationV1.associationSet(groupingIdentifier:0, nodeId:zwaveHubNodeId)
     cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId)
 	cmds << zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
@@ -515,15 +527,7 @@ def updated() {
     showVersion()
     showDashboard(timeDelay, motionSensor, lightSensor)
 }
-def configure() {
-	def cmds = []
-	// Make sure lifeline is associated - was missing on a dimmer:
-	cmds << zwave.associationV1.associationSet(groupingIdentifier:0, nodeId:zwaveHubNodeId)
-    cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId)
-	cmds << zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
-	cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId)
-    delayBetween(cmds, 1000)
-}
+
 private parseAssocGroupList(list, group) {
     def nodes = group == 2 ? [] : [zwaveHubNodeId]
     if (list) {
@@ -556,6 +560,7 @@ private parseAssocGroupList(list, group) {
     }   
     return nodes
 }
+
 def showDashboard(timeDelay, motionSensor, lightSensor) {
     String result =""
     if (timeDelay=="") timeDelay=state.currentTimeDelay
@@ -576,4 +581,5 @@ def showDashboard(timeDelay, motionSensor, lightSensor) {
 	result +="\n${timeSync} Timeout Duration: " + timeDelayTxt
 	sendEvent (name:"dashboard", value: result ) 
 }
-def showVersion() { sendEvent (name: "about", value:"Version 1.0.5 (01/13/19)") }
+
+def showVersion() { sendEvent (name: "about", value:"Version 1.0.5b (01/13/19)") }
