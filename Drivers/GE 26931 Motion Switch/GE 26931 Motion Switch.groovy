@@ -24,9 +24,10 @@
  *
  *
  *  HUBITAT PORT
- *  1.0.5b (01/13/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
+ *  1.0.5c (01/13/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
  *                        Kept version same as ST version for future update considerations. 
  *                        Fixed triple tap ON timer over ride. Removed triple tap OFF mode over ride.
+ *                        Removed occupied and vacant commands.
  *
  *
  */
@@ -41,9 +42,9 @@ metadata {
         capability "PushableButton"
 
 		command "toggleMode"
-        command "occupied"
+        //command "occupied"
         command "occupancy"
-        command "vacant"
+        //command "vacant"
         command "vacancy"
         command "manual"
         command "setMotionSenseOff"
@@ -366,8 +367,6 @@ def setTimeoutMinutes(value){
     //log.debug "Setting timeout duration to: ${newTimeOut}"
 }
 
-def occupied() { occupancy() }
-
 def occupancy() {
 	//log.debug "Setting operating mode to: Occupancy"
     def cmds = []
@@ -375,8 +374,6 @@ def occupancy() {
     cmds << zwave.configurationV1.configurationGet(parameterNumber: 3)
     delayBetween(cmds, 1000)
 }
-
-def vacant() { vacancy() }
 
 def vacancy() {
 	//log.debug "Setting operating mode to: Vacancy"
@@ -582,4 +579,4 @@ def showDashboard(timeDelay, motionSensor, lightSensor) {
 	sendEvent (name:"dashboard", value: result ) 
 }
 
-def showVersion() { sendEvent (name: "about", value:"Version 1.0.5b (01/13/19)") }
+def showVersion() { sendEvent (name: "about", value:"Version 1.0.5c (01/13/19)") }
