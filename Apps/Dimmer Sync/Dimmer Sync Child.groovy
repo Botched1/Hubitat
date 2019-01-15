@@ -21,7 +21,8 @@
  *  Changes:
  *
  *  V1.0.0 - 12/31/2018 - Initial release.
- *  V1.1.0 - 1/10/2019 - Added Restrictions by Mode
+ *  V1.1.0 - 01/10/2019 - Added Restrictions by Mode.
+ *  V1.1.1 - 01/15/2019 - Fixed restrictions by mode, 1.1.0 didn't work correctly.
  */
 
 definition(
@@ -78,9 +79,9 @@ def pageConfig() {
 		input(name: "logEnable", type: "bool", defaultValue: "true", title: "Enable Debug Logging", description: "Enable extra logging for debugging.")
    	}
 	section(getFormat("header-darkcyan", " Restrictions")) {
-		input "modesYes", "bool", title: "Enable restriction by current mode(s)", required: true, defaultValue: false, submitOnChange: true	
+		input "modesYes", "bool", title: "Enable ON/dimmer restrictions by current mode(s)", required: true, defaultValue: false, submitOnChange: true	
 			if(modesYes){	
-			input(name:"modes", type: "mode", title: "Allow actions when current mode is:", multiple: true, required: false)
+			input(name:"modes", type: "mode", title: "Allow ON/dimmer actions when current mode is:", multiple: true, required: false)
 			}
    	}
 	display2()
@@ -97,7 +98,7 @@ def display() {
 def display2() {
 	section() {
 		paragraph getFormat("line")
-		paragraph "<div style='color:#00CED1;text-align:center'>Dimmer Sync - App Version: 1.1.0</div>"
+		paragraph "<div style='color:#00CED1;text-align:center'>Dimmer Sync Child - App Version: 1.1.1</div>"
 	}
 }
 
@@ -144,9 +145,14 @@ def setDefaults(){
     if(pause1 == null){pause1 = false}
 	state.modeCheck = true
 	state.modesYes = modesYes
+	state.modes = modes
     if(state.pauseApp == null){state.pauseApp = false}
 	if(logEnable == null){logEnable = false}
-	if(state.modes != null && state.modesYes == true){modeCheck()}
+	LOGDEBUG("state.modes = " + state.modes)
+	LOGDEBUG("state.modesYes = " + state.modesYes)
+	if(state.modes != null && state.modesYes == true){
+		LOGDEBUG("Going to modecheck from SetDefaults")
+		modeCheck()}
 }
 
 def subscribeNow() {
@@ -175,14 +181,11 @@ def masterONOFFHandler(evt){
 	}
 	if(evt.value == "off"){
 		LOGDEBUG("OFF Check True")
-		if(state.modeCheck == false){
-			LOGDEBUG("Not in correct 'mode' to continue")
-		}
-		else {
-			slaveDimmer.each{
-				LOGDEBUG("Turning OFF " + it)
-				it.off()
-			}
+		// Do not do modeCheck on OFF. Always turn off, otherwise slave dimmers get stuck ON if already on
+		// at time of mode change.
+		slaveDimmer.each{
+			LOGDEBUG("Turning OFF " + it)
+			it.off()
 		}
 	}
 }
@@ -193,7 +196,7 @@ def masterLEVELHandler(evt){
 	def NewLevel = evt.value.toInteger()
 	
 	if(state.modeCheck == false){
-		LOGDEBUG("Not in correct 'mode' to continue")
+		LOGDEBUG("Not in correct 'mode' to change dimmer level")
 	}
 	else {	
 		slaveDimmer.each{
@@ -205,8 +208,18 @@ def masterLEVELHandler(evt){
 
 def modeCheck() {
     LOGDEBUG("Checking for any 'mode' restrictions...")
+	LOGDEBUG("modes = " + modes)
+	LOGDEBUG("state.modes = " + state.modes)
+	LOGDEBUG("!modes = " + !modes)
+	LOGDEBUG("location.mode = " + location.mode)
+	LOGDEBUG("modes.contains(location.mode) = " + modes.contains(location.mode))
 	def result = !modes || modes.contains(location.mode)
     LOGDEBUG("Mode = $result")
     state.modeCheck = result
     return state.modeCheck
+}
+
+def statusHandler(evt){
+  LOGDEBUG("Location status updated. Running modeCheck")
+  modeCheck()
 }
