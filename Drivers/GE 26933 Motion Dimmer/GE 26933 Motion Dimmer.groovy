@@ -33,18 +33,16 @@
  */
 metadata {
 	definition (name: "GE Motion Dimmer Switch 26933", namespace: "MichaelStruck", author: "Michael Struck", vid: "generic-dimmer") {
-		capability "Motion Sensor"
+	capability "Motion Sensor"
         capability "Actuator"
- 		capability "Switch"
+ 	capability "Switch"
         capability "Switch Level"
-		// capability "Polling"
-		capability "Refresh"
-		capability "Sensor"
-		// capability "Health Check"
-		capability "Light"
+	capability "Refresh"
+	capability "Sensor"
+	capability "Light"
         capability "PushableButton"
         
-		command "toggleMode"
+	command "toggleMode"
         command "occupancy"
         command "occupied"
         command "vacancy"
@@ -56,7 +54,7 @@ metadata {
         command "setMotionSenseHigh"
         command "setMotionSenseOff"
         command "lightSenseOn"
-		command "lightSenseOff"
+	command "lightSenseOff"
         command "setTimeout5Seconds"
         command "setTimeout1Minute"
         command "setTimeout5Minutes"
@@ -64,16 +62,17 @@ metadata {
         command "setTimeout30Minutes"
         command "switchModeOn"
         command "switchModeOff"
-		command "Configure"
+	command "Configure"
         
         attribute "operatingMode", "enum", ["Manual", "Vacancy", "Occupancy"]
         attribute "defaultLevel", "number"
         
         fingerprint mfr:"0063", prod:"494D", model: "3034", deviceJoinName: "GE Z-Wave Plus Motion Wall Dimmer"
 	}
-		preferences {
-        	input title: "", description: "Select your preferences here, they will be sent to the device once updated.\n\nTo verify the current settings of the device, they will be shown in the 'Recently' page once any setting is updated", displayDuringSetup: false, type: "paragraph", element: "paragraph"
-			//param 3
+	
+	preferences {
+            input title: "", description: "Select your preferences here, they will be sent to the device once updated.\n\nTo verify the current settings of the device, they will be shown in the 'Recently' page once any setting is updated", displayDuringSetup: false, type: "paragraph", element: "paragraph"
+	    //param 3
             input ("operationmode","enum",title: "Operating Mode",
                 description: "Select the mode of the dimmer (no entry will keep the current mode)",
                 options: [
@@ -161,12 +160,12 @@ metadata {
             input title: "", description: "**Manual Ramp Rate Settings**\nFor push and hold\nDefaults: Step: 1, Duration: 3", type: "paragraph", element: "paragraph"
             //param 7
             input "manualStepSize", "number", title: "Manual Step Size (%)", range: "1..99", defaultValue: 1
-       		//param 8
+       	    //param 8
             input "manualStepDuration", "number", title: "Manual Step Intervals Each 10 ms", range: "1..255", defaultValue: 3
             //param 16
             input "switchmode", "bool", title: "Enable Switch Mode", defaultValue:false                             
             //association groups
-        	input ( type: "paragraph", element: "paragraph",
+            input ( type: "paragraph", element: "paragraph",
             title: "", description: "**Configure Association Groups**\nDevices in association groups 2 & 3 will receive Basic Set commands directly from the switch when it is turned on or off (physically or locally through the motion detector). Use this to control other devices as if they were connected to this switch.\n\n" +
                          "Devices are entered as a comma delimited list of the Device Network IDs in hexadecimal format."
         	)			           
@@ -179,28 +178,24 @@ metadata {
 }
 def parse(String description) {
     def result = null
-	if (description != "updated") {
-		//log.debug "parse() >> zwave.parse($description)"
-		def cmd = zwave.parse(description, [0x20: 1, 0x25: 1, 0x56: 1, 0x70: 2, 0x72: 2, 0x85: 2, 0x71: 3, 0x56: 1])
-		if (cmd) {
-			result = zwaveEvent(cmd)
-        }
-	}
+    if (description != "updated") {
+        //log.debug "parse() >> zwave.parse($description)"
+	def cmd = zwave.parse(description, [0x20: 1, 0x25: 1, 0x56: 1, 0x70: 2, 0x72: 2, 0x85: 2, 0x71: 3, 0x56: 1])
+	if (cmd) {
+	    result = zwaveEvent(cmd)
+                }
+    }
     if (!result) { log.warn "Parse returned ${result} for $description" }
     //else {log.debug "Parse returned ${result}"}
-	return result
-	if (result?.name == 'hail' && hubFirmwareLessThan("000.011.00602")) {
-		result = [result, response(zwave.basicV1.basicGet())]
-		log.debug "Was hailed: requesting state update"
-	}
-	return result
+    return result
 }
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 	log.debug("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
 	def encapsulatedCommand = zwave.commandClass(cmd.commandClass)?.command(cmd.command)?.parse(cmd.data)
 	if (!encapsulatedCommand) {
 		log.debug("zwaveEvent(): Could not extract command from ${cmd}")
-	} else {
+	} 
+	else {
 		return zwaveEvent(encapsulatedCommand)
 	}
 }
@@ -366,19 +361,19 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelStopLev
 }
 private dimmerEvents(hubitat.zwave.Command cmd) {
     def value = (cmd.value ? "on" : "off")
-	def result = [createEvent(name: "switch", value: value)]
-	if (cmd.value==0 && timeoutdurationPress){
-    	log.info "Resetting timeout duration"
+    def result = [createEvent(name: "switch", value: value)]
+    if (cmd.value==0 && timeoutdurationPress){
+        log.info "Resetting timeout duration"
         def cmds=[],timeoutValue = timeoutduration ? timeoutduration.toInteger() : 5
         cmds << zwave.configurationV1.configurationSet(configurationValue: [timeoutValue], parameterNumber: 1, size: 1)
-       	cmds << zwave.configurationV1.configurationGet(parameterNumber: 1)
+        cmds << zwave.configurationV1.configurationGet(parameterNumber: 1)
         delayBetween(cmds, 1000)
         showDashboard(timeoutValue, "", "", "", "")
     }
     if (cmd.value && cmd.value <= 100) {
-		result << createEvent(name: "level", value: cmd.value, unit: "%")
-	}
-	return result
+	result << createEvent(name: "level", value: cmd.value, unit: "%")
+    }
+    return result
 }
 def on() {
     delayBetween([zwave.basicV1.basicSet(value: 0xFF).format(), zwave.switchMultilevelV3.switchMultilevelGet().format()], 5000) 
@@ -387,15 +382,16 @@ def off() {
 	delayBetween ([zwave.basicV1.basicSet(value: 0x00).format(), zwave.switchMultilevelV3.switchMultilevelGet().format()], 5000)
 }
 def setLevel(value) {
-	def valueaux = value as Integer
-	def level = Math.min(valueaux, 99)
-    def cmds = []    	
+    def valueaux = value as Integer
+    def level = Math.min(valueaux, 99)
+    def cmds = []
     if (settings.setlevelmode){ 
     	log.debug "setlevel does not activate light"
     	if (device.currentValue("switch") == "on") {
             sendEvent(name: "level", value: level, unit: "%")
             cmds << zwave.configurationV1.configurationSet(configurationValue: [level] , parameterNumber: 17, size: 1)
             cmds << zwave.basicV1.basicSet(value: level)
+	    cmds << "delay 4500"
             cmds << zwave.configurationV1.configurationGet(parameterNumber: 17)
             cmds << zwave.switchMultilevelV3.switchMultilevelGet()
         } else if (device.currentValue("switch") == "off") {
@@ -406,20 +402,18 @@ def setLevel(value) {
     } else {
     	log.debug "setlevel activates light"
     	sendEvent(name: "level", value: level, unit: "%")
-		delayBetween ([zwave.basicV1.basicSet(value: level).format(), zwave.switchMultilevelV3.switchMultilevelGet().format()], 500)
+	delayBetween ([zwave.basicV1.basicSet(value: level).format(), zwave.switchMultilevelV3.switchMultilevelGet().format()], 5000)
     }
 }
 def setLevel(value, duration) {
-	def valueaux = value as Integer
-	def level = Math.min(valueaux, 99)
-	def dimmingDuration = duration < 128 ? duration : 128 + Math.round(duration / 60)
+    def valueaux = value as Integer
+    def level = Math.min(valueaux, 99)
+    def dimmingDuration = duration < 128 ? duration : 128 + Math.round(duration / 60)
     sendEvent(name: "level", value: level, unit: "%")
-	zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration).format()
+    zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration).format()
 }
-//def poll() { zwave.switchMultilevelV3.switchMultilevelGet().format() }
-//def ping() { refresh() }
 def refresh() {
-	log.debug "refresh() is called"
+    log.debug "refresh() is called"
     delayBetween([
     	zwave.notificationV3.notificationGet(notificationType: 7).format(),
         zwave.switchMultilevelV3.switchMultilevelGet().format()
@@ -475,9 +469,9 @@ def manual() {
 	delayBetween(cmds, 1000)
 }
 def setDefaultLevel(value) {
-	log.debug("Setting default level: ${value}%") 
+    log.debug("Setting default level: ${value}%") 
     //def valueaux = value as Integer
-	def cmds = []
+    def cmds = []
     cmds << zwave.configurationV1.configurationSet(configurationValue: [value.toInteger()] , parameterNumber: 17, size: 1)
   	cmds << zwave.configurationV1.configurationGet(parameterNumber: 17)
     delayBetween(cmds, 1000)
@@ -544,17 +538,18 @@ def Configure() {
 	updated()
 }
 def updated() {
-	sendEvent(name: "checkInterval", value: 2 * 15 * 60 + 2 * 60, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
+    sendEvent(name: "checkInterval", value: 2 * 15 * 60 + 2 * 60, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
     if (!state.settingVar) state.settingVar=[]
     if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
     state.lastUpdated = now()
 	def cmds = [], timeDelay, motionSensor, lightSensor, dimLevel, switchMode
-	//switch and dimmer settings
+    
+    //switch and dimmer settings
     //param 1 timeout duration
     if (settings.timeoutduration) {
        	cmds << zwave.configurationV1.configurationSet(configurationValue: [settings.timeoutduration.toInteger()], parameterNumber: 1, size: 1)
        	cmds << zwave.configurationV1.configurationGet(parameterNumber: 1)
-  		timeDelay = timeoutduration.toInteger()
+  	timeDelay = timeoutduration.toInteger()
     }
     else{
        	cmds << zwave.configurationV1.configurationSet(configurationValue: [5], parameterNumber: 1, size: 1)
@@ -576,11 +571,11 @@ def updated() {
     lightSensor = lightsense ? 1 : 0
     cmds << zwave.configurationV1.configurationSet(configurationValue: [lightSensor], parameterNumber: 14, size: 1)
     cmds << zwave.configurationV1.configurationGet(parameterNumber: 14)
-	//param 15 reset cycle
-	if (settings.resetcycle) {
-		cmds << zwave.configurationV1.configurationSet(configurationValue: [settings.resetcycle.toInteger()], parameterNumber: 15, size: 1)
-		cmds << zwave.configurationV1.configurationGet(parameterNumber: 15)
-	}
+    //param 15 reset cycle
+    if (settings.resetcycle) {
+	cmds << zwave.configurationV1.configurationSet(configurationValue: [settings.resetcycle.toInteger()], parameterNumber: 15, size: 1)
+	cmds << zwave.configurationV1.configurationGet(parameterNumber: 15)
+    }
     else {
        	cmds << zwave.configurationV1.configurationSet(configurationValue: [2], parameterNumber: 15, size: 1)
        	cmds << zwave.configurationV1.configurationGet(parameterNumber: 15)
@@ -598,17 +593,17 @@ def updated() {
 
     cmds << zwave.associationV1.associationSet(groupingIdentifier:0, nodeId:zwaveHubNodeId)
     cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId)
-	cmds << zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
-	cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId)
+    cmds << zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
+    cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId)
         
-	def nodes = []
-	if (settings.requestedGroup2 != state.currentGroup2) {
+    def nodes = []
+    if (settings.requestedGroup2 != state.currentGroup2) {
         nodes = parseAssocGroupList(settings.requestedGroup2, 2)
        	cmds << zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: [])
        	cmds << zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes)
        	cmds << zwave.associationV2.associationGet(groupingIdentifier: 2)
        	state.currentGroup2 = settings.requestedGroup2
-	}
+    }
     if (settings.requestedGroup3 != state.currentGroup3) {
        	nodes = parseAssocGroupList(settings.requestedGroup3, 3)
        	cmds << zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: [])
@@ -616,7 +611,7 @@ def updated() {
        	cmds << zwave.associationV2.associationGet(groupingIdentifier: 3)
        	state.currentGroup3 = settings.requestedGroup3
     }
-	// end switch and dimmer settings
+    // end switch and dimmer settings
 		        
     // dimmer specific settings
     //param 7 zwave step
@@ -638,7 +633,7 @@ def updated() {
     if (settings.manualStepDuration) {
       	cmds << zwave.configurationV1.configurationSet(configurationValue: [0,settings.manualStepDuration.toInteger()], parameterNumber: 10, size: 2)
       	cmds << zwave.configurationV1.configurationGet(parameterNumber: 10)  
-	}
+    }
     //switch mode param 16
     switchMode = switchmode ? 1 : 0
     cmds << zwave.configurationV1.configurationSet(configurationValue: [switchMode], parameterNumber: 16, size: 1)
@@ -654,7 +649,7 @@ def updated() {
         dimLevel =switchlevel.toInteger()
     }
     //dim rate param 18
-	cmds << zwave.configurationV1.configurationSet(configurationValue: [dimrate ? 1 : 0], parameterNumber: 18, size: 1)
+    cmds << zwave.configurationV1.configurationSet(configurationValue: [dimrate ? 1 : 0], parameterNumber: 18, size: 1)
     cmds << zwave.configurationV1.configurationGet(parameterNumber: 18)
 
     //end of dimmer specific params   
@@ -666,7 +661,7 @@ def configure() {
 	def cmds = []
 	// Make sure lifeline is associated
 	cmds << zwave.associationV1.associationSet(groupingIdentifier:0, nodeId:zwaveHubNodeId)
-    cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId)
+        cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId)
 	cmds << zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
 	cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId)
     delayBetween(cmds, 1000)
