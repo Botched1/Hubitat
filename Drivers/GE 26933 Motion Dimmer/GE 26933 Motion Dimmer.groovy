@@ -1,11 +1,10 @@
 /**
  *  GE Motion Dimmer Switch (Model 26933) DTH
  *
- *  Copyright © 2018 Michael Struck
- *  Original Author: Matt Lebaugh (@mlebaugh)
  *
  *  Original based off of the Dimmer Switch under Templates in the IDE 
- *  This based on DTH from Michael Struck - Version 1.0.5 12/4/18 
+ *  Original custom DTH Author: Matt Lebaugh (@mlebaugh)
+ *  This code based on DTH from Michael Struck - Version 1.0.5 12/4/18 
  *
  *  HUBITAT PORT
  *  1.1.0 (01/21/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
