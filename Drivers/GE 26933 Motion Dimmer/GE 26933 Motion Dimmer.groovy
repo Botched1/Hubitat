@@ -359,12 +359,12 @@ private dimmerEvents(hubitat.zwave.Command cmd) {
 
 
 def on() {
-    delayBetween([zwave.basicV1.basicSet(value: 0xFF).format(), zwave.switchMultilevelV3.switchMultilevelGet().format()], 5000) 
+    delayBetween([zwave.basicV1.basicSet(value: 0xFF).format(), zwave.switchMultilevelV3.switchMultilevelGet().format()], 4000) 
 }
 
 
 def off() {
-	delayBetween ([zwave.basicV1.basicSet(value: 0x00).format(), zwave.switchMultilevelV3.switchMultilevelGet().format()], 5000)
+	delayBetween ([zwave.basicV1.basicSet(value: 0x00).format(), zwave.switchMultilevelV3.switchMultilevelGet().format()], 4000)
 }
 
 
@@ -578,16 +578,6 @@ def updated() {
 	//end of dimmer specific params
         
     delayBetween(cmds, 500)
-}
-
-def Up() {
-	sendEvent(name: "pushed", value: "1", descriptionText: "On/Up (button 1) on $device.displayName was pushed", isStateChange: true, type: "digital")
-    on()
-}
-
-def Down() {
-	sendEvent(name: "pushed", value: "2", descriptionText: "Off/Down (button 2) on $device.displayName was pushed", isStateChange: true, type: "digital")
-    off()
 }
 
 def configure() {
