@@ -341,7 +341,7 @@ def logsOff(){
 //
 def zwaveEvent(hubitat.zwave.commands.sensormultilevelv5.SensorMultilevelReport cmd) {
 	if (logEnable) log.debug "SensorMultilevelReport...START"
-	log.trace "$cmd"
+	if (logEnable) log.debug "cmd: $cmd"
 	def map = [:]
 	if (logEnable) log.debug "cmd.sensorType: " + cmd.sensorType
 	if (cmd.sensorType.toInteger() == 1) {
@@ -428,8 +428,8 @@ def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOpera
 }
 
 def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeReport cmd) {
-    log.trace "$cmd"
 	if (logEnable) log.debug "ThermostatModeReport...START"
+	if (logEnable) log.debug "cmd: $cmd"
 	def map = [name: "thermostatMode", data:[supportedThermostatModes: state.supportedModes]]
 	switch (cmd.mode) {
 		case hubitat.zwave.commands.thermostatmodev2.ThermostatModeReport.MODE_OFF:
