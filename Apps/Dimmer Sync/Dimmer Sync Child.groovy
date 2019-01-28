@@ -23,6 +23,7 @@
  *  V1.0.0 - 12/31/2018 - Initial release.
  *  V1.1.0 - 01/10/2019 - Added Restrictions by Mode.
  *  V1.1.1 - 01/15/2019 - Fixed restrictions by mode, 1.1.0 didn't work correctly.
+ *  V1.1.2 - 01/28/2019 - Fixed another bug in restrictions by mode
  */
 
 definition(
@@ -88,20 +89,6 @@ def pageConfig() {
 	}
 }
 
-def display() {
-	section() {
-		paragraph getFormat("line")
-		input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false
-	}
-}
-
-def display2() {
-	section() {
-		paragraph getFormat("line")
-		paragraph "<div style='color:#00CED1;text-align:center'>Dimmer Sync Child - App Version: 1.1.1</div>"
-	}
-}
-
 def getFormat(type, myText=""){
 	if(type == "header-green") return "<div style='color:#ffffff;font-weight: bold;background-color:#81BC00;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
 	if(type == "header-darkcyan") return "<div style='color:#ffffff;font-weight: bold;background-color:#008B8B;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
@@ -159,7 +146,7 @@ def subscribeNow() {
 	unsubscribe()
 	subscribe(masterDimmer, "switch", masterONOFFHandler) 
 	subscribe(masterDimmer, "level", masterLEVELHandler) 
-	subscribe(location, "hsmStatus", statusHandler)
+	subscribe(location, "mode", statusHandler)
 }
 
 def masterONOFFHandler(evt){
@@ -193,6 +180,7 @@ def masterONOFFHandler(evt){
 def masterLEVELHandler(evt){
 	LOGDEBUG("Event Level Value: " + evt.value)
 	LOGDEBUG("slaveDimmer: " + slaveDimmer)
+	LOGDEBUG("Master ON/OFF: " + masterDimmer.currentValue("switch"))
 	def NewLevel = evt.value.toInteger()
 	
 	if(state.modeCheck == false){
@@ -222,4 +210,18 @@ def modeCheck() {
 def statusHandler(evt){
   LOGDEBUG("Location status updated. Running modeCheck")
   modeCheck()
+}
+
+def display() {
+	section() {
+		paragraph getFormat("line")
+		input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false
+	}
+}
+
+def display2() {
+	section() {
+		paragraph getFormat("line")
+		paragraph "<div style='color:#00CED1;text-align:center'>Dimmer Sync Child - App Version: 1.1.2</div>"
+	}
 }
