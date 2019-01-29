@@ -7,6 +7,7 @@
  *
  *  HUBITAT PORT
  *  1.3.0 (01/29/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
+ *  1.4.0 (01/29/2019) - Changed doubletap events to type doubleTapped
  *                       
  */
 
@@ -14,6 +15,7 @@ metadata {
 	definition (name: "GE Z-Wave Plus Switch", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Actuator"
 		capability "PushableButton"
+		capability "DoubleTapableButton"
 		capability "Configuration"
 		capability "Refresh"
 		capability "Sensor"
@@ -104,11 +106,11 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	
 	if (cmd.value == 255) {
 		if (logEnable) log.debug "Double Up Triggered"
-		result << createEvent([name: "pushed", value: 1, descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true])
+		result << createEvent([name: "doubleTapped", value: 1, descriptionText: "Doubletap up (button 1) on $device.displayName", isStateChange: true])
     }
 	else if (cmd.value == 0) {
 		if (logEnable) log.debug "Double Down Triggered"
-		result << createEvent([name: "pushed", value: 2, descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true])
+		result << createEvent([name: "doubleTapped", value: 2, descriptionText: "Doubletap down (button 2) on $device.displayName", isStateChange: true])
     }
 
     return result
