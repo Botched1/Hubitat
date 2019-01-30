@@ -8,7 +8,7 @@
  *  HUBITAT PORT
  *  1.3.0 (01/29/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
  *  1.4.0 (01/29/2019) - Changed doubletap events to type doubleTapped
- *                       
+ *  1.5.0 (01/29/2019) - Added control of indicator light
  */
 
 metadata {
@@ -17,13 +17,14 @@ metadata {
 		capability "PushableButton"
 		capability "DoubleTapableButton"
 		capability "Configuration"
+		capability "Indicator"
 		capability "Refresh"
 		capability "Sensor"
 		capability "Switch"		
 		capability "Light"
 		
-	    command "doubleUp"
-        command "doubleDown"
+	    command "doubletapUp"
+        command "doubletapDown"
         command "inverted"
         command "notInverted"
 
@@ -210,6 +211,24 @@ def off() {
 	],500)
 }
 
+def indicatorWhenOn() {
+	if (logEnable) log.debug "indicatorWhenOn"
+	sendEvent(name: "indicatorStatus", value: "when on", display: false)
+	zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 3, size: 1).format()
+}
+
+def indicatorWhenOff() {
+	if (logEnable) log.debug "indicatorWhenOff"
+	sendEvent(name: "indicatorStatus", value: "when off", display: false)
+	zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 3, size: 1).format()
+}
+
+def indicatorNever() {
+	if (logEnable) log.debug "indicatorNever"
+	sendEvent(name: "indicatorStatus", value: "never", display: false)
+	zwave.configurationV2.configurationSet(configurationValue: [2], parameterNumber: 3, size: 1).format()
+}
+
 def refresh() {
 	log.info "refresh() is called"
 	
@@ -228,26 +247,26 @@ def installed() {
 	configure()
 }
 
-def doubleUp() {
+def doubletapUp() {
 	if (logEnable) log.debug "Double Up Triggered"
-	sendEvent(name: "pushed", value: 1, descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true)
+	sendEvent(name: "doubleTapped", value: 1, descriptionText: "Doubletap up (button 1) on $device.displayName", isStateChange: true)
 }
 
-def doubleDown() {
+def doubletapDown() {
 	if (logEnable) log.debug "Double Down Triggered"
-	sendEvent(name: "pushed", value: 2, descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true)
+	sendEvent(name: "doubleTapped", value: 2, descriptionText: "Doubletap down (button 2) on $device.displayName", isStateChange: true)
 }
 
 def inverted() {
 	if (logEnable) log.debug "Inverted Triggered"
 	sendEvent(name: "inverted", value: "inverted", display: false)
-	sendHubCommand(new hubitat.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 4, size: 1).format()))
+	zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 4, size: 1).format()
 }
 
 def notInverted() {
 	if (logEnable) log.debug "Not Inverted Triggered"
 	sendEvent(name: "inverted", value: "not inverted", display: false)
-	sendHubCommand(new hubitat.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()))
+	zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()
 }
 
 def updated() {
