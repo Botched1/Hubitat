@@ -273,7 +273,7 @@ def setLevel(value) {
 	} else {
 		zdelay = 3
 	}
-    def delay = (zsteps * zdelay * 10 + 3000).toInteger
+    def delay = (zsteps * zdelay * 10 + 3000).toInteger()
 	if (logEnable) log.debug "setLevel >> value: $level, delay: $delay"
 	delayBetween ([
     	zwave.basicV1.basicSet(value: level).format(),
