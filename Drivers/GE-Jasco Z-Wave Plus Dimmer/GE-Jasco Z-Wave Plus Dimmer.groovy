@@ -7,7 +7,7 @@
  *
  *  HUBITAT PORT
  *  1.0.0 (01/29/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
- *                       
+ *  1.1.0 (01/30/2019) - Fixed missing parenthesis in setLevel, and fixed an issue where switch on events were created every time dimmer level changed.                       
  */
 
 metadata {
@@ -256,10 +256,14 @@ def off() {
 def setLevel(value) {
 	def valueaux = value as Integer
 	def level = Math.max(Math.min(valueaux, 99), 0)
+	def currval = device.currentValue("switch")
 	state.level = level
-	if (level > 0) {
+	
+	if (logEnable) log.debug "SetLevel (value) - currval: $currval"
+	
+	if (level > 0 && currval == "off") {
 		sendEvent(name: "switch", value: "on")
-	} else {
+	} else if (level == 0 && currval == "on") {
 		sendEvent(name: "switch", value: "off")
 	}
 	sendEvent(name: "level", value: level, unit: "%")
@@ -304,8 +308,13 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd
 
 private dimmerEvents(hubitat.zwave.Command cmd) {
 	if (logEnable) log.debug "dimmerEvents"
+	if (logEnable) log.debug "device.currentValue(switch): " + device.currentValue("switch")
+	def currvalue = device.currentValue("switch")
 	def value = (cmd.value ? "on" : "off")
-	def result = [createEvent(name: "switch", value: value, isStateChange: true)]
+	def result = []
+	if (currvalue != value) {
+		result << createEvent(name: "switch", value: value, isStateChange: true)
+	}
 	if (cmd.value && cmd.value <= 100) {
 		result << createEvent(name: "level", value: cmd.value, unit: "%")
 	}
