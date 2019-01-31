@@ -9,6 +9,7 @@
  *  1.3.0 (01/29/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
  *  1.4.0 (01/29/2019) - Changed doubletap events to type doubleTapped
  *  1.5.0 (01/29/2019) - Added control of indicator light
+ *  1.6.0 (01/31/2019) - Reded CRC16 section based on Hubitat example to try and fix CRC16 errors
  */
 
 metadata {
@@ -87,12 +88,12 @@ def parse(String description) {
 
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 	log.warn("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
-	def encapsulatedCommand = zwave.commandClass(cmd.commandClass)?.command(cmd.command)?.parse(cmd.data)
-	if (!encapsulatedCommand) {
-		log.warn("zwaveEvent(): Could not extract command from ${cmd}")
-	} else {
-		return zwaveEvent(encapsulatedCommand)
-	}
+	def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data,1)
+	if (encapsulatedCommand) {
+       zwaveEvent(encapsulatedCommand)
+   } else {
+       log.warn "Unable to extract CRC16 command from ${cmd}"
+   }
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
