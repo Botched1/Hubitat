@@ -9,6 +9,7 @@
  *  1.0.0 (01/29/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
  *  1.1.0 (01/30/2019) - Fixed missing parenthesis in setLevel, and fixed an issue where switch on events were created every time dimmer level changed.                       
  *  1.2.0 (01/31/2019) - Reded CRC16 section based on Hubitat example to try and fix CRC16 errors
+ *  1.3.0 (01/31/2019) - Added multilevelget to refresh(), tweaked on/off refresh on long delay. May help some scenarios
  */
 
 metadata {
@@ -291,7 +292,8 @@ def setLevel(value, duration) {
 	def level = Math.max(Math.min(valueaux, 99), 0)
 	state.level = level
 	def dimmingDuration = (duration < 128 ? duration : 128 + Math.round(duration / 60)).toInteger()
-	def getStatusDelay = (duration < 128 ? (duration*1000)+2000 : (Math.round(duration / 60)*60*1000)+3000).toInteger()    
+	//def getStatusDelay = (duration < 128 ? (duration*1000)+2000 : (Math.round(duration / 60)*60*1000)+3000).toInteger()    
+	def getStatusDelay = (dimmingDuration + 3000).toInteger()    
 	if (logEnable) log.debug "setLevel(value, duration) >> value: $level, duration: $duration, delay: $getStatusDelay"
 	delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration).format(),
 				   zwave.switchMultilevelV1.switchMultilevelGet().format()], getStatusDelay)
@@ -345,6 +347,7 @@ def refresh() {
 	
 	def cmds = []
 	cmds << zwave.switchBinaryV1.switchBinaryGet().format()
+	cmds << zwave.switchMultilevelV1.switchMultilevelGet().format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
     cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
