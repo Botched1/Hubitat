@@ -9,7 +9,7 @@
  *  1.2.0 (01/24/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
  *                       Increased delays on status update after on/off/setlevel.
  *  1.3.0 (02/07/2019) - Modified setlevel code to create switch on/off event is state should change
- *                       
+ *  1.4.0 (02/08/2019) - Updated CRC16 code to support newer firmware devices                     
  */
 metadata {
 	definition (name: "GE Motion Dimmer Switch 26933", namespace: "Botched1", author: "Jason Bottjen") {
@@ -183,13 +183,13 @@ def parse(String description) {
 
 
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
-	if (logEnable) log.debug "zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}"
-	def encapsulatedCommand = zwave.commandClass(cmd.commandClass)?.command(cmd.command)?.parse(cmd.data)
-	if (!encapsulatedCommand) {
-		if (logEnable) log.debug "zwaveEvent(): Could not extract command from ${cmd}"
-	} else {
-		return zwaveEvent(encapsulatedCommand)
-	}
+    def ver = cmd.commandClass == 0x71 ? 2 : 1
+    def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data, ver)
+    if (encapsulatedCommand) {
+        zwaveEvent(encapsulatedCommand)
+    } else {
+        log.warn "Unable to extract CRC16 command from ${cmd}"
+    }
 }
 
 
