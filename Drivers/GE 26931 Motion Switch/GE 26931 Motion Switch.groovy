@@ -160,13 +160,13 @@ def parse(String description) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
-	log.debug("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
-	def encapsulatedCommand = zwave.commandClass(cmd.commandClass)?.command(cmd.command)?.parse(cmd.data)
-	if (!encapsulatedCommand) {
-		log.debug("zwaveEvent(): Could not extract command from ${cmd}")
-	} else {
-		return zwaveEvent(encapsulatedCommand)
-	}
+    def ver = cmd.commandClass == 0x71 ? 2 : 1
+    def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data, ver)
+    if (encapsulatedCommand) {
+        zwaveEvent(encapsulatedCommand)
+    } else {
+        log.warn "Unable to extract CRC16 command from ${cmd}"
+    }
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
