@@ -7,7 +7,7 @@
  *
  *  HUBITAT PORT
  *  1.2.0 (01/24/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
- *                       
+ *  1.3.0 (02/08/2019) - Redid CRC16 code to support newer firmware devices                       
  */
 
 metadata {
