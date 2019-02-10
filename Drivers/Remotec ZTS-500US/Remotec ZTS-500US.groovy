@@ -14,6 +14,8 @@
  *
  *  Version 1.0 - 01/27/2019     Initial Version
  *  Version 1.1 - 02/10/2019     Added Filter Reset command. Added Swing, deadband, and filter hours prefrences.
+ *  Version 1.2 - 02/10/2019     Fixed many parameter issues. Eliminated MANY redundant Set/Get commands, greatly improving responsiveness. 
+ *                               Put filter param,eters in MONTHS instead of HOURS, per current vendor firmware version.
  */
 metadata {
 	definition (name: "Remotec ZTS-500", namespace: "Botched1", author: "Jason Bottjen") {
@@ -34,7 +36,7 @@ metadata {
 		attribute "currentSensorCal", "number"
 	}
 		preferences {
-/*        	input "autoTempDiffZTS", "enum", title: "Temperature change reporting threshold", description: "Set the temperature change reporting threshold", multiple: false, defaultValue: "4.0°F", options: ["Disabled","1.0°F","2.0°F","3.0°F","4.0°F","5.0°F","6.0°F","7.0°F","8.0°F"], required: false, displayDuringSetup: true
+/*        	input "autoTempDiff", "enum", title: "Temperature change reporting threshold", description: "Set the temperature change reporting threshold", multiple: false, defaultValue: "4.0°F", options: ["Disabled","1.0°F","2.0°F","3.0°F","4.0°F","5.0°F","6.0°F","7.0°F","8.0°F"], required: false, displayDuringSetup: true
 */
         	input "swingDegrees", "enum", title: "Temperature Swing", description: "Number of degrees above/below setpoint before unit turns on", multiple: false, defaultValue: "2", options: ["1","2","3","4"], required: false, displayDuringSetup: true
 			input "deadbandDegrees", "enum", title: "Deadband", description: "Minimum number of degrees between the heating and cooling setpoints", multiple: false, defaultValue: "4", options: ["3","4","5","6"], required: false, displayDuringSetup: true
@@ -49,39 +51,8 @@ def parse(String description) {
 	if (logEnable) log.debug "Parse...START"
 	if (logEnable) log.debug "Parsing '${description}'"
 	def map = createEvent(zwaveEvent(zwave.parse(description, [0x20:1, 0x31:5, 0x40:3, 0x42:2, 0x43:2, 0x44:4, 0x45:2, 0x59:2, 0x5A:1, 0x5E:2, 0x70:1, 0x72:2, 0x73:1, 0x7A:3, 0x80:1, 0x85:2, 0x86:2, 0x98:1])))
-    if (logEnable) log.debug "In parse, map is $map"
-	if (!map) {
-		if (logEnable) log.debug "Null map in parse section."
-		return null
-	}
-
-	def result = [map]
-	if (map.isStateChange && map.name in ["heatingSetpoint","coolingSetpoint","thermostatMode"]) {
-		def map2 = [name: "thermostatSetpoint",	unit: getTemperatureScale()]
-		if (logEnable) log.debug "Map.name: " + map.name
-		if (map.name == "thermostatMode") {
-			if (map.value == "cool") {
-				map2.value = device.latestValue("coolingSetpoint")
-			}
-			else {
-				map2.value = device.latestValue("heatingSetpoint")
-			}
-		}
-		else {
-			def mode = device.latestValue("thermostatMode")
-			if ((map.name == "heatingSetpoint" && mode == "heat") || (map.name == "coolingSetpoint" && mode == "cool")) {
-				map2.value = map.value
-			}
-		}
-        if (logEnable) log.debug "map2 is $map2"
-		if (map2.value != null) {
-			result << createEvent(map2)
-		}
-	}
-
-	if (logEnable) log.debug "Parse returned $result"
-	if (logEnable) log.debug "Parse...END"
-	result
+    // if (logEnable) log.debug "In parse, map is $map"
+	return null
 }
 
 //
@@ -96,10 +67,7 @@ def setHeatingSetpoint(double degrees) {
 	if (logEnable) log.debug "precision is $p"
     if (logEnable) log.debug "setpoint requested is $degrees"
     if (logEnable) log.debug "setHeatingSetpoint...END"
-	delayBetween([
-		zwave.thermostatSetpointV1.thermostatSetpointSet(setpointType: 1, scale: state.scale, precision: p, scaledValue: degrees).format(),
-		zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: 1).format()
-	], 1000)
+	return zwave.thermostatSetpointV1.thermostatSetpointSet(setpointType: 1, scale: state.scale, precision: p, scaledValue: degrees).format()
 }
 
 def setCoolingSetpoint(double degrees) {
@@ -111,115 +79,95 @@ def setCoolingSetpoint(double degrees) {
 	if (logEnable) log.debug "precision is $p"
     if (logEnable) log.debug "setpoint requested is $degrees"
     if (logEnable) log.debug "setCoolingSetpoint...END"
-	delayBetween([
-		zwave.thermostatSetpointV1.thermostatSetpointSet(setpointType: 2, scale: state.scale, precision: p, scaledValue: degrees).format(),
-		zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: 2).format()
-	], 1000)
+	return zwave.thermostatSetpointV1.thermostatSetpointSet(setpointType: 2, scale: state.scale, precision: p, scaledValue: degrees).format()
 }
 
 def off() {
 	if (logEnable) log.debug "Switching to off mode..."
-    delayBetween([
+    return delayBetween([
 		zwave.thermostatModeV2.thermostatModeSet(mode: 0).format(),
-		zwave.thermostatModeV2.thermostatModeGet().format(),
         zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
 	], 1000)
 }
 
+def on() {
+	if (logEnable) log.debug "Executing 'on'"
+	log.warn "ON is too ambiguous for a multi-state thermostat, so it does nothing in this driver. Use setThermostatMode or the AUTO/COOL/HEAT commands."
+}
+
 def heat() {
 	if (logEnable) log.debug "Switching to heat mode..."
-    delayBetween([
+	return delayBetween([
 		zwave.thermostatModeV2.thermostatModeSet(mode: 1).format(),
-		zwave.thermostatModeV2.thermostatModeGet().format(),
-        zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
+		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
 	], 1000)   
 }
 
 def emergencyHeat() {
 	if (logEnable) log.debug "Switching to emergency heat mode..."
-    delayBetween([
+    return delayBetween([
 		zwave.thermostatModeV2.thermostatModeSet(mode: 4).format(),
-		zwave.thermostatModeV2.thermostatModeGet().format(),
-        zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
+		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
 	], 1000)
 }
 
 def cool() {
 	if (logEnable) log.debug "Switching to cool mode..."
-    delayBetween([
+    return delayBetween([
 		zwave.thermostatModeV2.thermostatModeSet(mode: 2).format(),
-		zwave.thermostatModeV2.thermostatModeGet().format(),
-        zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
+		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
 	], 1000)
 }
 
 def setThermostatMode(value) {
 	if (logEnable) log.debug "Executing 'setThermostatMode'"
 	if (logEnable) log.debug "value: " + value
+	def cmds = []
 	switch (value) {
 		case "auto":
 		    if (logEnable) log.debug "Switching to auto mode..."
-			delayBetween([
-				zwave.thermostatModeV2.thermostatModeSet(mode: 3).format(),
-				zwave.thermostatModeV2.thermostatModeGet().format(),
-        		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
-			], 1000)
+			cmds << zwave.thermostatModeV2.thermostatModeSet(mode: 3).format()
 			break
 		case "off":
 			if (logEnable) log.debug "Switching to off mode..."
-    		delayBetween([
-				zwave.thermostatModeV2.thermostatModeSet(mode: 0).format(),
-				zwave.thermostatModeV2.thermostatModeGet().format(),
-        		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
-			], 1000)
+			cmds << zwave.thermostatModeV2.thermostatModeSet(mode: 0).format()
 			break
 		case "heat":
 			if (logEnable) log.debug "Switching to heat mode..."
-    		delayBetween([
-				zwave.thermostatModeV2.thermostatModeSet(mode: 1).format(),
-				zwave.thermostatModeV2.thermostatModeGet().format(),
-        		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
-			], 1000)
+			cmds << zwave.thermostatModeV2.thermostatModeSet(mode: 1).format()
 			break
 		case "cool":
 			if (logEnable) log.debug "Switching to cool mode..."
-    		delayBetween([
-				zwave.thermostatModeV2.thermostatModeSet(mode: 2).format(),
-				zwave.thermostatModeV2.thermostatModeGet().format(),
-        		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
-			], 1000)
+			cmds << zwave.thermostatModeV2.thermostatModeSet(mode: 2).format()
 			break
 		case "emergency heat":
 			if (logEnable) log.debug "Switching to emergency heat mode..."
-    		delayBetween([
-				zwave.thermostatModeV2.thermostatModeSet(mode: 4).format(),
-				zwave.thermostatModeV2.thermostatModeGet().format(),
-        		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
-			], 1000)
+			cmds << zwave.thermostatModeV2.thermostatModeSet(mode: 4).format()
 			break
 	}
+	cmds << zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
+	return delayBetween(cmds, 1000)
 }
 
 def fanOn() {
 	if (logEnable) log.debug "Switching fan to on mode..."
-    delayBetween([
+    return delayBetween([
 		zwave.thermostatFanModeV3.thermostatFanModeSet(fanMode: 1).format(),
-		zwave.thermostatFanModeV3.thermostatFanModeGet().format(),
-        zwave.thermostatFanStateV1.thermostatFanStateGet().format()
+		zwave.thermostatFanStateV1.thermostatFanStateGet().format()
 	], 1000)   
 }
 
 def fanAuto() {
 	if (logEnable) log.debug "Switching fan to auto mode..."
-    delayBetween([
+    return delayBetween([
 		zwave.thermostatFanModeV3.thermostatFanModeSet(fanMode: 0).format(),
-		zwave.thermostatFanModeV3.thermostatFanModeGet().format(),
-        zwave.thermostatFanStateV1.thermostatFanStateGet().format()
+		zwave.thermostatFanStateV1.thermostatFanStateGet().format()
 	], 1000)
 }
 
 def fanCirculate() {
-	if (logEnable) log.debug "Fan circulate mode not supported..."
+	if (logEnable) log.debug "Fan circulate mode not supported for this thermostat type..."
+	log.warn "Fan circulate mode not supported for this thermostat type..."
     /*
 	sendEvent(name: "currentfanMode", value: "Fan Cycle Mode" as String)
 	delayBetween([
@@ -233,32 +181,29 @@ def fanCirculate() {
 def setThermostatFanMode(value) {
 	if (logEnable) log.debug "Executing 'setThermostatFanMode'"
 	if (logEnable) log.debug "value: " + value
+	def cmds = []
 	switch (value) {
 		case "on":
-			if (logEnable) log.debug "Switching fan to on mode..."
-    		delayBetween([
-				zwave.thermostatFanModeV3.thermostatFanModeSet(fanMode: 1).format(),
-				zwave.thermostatFanModeV3.thermostatFanModeGet().format(),
-        		zwave.thermostatFanStateV1.thermostatFanStateGet().format()
-			], 1000)   
+			if (logEnable) log.debug "Switching fan to ON mode..."
+			cmds << zwave.thermostatFanModeV3.thermostatFanModeSet(fanMode: 1).format()
 			break
 		case "auto":
-			if (logEnable) log.debug "Switching to heat mode..."
-    		delayBetween([
-				zwave.thermostatModeV2.thermostatFanModeSet(mode: 1).format(),
-				zwave.thermostatModeV2.thermostatFanModeGet().format(),
-        		zwave.thermostatFanStateV1.thermostatFanStateGet().format()
-			], 1000)
+			if (logEnable) log.debug "Switching fan to AUTO mode..."
+			cmds << zwave.thermostatFanModeV3.thermostatFanModeSet(fanMode: 0).format()
+			break
+		default:
+			log.warn "Fan Mode $value unsupported."
 			break
 	}
+	cmds << zwave.thermostatFanStateV1.thermostatFanStateGet().format()
+	return delayBetween(cmds, 1000)
 }
 
 def auto() {
 	if (logEnable) log.debug "Switching to auto mode..."
-    delayBetween([
+    return delayBetween([
 		zwave.thermostatModeV2.thermostatModeSet(mode: 3).format(),
-		zwave.thermostatModeV2.thermostatModeGet().format(),
-        zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
+		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format()
 	], 1000)
 }
 
@@ -269,30 +214,31 @@ def setSchedule() {
 
 def refresh() {
 	if (logEnable) log.debug "Executing 'refresh'"
-	delayBetween([
+	if (logEnable) log.debug "....done executing refresh"
+	return delayBetween([
 		zwave.thermostatModeV2.thermostatModeGet().format(),
 		zwave.thermostatOperatingStateV2.thermostatOperatingStateGet().format(),
 		zwave.thermostatFanModeV3.thermostatFanModeGet().format(),
+		zwave.thermostatFanStateV1.thermostatFanStateGet().format(),
 		zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: 1).format(),
 		zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: 2).format()
 	], 1000)
-    if (logEnable) log.debug "....done executing refresh"
+    
 }
 
 def configure() {
 	if (logEnable) log.debug "Executing 'configure'"
 	if (logEnable) log.debug "zwaveHubNodeId: " + zwaveHubNodeId
+    if (logEnable) log.debug "....done executing 'configure'"
 	
-	delayBetween([
+	return delayBetween([
 		zwave.thermostatModeV2.thermostatModeSupportedGet().format(),
 		zwave.thermostatFanModeV3.thermostatFanModeSupportedGet().format(),
 		zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:[zwaveHubNodeId]).format()
-	], 2000)
-    if (logEnable) log.debug "....done executing 'configure'"
+	], 1000)
 }
 
 def SensorCal(value) {
-	if (logEnable) log.debug "SensorCal value: " + value
 	value = value.toInteger()
 	if (logEnable) log.debug "SensorCal value: " + value
 	def SetCalValue
@@ -303,7 +249,7 @@ def SensorCal(value) {
 		SetCalValue = value.toInteger()
 		if (logEnable) log.debug "SetCalValue: " + SetCalValue
 	}
-	delayBetween([
+	return delayBetween([
 		zwave.configurationV1.configurationSet(configurationValue: [0, SetCalValue] , parameterNumber: 10, size: 2).format(),
 		zwave.configurationV1.configurationGet(parameterNumber: 10).format()
 		], 1000)
@@ -312,7 +258,7 @@ def SensorCal(value) {
 def updated() {
 	if (logEnable) log.debug "Executing 'updated'"
 
-	if (logEnable) {
+    if (logEnable) {
 		log.debug "debug logging is enabled."
 		runIn(1800,logsOff)
 	}
@@ -325,7 +271,6 @@ def updated() {
         paramSwing = 2
     }
 	if (logEnable) log.debug "paramSwing: " + paramSwing
-	zwave.configurationV1.configurationSet(parameterNumber: 2, size: 2, scaledConfigurationValue: paramSwing).format()
 	
 	if (settings.deadbandDegrees) {
 	    paramDeadband = settings.deadbandDegrees.toInteger()
@@ -337,22 +282,20 @@ def updated() {
 	if (settings.filterMonths) {
 	    paramFilter = settings.filterMonths.toInteger()
     } else {
-        paramFilter = 500
+        paramFilter = 6
     }
 	if (logEnable) log.debug "paramFilter: " + paramFilter
+
+	if (logEnable) log.debug "....done executing 'updated'"
 	
-	/*
-	delayBetween([
+	return delayBetween([
 		zwave.configurationV1.configurationSet(parameterNumber: 2, size: 2, configurationValue: [0,paramSwing]).format(),
 		zwave.configurationV1.configurationGet(parameterNumber: 2).format(),
 		zwave.configurationV1.configurationSet(parameterNumber: 4, size: 2, configurationValue: [0,paramDeadband]).format(),
 		zwave.configurationV1.configurationGet(parameterNumber: 4).format(),
 		zwave.configurationV1.configurationSet(parameterNumber: 8, size: 2, configurationValue: [0,paramFilter]).format(),
 		zwave.configurationV1.configurationGet(parameterNumber: 8).format()
-		], 2000)
-	*/
-	if (logEnable) log.debug "....done executing 'updated'"
-	refresh()
+		], 1000)
 }
 
 def logsOff() {
@@ -368,18 +311,18 @@ def resetFilter() {
     if (settings.filterMonths) {
 	    paramValue = settings.filterMonths.toInteger()
     } else {
-        paramValue = 500
+        paramValue = 6
     }
 
-	if (logEnable) {log.debug "Resetting filter counter to $paramValue hours"}
+	if (logEnable) {log.debug "Resetting filter counter to $paramValue months"}
 
-	delayBetween([
+	if (logEnable) log.debug "....done executing 'resetFilter'"
+	
+	return delayBetween([
 		zwave.configurationV1.configurationSet(parameterNumber: 8, size: 2, configurationValue: [0,paramValue]).format(),
 		zwave.configurationV1.configurationGet(parameterNumber: 8).format(),
-		zwave.configurationV1.configurationSet(parameterNumber: 7, size: 1, configurationValue: [0]).format(),
-		zwave.configurationV1.configurationGet(parameterNumber: 9).format()
-		], 2000)
-	if (logEnable) log.debug "....done executing 'resetFilter'"
+		zwave.configurationV1.configurationSet(parameterNumber: 7, size: 1, configurationValue: [0]).format()
+		], 1000)
 }
 
 //
@@ -395,11 +338,11 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 			if (config.toInteger() > 10) {
 				CalValue = config == 255 ? "-1" : config == 254 ? "-2" : config == 253 ? "-3" : config == 252 ? "-4" : config == 251 ? "-5" : config == 250 ? "-6" : config == 249 ? "-7" : config == 248 ? "-8" : config == 247 ? "-9" : config == 246 ? "-10" : "unknown"
 				if (logEnable) log.debug "CalValue: " + CalValue
-				sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, ,	unit: getTemperatureScale(), isStateChange:true])
+				sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
 			} else {
 				CalValue = config
 				if (logEnable) log.debug "CalValue: " + CalValue
-				sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, ,	unit: getTemperatureScale(), isStateChange:true])
+				sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
 			}
     	}
 	}
@@ -431,7 +374,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	def map = [:]
 	map.value = cmd.scaledValue
 	map.unit = getTemperatureScale()
-	map.displayed = false
+	map.displayed = true
     if (logEnable) log.debug "value is $map.value and unit is $map.unit"
 	switch (cmd.setpointType) {
 		case 1:
@@ -447,8 +390,11 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	state.scale = cmd.scale
 	state.precision = cmd.precision
     if (logEnable) log.debug "In ThermostatSetpointReport map is $map"
-    sendEvent(map)
+    
+	sendEvent([name: map.name, value: map.value, displayed:true, unit: map.unit, isStateChange:true])
+
 	if (logEnable) log.debug "ThermostatSetPointReport...END"
+	return map
 	
 }
 
@@ -491,7 +437,6 @@ def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOpera
     if (logEnable) log.debug "In ThermostatOperatingStateReport map is $map"
     sendEvent(map)
 	if (logEnable) log.debug "ThermostatOperatingStateReport...END"
-	
 }
 
 def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeReport cmd) {
