@@ -15,7 +15,7 @@
  *  Version 1.0 - 01/27/2019     Initial Version
  *  Version 1.1 - 02/10/2019     Added Filter Reset command. Added Swing, deadband, and filter hours prefrences.
  *  Version 1.2 - 02/10/2019     Fixed many parameter issues. Eliminated MANY redundant Set/Get commands, greatly improving responsiveness. 
- *                               Put filter param,eters in MONTHS instead of HOURS, per current vendor firmware version.
+ *                               Put filter parameters in MONTHS instead of HOURS, per current vendor firmware version.
  */
 metadata {
 	definition (name: "Remotec ZTS-500", namespace: "Botched1", author: "Jason Bottjen") {
