@@ -12,7 +12,8 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Version 1.0 - 01/27/2019
+ *  Version 1.0 - 01/27/2019     Initial Version
+ *  Version 1.1 - 02/20/2019     Added Filter Reset command. Added Swing, deadband, and filter hours prefrences.
  */
 metadata {
 	definition (name: "Remotec ZTS-500", namespace: "Botched1", author: "Jason Bottjen") {
@@ -26,17 +27,19 @@ metadata {
 		capability "Sensor"
         capability "Switch"
        
-        //command "SensorCal", [[name:"calibration",type:"NUMBER", description:"Number to add/substract from thermostat sensor", constraints:["NUMBER"]]]
-		command "SensorCal", [[name:"calibration",type:"ENUM", description:"Number to add/substract from thermostat sensor", constraints:["-10", "-9", "-8", "-7", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]]]
+		command "SensorCal", [[name:"calibration",type:"ENUM", description:"Number of degrees to add/substract from thermostat sensor", constraints:["-10", "-9", "-8", "-7", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]]]
+		command "resetFilter"
 		
 		attribute "thermostatFanState", "string"
-        //attribute "currentState", "string"
-        //attribute "currentMode", "string"
-        //attribute "currentfanMode", "string"
 		attribute "currentSensorCal", "number"
 	}
 		preferences {
-			input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
+/*        	input "autoTempDiffZTS", "enum", title: "Temperature change reporting threshold", description: "Set the temperature change reporting threshold", multiple: false, defaultValue: "4.0°F", options: ["Disabled","1.0°F","2.0°F","3.0°F","4.0°F","5.0°F","6.0°F","7.0°F","8.0°F"], required: false, displayDuringSetup: true
+*/
+        	input "swingDegrees", "enum", title: "Temperature Swing", description: "Number of degrees above/below setpoint before unit turns on", multiple: false, defaultValue: "2", options: ["1","2","3","4"], required: false, displayDuringSetup: true
+			input "deadbandDegrees", "enum", title: "Deadband", description: "Minimum number of degrees between the heating and cooling setpoints", multiple: false, defaultValue: "4", options: ["3","4","5","6"], required: false, displayDuringSetup: true
+			input "filterHours", "number", title: "Filter hours", description: "Number of hours between filter replacement notifications", multiple: false, defaultValue: "500", range: "500..4000", required: false, displayDuringSetup: true
+			input "logEnable", "bool", title: "Enable debug logging", defaultValue: false
 		}
             
 }
@@ -278,12 +281,14 @@ def refresh() {
 
 def configure() {
 	if (logEnable) log.debug "Executing 'configure'"
+	if (logEnable) log.debug "zwaveHubNodeId: " + zwaveHubNodeId
+	
 	delayBetween([
 		zwave.thermostatModeV2.thermostatModeSupportedGet().format(),
 		zwave.thermostatFanModeV3.thermostatFanModeSupportedGet().format(),
 		zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:[zwaveHubNodeId]).format()
 	], 2000)
-    if (logEnable) log.debug "....done executing configure"
+    if (logEnable) log.debug "....done executing 'configure'"
 }
 
 def SensorCal(value) {
@@ -304,8 +309,82 @@ def SensorCal(value) {
 		], 1000)
 }
 
+def updated() {
+	if (logEnable) log.debug "Executing 'updated'"
+
+	if (logEnable) {
+		log.debug "debug logging is enabled."
+		runIn(1800,logsOff)
+	}
+
+	def paramSwing, paramDeadband, paramFilter
+	
+	if (settings.swingDegrees) {
+	    paramSwing = settings.swingDegrees.toInteger()
+    } else {
+        paramSwing = 2
+    }
+	if (logEnable) log.debug "paramSwing: " + paramSwing
+	
+	if (settings.deadbandDegrees) {
+	    paramDeadband = settings.deadbandDegrees.toInteger()
+    } else {
+        paramDeadband = 4
+    }
+	if (logEnable) log.debug "paramDeadband: " + paramDeadband
+	
+	if (settings.filterHours) {
+	    paramFilter = settings.filterHours.toInteger()
+    } else {
+        paramFilter = 500
+    }
+	if (logEnable) log.debug "paramFilter: " + paramFilter
+	
+	delayBetween([
+		zwave.configurationV1.configurationSet(parameterNumber: 2, size: 2, configurationValue: [0,paramSwing]).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 2).format(),
+		zwave.configurationV1.configurationSet(parameterNumber: 4, size: 2, configurationValue: [0,paramDeadband]).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 4).format(),
+		zwave.configurationV1.configurationSet(parameterNumber: 8, size: 2, configurationValue: [0,paramFilter]).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 8).format()
+		], 2000)
+	
+	if (logEnable) log.debug "....done executing 'updated'"
+	refresh()
+}
+
+def logsOff() {
+    log.warn "debug logging disabled..."
+    device.updateSetting("logEnable",[value:"false",type:"bool"])
+}
+
+// Reset filter counter on thermostat
+def resetFilter() {
+    if (logEnable) log.debug "Executing 'resetFilter'"
+	def paramValue
+
+    if (settings.filterHours) {
+	    paramValue = settings.filterHours.toInteger()
+    } else {
+        paramValue = 500
+    }
+
+	if (logEnable) {log.debug "Resetting filter counter to $paramValue hours"}
+
+	delayBetween([
+		zwave.configurationV1.configurationSet(parameterNumber: 8, size: 2, configurationValue: [0,paramValue]).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 8).format(),
+		zwave.configurationV1.configurationSet(parameterNumber: 7, size: 1, configurationValue: [0]).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 9).format()
+		], 2000)
+	if (logEnable) log.debug "....done executing 'resetFilter'"
+}
+
+//
+// Handle updates from thermostat
+//
 def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
-	if (logEnable) log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
+	if (logEnable) log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} sent parameterNumber:${cmd.parameterNumber}, size:${cmd.size}, value:${cmd.scaledConfigurationValue}"
     def config = cmd.scaledConfigurationValue
 	def CalValue
     if (cmd.parameterNumber == 10) {
@@ -314,31 +393,17 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 			if (config.toInteger() > 10) {
 				CalValue = config == 255 ? "-1" : config == 254 ? "-2" : config == 253 ? "-3" : config == 252 ? "-4" : config == 251 ? "-5" : config == 250 ? "-6" : config == 249 ? "-7" : config == 248 ? "-8" : config == 247 ? "-9" : config == 246 ? "-10" : "unknown"
 				if (logEnable) log.debug "CalValue: " + CalValue
-				sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, isStateChange:true])
+				sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, ,	unit: getTemperatureScale(), isStateChange:true])
 			} else {
 				CalValue = config
 				if (logEnable) log.debug "CalValue: " + CalValue
-				sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, isStateChange:true])
+				sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, ,	unit: getTemperatureScale(), isStateChange:true])
 			}
     	}
 	}
 	if (logEnable) log.debug "Parameter: ${cmd.parameterNumber} value is: ${config}"
 }
 
-def updated() {
-	if (logEnable) {
-		log.debug "debug logging is enabled."
-		runIn(1800,logsOff)
-	}
-	refresh()
-}
-def logsOff(){
-    log.warn "debug logging disabled..."
-    device.updateSetting("logEnable",[value:"false",type:"bool"])
-}
-//
-// Handle updates from thermostat
-//
 def zwaveEvent(hubitat.zwave.commands.sensormultilevelv5.SensorMultilevelReport cmd) {
 	if (logEnable) log.debug "SensorMultilevelReport...START"
 	if (logEnable) log.debug "cmd: $cmd"
