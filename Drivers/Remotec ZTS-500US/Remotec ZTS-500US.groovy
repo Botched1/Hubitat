@@ -38,7 +38,7 @@ metadata {
 */
         	input "swingDegrees", "enum", title: "Temperature Swing", description: "Number of degrees above/below setpoint before unit turns on", multiple: false, defaultValue: "2", options: ["1","2","3","4"], required: false, displayDuringSetup: true
 			input "deadbandDegrees", "enum", title: "Deadband", description: "Minimum number of degrees between the heating and cooling setpoints", multiple: false, defaultValue: "4", options: ["3","4","5","6"], required: false, displayDuringSetup: true
-			input "filterHours", "number", title: "Filter hours", description: "Number of hours between filter replacement notifications", multiple: false, defaultValue: "500", range: "500..4000", required: false, displayDuringSetup: true
+			input "filterMonths", "enum", title: "Filter months", description: "Number of months between filter replacement notifications", multiple: false, defaultValue: "6", options: ["3","4","5","6","7","8","9","10","11","12"], required: false, displayDuringSetup: true
 			input "logEnable", "bool", title: "Enable debug logging", defaultValue: false
 		}
             
@@ -325,6 +325,7 @@ def updated() {
         paramSwing = 2
     }
 	if (logEnable) log.debug "paramSwing: " + paramSwing
+	zwave.configurationV1.configurationSet(parameterNumber: 2, size: 2, scaledConfigurationValue: paramSwing).format()
 	
 	if (settings.deadbandDegrees) {
 	    paramDeadband = settings.deadbandDegrees.toInteger()
@@ -333,13 +334,14 @@ def updated() {
     }
 	if (logEnable) log.debug "paramDeadband: " + paramDeadband
 	
-	if (settings.filterHours) {
-	    paramFilter = settings.filterHours.toInteger()
+	if (settings.filterMonths) {
+	    paramFilter = settings.filterMonths.toInteger()
     } else {
         paramFilter = 500
     }
 	if (logEnable) log.debug "paramFilter: " + paramFilter
 	
+	/*
 	delayBetween([
 		zwave.configurationV1.configurationSet(parameterNumber: 2, size: 2, configurationValue: [0,paramSwing]).format(),
 		zwave.configurationV1.configurationGet(parameterNumber: 2).format(),
@@ -348,7 +350,7 @@ def updated() {
 		zwave.configurationV1.configurationSet(parameterNumber: 8, size: 2, configurationValue: [0,paramFilter]).format(),
 		zwave.configurationV1.configurationGet(parameterNumber: 8).format()
 		], 2000)
-	
+	*/
 	if (logEnable) log.debug "....done executing 'updated'"
 	refresh()
 }
@@ -363,8 +365,8 @@ def resetFilter() {
     if (logEnable) log.debug "Executing 'resetFilter'"
 	def paramValue
 
-    if (settings.filterHours) {
-	    paramValue = settings.filterHours.toInteger()
+    if (settings.filterMonths) {
+	    paramValue = settings.filterMonths.toInteger()
     } else {
         paramValue = 500
     }
