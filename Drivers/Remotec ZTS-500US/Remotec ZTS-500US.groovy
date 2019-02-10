@@ -13,7 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Version 1.0 - 01/27/2019     Initial Version
- *  Version 1.1 - 02/20/2019     Added Filter Reset command. Added Swing, deadband, and filter hours prefrences.
+ *  Version 1.1 - 02/10/2019     Added Filter Reset command. Added Swing, deadband, and filter hours prefrences.
  */
 metadata {
 	definition (name: "Remotec ZTS-500", namespace: "Botched1", author: "Jason Bottjen") {
