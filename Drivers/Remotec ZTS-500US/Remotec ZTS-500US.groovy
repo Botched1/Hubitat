@@ -13,9 +13,11 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Version 1.0 - 01/27/2019     Initial Version
- *  Version 1.1 - 02/10/2019     Added Filter Reset command. Added Swing, deadband, and filter hours prefrences.
+ *  Version 1.1 - 02/10/2019     Added Filter Reset command. Added Swing, deadband, and filter hours preferences.
  *  Version 1.2 - 02/10/2019     Fixed many parameter issues. Eliminated MANY redundant Set/Get commands, greatly improving responsiveness. 
  *                               Put filter parameters in MONTHS instead of HOURS, per current vendor firmware version.
+ *  Version 1.3 - 02/20/2019     Added the remainder of configurable parameters - Temp Differential, Max Heat SP, Min Cool SP, LED Level, Sleep Timer, Temp Report Threshhold,
+ *                                                                                Temp Report Time Interval
  */
 metadata {
 	definition (name: "Remotec ZTS-500", namespace: "Botched1", author: "Jason Bottjen") {
@@ -29,18 +31,23 @@ metadata {
 		capability "Sensor"
         capability "Switch"
        
-		command "SensorCal", [[name:"calibration",type:"ENUM", description:"Number of degrees to add/substract from thermostat sensor", constraints:["-10", "-9", "-8", "-7", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]]]
+		command "SensorCal", [[name:"calibration",type:"ENUM", description:"Number of degrees to add/subtract from thermostat sensor", constraints:["-10", "-9", "-8", "-7", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]]]
 		command "resetFilter"
 		
 		attribute "thermostatFanState", "string"
 		attribute "currentSensorCal", "number"
 	}
 		preferences {
-/*        	input "autoTempDiff", "enum", title: "Temperature change reporting threshold", description: "Set the temperature change reporting threshold", multiple: false, defaultValue: "4.0°F", options: ["Disabled","1.0°F","2.0°F","3.0°F","4.0°F","5.0°F","6.0°F","7.0°F","8.0°F"], required: false, displayDuringSetup: true
-*/
         	input "swingDegrees", "enum", title: "Temperature Swing", description: "Number of degrees above/below setpoint before unit turns on", multiple: false, defaultValue: "2", options: ["1","2","3","4"], required: false, displayDuringSetup: true
+        	input "tempDiff", "enum", title: "Temperature Differential", description: "Number of degrees between turning ON/OFF Stage 1 and Stage 2. Only applies to multi-stage heating and cooling.", multiple: false, defaultValue: "2", options: ["1","2","3","4"], required: false, displayDuringSetup: true
 			input "deadbandDegrees", "enum", title: "Deadband", description: "Minimum number of degrees between the heating and cooling setpoints", multiple: false, defaultValue: "4", options: ["3","4","5","6"], required: false, displayDuringSetup: true
+			input "maxHeatSP", "number", title: "Maximum Heat Setpoint", description: "Maximum temperature the heating setpoint can be set to. (Valid Values: 41F to 99F-Deadband)", multiple: false, defaultValue: "95", range: "41..99", required: false, displayDuringSetup: true
+			input "minCoolSP", "number", title: "Minimum Cool Setpoint", description: "Minimum temperature the cooling setpoint can be set to. (Valid Values: 41F+Deadband to 99F)", multiple: false, defaultValue: "45", range: "41..99", required: false, displayDuringSetup: true
 			input "filterMonths", "enum", title: "Filter months", description: "Number of months between filter replacement notifications", multiple: false, defaultValue: "6", options: ["3","4","5","6","7","8","9","10","11","12"], required: false, displayDuringSetup: true
+			input "ledLevel", "enum", title: "LED Brightness Level", description: "LED Brightness Level", multiple: false, defaultValue: "2", options: ["1","2","3"], required: false, displayDuringSetup: true
+			input "sleepTimer", "number", title: "Sleep Timer for Display", description: "Number of seconds before display turns off (Valid Values: 3-60, 255=Always ON", multiple: false, defaultValue: "5", range: "3..255", required: false, displayDuringSetup: true
+			input "autoReportTemp", "enum", title: "Temperature Auto Report Degrees", description: "Degrees Different Before Auto Reporting Temperature", multiple: false, defaultValue: "1", options: ["0","1","2","3","4","5","6","7","8"], required: false, displayDuringSetup: true
+			input "autoReportTime", "enum", title: "Temperature Auto Report Time Interval", description: "Time Interval Before Auto Reporting Temperature", multiple: false, defaultValue: "0", options: ["0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"], required: false, displayDuringSetup: true
 			input "logEnable", "bool", title: "Enable debug logging", defaultValue: false
 		}
             
@@ -50,8 +57,8 @@ metadata {
 def parse(String description) {
 	if (logEnable) log.debug "Parse...START"
 	if (logEnable) log.debug "Parsing '${description}'"
-	def map = createEvent(zwaveEvent(zwave.parse(description, [0x20:1, 0x31:5, 0x40:3, 0x42:2, 0x43:2, 0x44:4, 0x45:2, 0x59:2, 0x5A:1, 0x5E:2, 0x70:1, 0x72:2, 0x73:1, 0x7A:3, 0x80:1, 0x85:2, 0x86:2, 0x98:1])))
-    // if (logEnable) log.debug "In parse, map is $map"
+	def map = createEvent(zwaveEvent(zwave.parse(description, [0x20:1, 0x31:5, 0x40:3, 0x42:2, 0x43:2, 0x44:4, 0x45:2, 0x59:2, 0x5A:1, 0x5E:2, 0x70:1, 0x72:2, 0x73:1, 0x7A:3, 0x85:2, 0x86:2, 0x98:1])))
+    if (logEnable) log.debug "In parse, map is $map"
 	return null
 }
 
@@ -229,7 +236,7 @@ def refresh() {
 def configure() {
 	if (logEnable) log.debug "Executing 'configure'"
 	if (logEnable) log.debug "zwaveHubNodeId: " + zwaveHubNodeId
-    if (logEnable) log.debug "....done executing 'configure'"
+	if (logEnable) log.debug "....done executing 'configure'"
 	
 	return delayBetween([
 		zwave.thermostatModeV2.thermostatModeSupportedGet().format(),
@@ -263,7 +270,7 @@ def updated() {
 		runIn(1800,logsOff)
 	}
 
-	def paramSwing, paramDeadband, paramFilter
+	def paramSwing, paramDiff, paramDeadband, paramMaxHeatSP, paramMinCoolSP, paramFilter, paramLED, paramSleepTimer, paramReportTemp, paramReportTime
 	
 	if (settings.swingDegrees) {
 	    paramSwing = settings.swingDegrees.toInteger()
@@ -272,12 +279,39 @@ def updated() {
     }
 	if (logEnable) log.debug "paramSwing: " + paramSwing
 	
+	if (settings.tempDiff) {
+	    paramDiff = settings.tempDiff.toInteger()
+    } else {
+        paramDiff = 2
+    }
+	if (logEnable) log.debug "paramDiff: " + paramDiff
+
 	if (settings.deadbandDegrees) {
 	    paramDeadband = settings.deadbandDegrees.toInteger()
     } else {
         paramDeadband = 4
     }
 	if (logEnable) log.debug "paramDeadband: " + paramDeadband
+	
+	if (settings.maxHeatSP) {
+	    paramMaxHeatSP = settings.maxHeatSP.toInteger()
+		if (paramMaxHeatSP>(99-paramDeadband)) {paramMaxHeatSP=99-paramDeadband}
+		paramMaxHeatSP = (paramMaxHeatSP + "0")
+		paramMaxHeatSP = paramMaxHeatSP.toInteger()
+    } else {
+        paramMaxHeatSP = 930
+    }
+	if (logEnable) log.debug "paramMaxHeatSP: " + paramMaxHeatSP
+
+	if (settings.minCoolSP) {
+	    paramMinCoolSP = settings.minCoolSP.toInteger()
+		if (paramMinCoolSP<(41+paramDeadband)) {paramMinCoolSP=41+paramDeadband}
+		paramMinCoolSP = (paramMinCoolSP + "0")
+		paramMinCoolSP = paramMinCoolSP.toInteger()
+    } else {
+        paramMinCoolSP = 470
+    }
+	if (logEnable) log.debug "paramMinCoolSP: " + paramMinCoolSP
 	
 	if (settings.filterMonths) {
 	    paramFilter = settings.filterMonths.toInteger()
@@ -286,16 +320,60 @@ def updated() {
     }
 	if (logEnable) log.debug "paramFilter: " + paramFilter
 
+	if (settings.ledLevel) {
+	    paramLED = settings.ledLevel.toInteger()
+    } else {
+        paramLED = 2
+    }
+	if (logEnable) log.debug "paramLED: " + paramLED
+
+	if (settings.sleepTimer) {
+		paramSleepTimer = settings.sleepTimer.toInteger()
+		if (paramSleepTimer>60 && paramSleepTimer<255) {paramSleepTimer=5}
+    } else {
+        paramSleepTimer = 5
+    }
+	if (logEnable) log.debug "paramSleepTimer: " + paramSleepTimer
+
+	if (settings.autoReportTemp) {
+		paramReportTemp = settings.autoReportTemp.toInteger()
+    } else {
+        paramReportTemp = 1
+    }
+	if (logEnable) log.debug "paramReportTemp: " + paramReportTemp
+
+	if (settings.autoReportTime) {
+		paramReportTime = settings.autoReportTime.toInteger()
+    } else {
+        paramReportTime = 0
+    }
+	if (logEnable) log.debug "paramReportTime: " + paramReportTime
+	
+	
 	if (logEnable) log.debug "....done executing 'updated'"
 	
 	return delayBetween([
 		zwave.configurationV1.configurationSet(parameterNumber: 2, size: 2, configurationValue: [0,paramSwing]).format(),
 		zwave.configurationV1.configurationGet(parameterNumber: 2).format(),
+		zwave.configurationV1.configurationSet(parameterNumber: 3, size: 2, configurationValue: [0,paramDiff]).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 3).format(),
 		zwave.configurationV1.configurationSet(parameterNumber: 4, size: 2, configurationValue: [0,paramDeadband]).format(),
 		zwave.configurationV1.configurationGet(parameterNumber: 4).format(),
+		zwave.configurationV1.configurationSet(parameterNumber: 5, size: 2, scaledConfigurationValue: paramMaxHeatSP).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 5).format(),
+		zwave.configurationV1.configurationSet(parameterNumber: 6, size: 2, scaledConfigurationValue: paramMinCoolSP).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 6).format(),
 		zwave.configurationV1.configurationSet(parameterNumber: 8, size: 2, configurationValue: [0,paramFilter]).format(),
-		zwave.configurationV1.configurationGet(parameterNumber: 8).format()
-		], 1000)
+		zwave.configurationV1.configurationGet(parameterNumber: 8).format(),
+		zwave.configurationV1.configurationSet(parameterNumber: 11, size: 2, configurationValue: [0,paramLED]).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 11).format(),
+		zwave.configurationV1.configurationSet(parameterNumber: 12, size: 2, configurationValue: [0,paramSleepTimer]).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 12).format(),
+		zwave.configurationV1.configurationSet(parameterNumber: 14, size: 2, configurationValue: [0,paramReportTemp]).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 14).format(),
+		zwave.configurationV1.configurationSet(parameterNumber: 15, size: 2, configurationValue: [0,paramReportTime]).format(),
+		zwave.configurationV1.configurationGet(parameterNumber: 15).format()
+		], 500)
 }
 
 def logsOff() {
@@ -464,27 +542,91 @@ def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeReport cmd)
 	if (logEnable) log.debug "ThermostatModeReport...END"
 }
 
-def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeSupportedReport cmd) {
-	if (logEnable) log.debug "ThermostatModeSupportedReport...START"
+def zwaveEvent(hubitat.zwave.commands.thermostatmodev1.ThermostatModeSupportedReport cmd) {
+	if (logEnable) log.debug "V1 ThermostatModeSupportedReport...START"
+	if (logEnable) log.debug "cmd: " + cmd
 	def supportedModes = ""
-	if(cmd.off) { supportedModes += "off " }
+	if (logEnable) log.debug "supportedModes: " + supportedModes
+	if (cmd.off) { supportedModes += "off " }
+	if (logEnable) log.debug "supportedModes: " + supportedModes
 	if(cmd.heat) { supportedModes += "heat " }
+	if (logEnable) log.debug "supportedModes: " + supportedModes
 	if(cmd.auxiliaryemergencyHeat) { supportedModes += "emergencyHeat " }
+	if (logEnable) log.debug "supportedModes: " + supportedModes
 	if(cmd.cool) { supportedModes += "cool " }
+	if (logEnable) log.debug "supportedModes: " + supportedModes
 	if(cmd.auto) { supportedModes += "auto " }
-	state.supportedModes = supportedModes
-	if (logEnable) log.debug "ThermostatModeSupportedReport...END"
+	if (logEnable) log.debug "supportedModes: " + supportedModes
+	if (supportedModes) {
+		state.supportedModes = supportedModes
+	} else {
+		supportedModes = "off heat cool auto "
+		state.supportedModes = supportedModes
+	}
+	
+	if (logEnable) log.debug "state.supportedModes: " + state.supportedModes
+	if (logEnable) log.debug "V1 ThermostatModeSupportedReport...END"
+}
+
+
+def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeSupportedReport cmd) {
+	if (logEnable) log.debug "V2 ThermostatModeSupportedReport...START"
+	if (logEnable) log.debug "cmd: " + cmd
+	def supportedModes = ""
+	if (logEnable) log.debug "supportedModes: " + supportedModes
+	if (cmd.off) { supportedModes += "off " }
+	if (logEnable) log.debug "supportedModes: " + supportedModes
+	if(cmd.heat) { supportedModes += "heat " }
+	if (logEnable) log.debug "supportedModes: " + supportedModes
+	if(cmd.auxiliaryemergencyHeat) { supportedModes += "emergencyHeat " }
+	if (logEnable) log.debug "supportedModes: " + supportedModes
+	if(cmd.cool) { supportedModes += "cool " }
+	if (logEnable) log.debug "supportedModes: " + supportedModes
+	if(cmd.auto) { supportedModes += "auto " }
+	if (logEnable) log.debug "supportedModes: " + supportedModes
+		if (supportedModes) {
+		state.supportedModes = supportedModes
+	} else {
+		supportedModes = "off heat cool auto "
+		state.supportedModes = supportedModes
+	}
+	if (logEnable) log.debug "state.supportedModes: " + state.supportedModes
+	if (logEnable) log.debug "V2 ThermostatModeSupportedReport...END"
 }
 
 def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev3.ThermostatFanModeSupportedReport cmd) {
 	if (logEnable) log.debug "ThermostatFanModeSupportedReport...START"
-	def supportedFanModes = "fanAuto fanOn fanCirculate "
-	state.supportedFanModes = supportedFanModes
+	if (logEnable) log.debug "cmd: " + cmd
+	//def supportedFanModes = "fanAuto fanOn fanCirculate "
+	def supportedFanModes = ""
+	if (cmd.auto) { supportedFanModes += "auto " }
+	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
+	if (cmd.autoHigh) { supportedFanModes += "autoHigh " }
+	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
+	if (cmd.autoMedium) { supportedFanModes += "autoMedium " }
+	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
+	if (cmd.circulation) { supportedFanModes += "circulation " }
+	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
+	if (cmd.high) { supportedFanModes += "high " }
+	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
+	if (cmd.humidityCirculation) { supportedFanModes += "humidityCirculation " }
+	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
+	if (cmd.low) { supportedFanModes += "low " }
+	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
+	if (cmd.medium) { supportedFanModes += "medium " }
+	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
+	if (supportedFanModes) {
+		state.supportedFanModes = supportedFanModes
+	} else {
+		supportedFanModes = "auto on "
+		state.supportedFanModes = supportedFanModes
+	}
 	if (logEnable) log.debug "ThermostatFanModeSupportedReport...END"
 }
 
 def zwaveEvent(hubitat.zwave.commands.thermostatfanstatev1.ThermostatFanStateReport cmd) {
 	if (logEnable) log.debug "ThermostatFanStateReport...START"
+	if (logEnable) log.debug "cmd: " + cmd
 	def map = [name: "thermostatFanState", unit: ""]
 	switch (cmd.fanOperatingState) {
 		case 0:
