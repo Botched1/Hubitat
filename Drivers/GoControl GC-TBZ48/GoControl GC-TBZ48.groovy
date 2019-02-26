@@ -292,7 +292,7 @@ def SensorCal(value) {
 	def SetCalValue
 
 	if (value < 0) {
-		SetCalValue = value == -1 ? 255 : value == -2 ? 254 : value == -3 ? 253 : value == -4 ? 252 : value == -5 ? 251 : value == -6 ? 250 : value == -7 ? 249 : value == -8 ? 248 : value == -9 ? 247 : value == -10 ? 246 : "unknown"
+		SetCalValue = 256 + value // == -1 ? 255 : value == -2 ? 254 : value == -3 ? 253 : value == -4 ? 252 : value == -5 ? 251 : value == -6 ? 250 : value == -7 ? 249 : value == -8 ? 248 : value == -9 ? 247 : value == -10 ? 246 : "unknown"
 		if (logEnable) log.debug "SetCalValue: " + SetCalValue
 	} else {
 		SetCalValue = value.toInteger()
@@ -411,7 +411,7 @@ def updated() {
 			if (newNumber == 48) {
 				long SetCalValue
 				if (newValue < 0) {
-					SetCalValue = newValue == -1 ? 255 : newValue == -2 ? 254 : newValue == -3 ? 253 : newValue == -4 ? 252 : newValue == -5 ? 251 : newValue == -6 ? 250 : newValue == -7 ? 249 : newValue == -8 ? 248 : newValue == -9 ? 247 : newValue == -10 ? 246 : "unknown"
+					SetCalValue = 256 + newValue // == -1 ? 255 : newValue == -2 ? 254 : newValue == -3 ? 253 : newValue == -4 ? 252 : newValue == -5 ? 251 : newValue == -6 ? 250 : newValue == -7 ? 249 : newValue == -8 ? 248 : newValue == -9 ? 247 : newValue == -10 ? 246 : "unknown"
 					if (logEnable) log.debug "SetCalValue: " + SetCalValue
 					newValue = SetCalValue	
 				} else {
@@ -472,17 +472,17 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 	def CalValue
     if (cmd.parameterNumber == 48) {
 		if (logEnable) log.debug "cmd.scaledConfigurationValue: " + config
-		if (cmd.parameterNumber == 48) {
-			if (config.toInteger() > 7) {
-				CalValue = config == 255 ? "-1" : config == 254 ? "-2" : config == 253 ? "-3" : config == 252 ? "-4" : config == 251 ? "-5" : config == 250 ? "-6" : config == 249 ? "-7" : config == 248 ? "-8" : config == 247 ? "-9" : config == 246 ? "-10" : "unknown"
-				if (logEnable) log.debug "CalValue: " + CalValue
-				sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
-			} else {
-				CalValue = config
-				if (logEnable) log.debug "CalValue: " + CalValue
-				sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
-			}
-    	}
+		
+		if (config.toInteger() > 7) {
+			CalValue = config.toInteger() - 256 // == 255 ? "-1" : config == 254 ? "-2" : config == 253 ? "-3" : config == 252 ? "-4" : config == 251 ? "-5" : config == 250 ? "-6" : config == 249 ? "-7" : config == 248 ? "-8" : config == 247 ? "-9" : config == 246 ? "-10" : "unknown"
+			if (logEnable) log.debug "CalValue: " + CalValue
+			sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
+		} else {
+			CalValue = config
+			if (logEnable) log.debug "CalValue: " + CalValue
+			sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
+		}
+    	
 	}
 	if (logEnable) log.debug "Parameter: ${cmd.parameterNumber} value is: ${config}"
 }
