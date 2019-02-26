@@ -24,6 +24,7 @@
  *  V1.1.0 - 01/10/2019 - Added Restrictions by Mode.
  *  V1.1.1 - 01/15/2019 - Fixed restrictions by mode, 1.1.0 didn't work correctly.
  *  V1.1.2 - 01/28/2019 - Fixed another bug in restrictions by mode
+ *  V1.2.0 - 02/26/2019 - Added slave offset variable/ability to have a fixed level offset from the master level
  */
 
 definition(
@@ -74,6 +75,7 @@ def pageConfig() {
 	}
 	section(getFormat("header-darkcyan", " Select Slave Dimmer Device(s)")) {
 		input "slaveDimmer", "capability.switchLevel", title: "Select Slave Dimmer Device(s)", submitOnChange: true, hideWhenEmpty: true, required: true, multiple: true
+		input "slaveOffset", "number", title: "Slave offset from Master (in %)", required: false, defaultValue: "0", range: "-99..99"
 	}
 	section(getFormat("header-darkcyan", " General")) {label title: "Enter a name for this child app", required: false}
 	section() {
@@ -153,7 +155,10 @@ def masterONOFFHandler(evt){
 	LOGDEBUG("Event Value: " + evt.value)
 	if(evt.value == "on"){
 		LOGDEBUG("ON Check True")
-		def NewLevel = masterDimmer.currentValue("level")
+
+		def NewLevel = masterDimmer.currentValue("level").toInteger() + slaveOffset
+		if (NewLevel < 1) {NewLevel = 1}
+		if (NewLevel > 100) {NewLevel = 100}
 		
 		if(state.modeCheck == false){
 			LOGDEBUG("Not in correct 'mode' to continue")
@@ -161,8 +166,7 @@ def masterONOFFHandler(evt){
 		else {
 			slaveDimmer.each{
 				LOGDEBUG("Turning ON " + it)
-				it.on()
-				it.setLevel(NewLevel)
+				delayBetween([it.on(), it.setLevel(NewLevel)], 500)
 			}
 		}
 	}
@@ -181,7 +185,9 @@ def masterLEVELHandler(evt){
 	LOGDEBUG("Event Level Value: " + evt.value)
 	LOGDEBUG("slaveDimmer: " + slaveDimmer)
 	LOGDEBUG("Master ON/OFF: " + masterDimmer.currentValue("switch"))
-	def NewLevel = evt.value.toInteger()
+	def NewLevel = evt.value.toInteger() + slaveOffset
+	if (NewLevel < 1) {NewLevel = 1}
+	if (NewLevel > 100) {NewLevel = 100}
 	
 	if(state.modeCheck == false){
 		LOGDEBUG("Not in correct 'mode' to change dimmer level")
@@ -222,6 +228,6 @@ def display() {
 def display2() {
 	section() {
 		paragraph getFormat("line")
-		paragraph "<div style='color:#00CED1;text-align:center'>Dimmer Sync Child - App Version: 1.1.2</div>"
+		paragraph "<div style='color:#00CED1;text-align:center'>Dimmer Sync Child - App Version: 1.2.0</div>"
 	}
 }
