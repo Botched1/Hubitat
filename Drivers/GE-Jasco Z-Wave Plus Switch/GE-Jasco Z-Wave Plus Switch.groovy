@@ -10,6 +10,7 @@
  *  1.4.0 (01/29/2019) - Changed doubletap events to type doubleTapped
  *  1.5.0 (01/29/2019) - Added control of indicator light
  *  1.6.0 (01/31/2019) - Reded CRC16 section based on Hubitat example to try and fix CRC16 errors
+ *  1.7.0 (02/26/2019) - Synchronized with dimmer driver. Moved some commands to preferences. Removed doubletap command buttons (but not doubletap events). Removed indicator capability.
  */
 
 metadata {
@@ -18,19 +19,11 @@ metadata {
 		capability "PushableButton"
 		capability "DoubleTapableButton"
 		capability "Configuration"
-		capability "Indicator"
 		capability "Refresh"
 		capability "Sensor"
 		capability "Switch"		
 		capability "Light"
 		
-	    command "doubletapUp"
-        command "doubletapDown"
-        command "inverted"
-        command "notInverted"
-
-		attribute "inverted", "enum", ["inverted", "not inverted"]
-    
 		fingerprint mfr:"0063", prod:"4952", model: "3036", ver: "5.20", deviceJoinName: "GE Z-Wave Plus Wall Switch"
 		fingerprint mfr:"0063", prod:"4952", model: "3037", ver: "5.20", deviceJoinName: "GE Z-Wave Plus Toggle Switch"
 		fingerprint mfr:"0063", prod:"4952", model: "3038", ver: "5.20", deviceJoinName: "GE Z-Wave Plus Toggle Switch"
@@ -40,7 +33,17 @@ metadata {
 	}
 
  preferences {
-        input (
+     input (
+            type: "paragraph",
+            element: "paragraph",
+            title: "Switch General Settings",
+            description: ""
+        )
+
+	    input "paramLED", "enum", title: "LED Behavior", multiple: false, defaultValue: "0-LED ON When Switch OFF", options: ["0-LED ON When Switch OFF","1-LED ON When Switch ON","2-LED Always OFF"], required: false, displayDuringSetup: true
+	    input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, defaultValue: "0-Normal", options: ["0-Normal","1-Inverted"], required: false, displayDuringSetup: true
+
+	 input (
             type: "paragraph",
             element: "paragraph",
             title: "Association Groups",
@@ -196,6 +199,7 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
     log.warn "${device.displayName} received unhandled command: ${cmd}"
 }
 
+
 def on() {
 	if (logEnable) log.debug "Turn device ON"
 	delayBetween([
@@ -210,24 +214,6 @@ def off() {
 		zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format(),
 		zwave.switchBinaryV1.switchBinaryGet().format()
 	],500)
-}
-
-def indicatorWhenOn() {
-	if (logEnable) log.debug "indicatorWhenOn"
-	sendEvent(name: "indicatorStatus", value: "when on", display: false)
-	zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 3, size: 1).format()
-}
-
-def indicatorWhenOff() {
-	if (logEnable) log.debug "indicatorWhenOff"
-	sendEvent(name: "indicatorStatus", value: "when off", display: false)
-	zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 3, size: 1).format()
-}
-
-def indicatorNever() {
-	if (logEnable) log.debug "indicatorNever"
-	sendEvent(name: "indicatorStatus", value: "never", display: false)
-	zwave.configurationV2.configurationSet(configurationValue: [2], parameterNumber: 3, size: 1).format()
 }
 
 def refresh() {
@@ -246,28 +232,6 @@ def refresh() {
 
 def installed() {
 	configure()
-}
-
-def doubletapUp() {
-	if (logEnable) log.debug "Double Up Triggered"
-	sendEvent(name: "doubleTapped", value: 1, descriptionText: "Doubletap up (button 1) on $device.displayName", isStateChange: true)
-}
-
-def doubletapDown() {
-	if (logEnable) log.debug "Double Down Triggered"
-	sendEvent(name: "doubleTapped", value: 2, descriptionText: "Doubletap down (button 2) on $device.displayName", isStateChange: true)
-}
-
-def inverted() {
-	if (logEnable) log.debug "Inverted Triggered"
-	sendEvent(name: "inverted", value: "inverted", display: false)
-	zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 4, size: 1).format()
-}
-
-def notInverted() {
-	if (logEnable) log.debug "Not Inverted Triggered"
-	sendEvent(name: "inverted", value: "not inverted", display: false)
-	zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()
 }
 
 def updated() {
@@ -300,11 +264,18 @@ def updated() {
        	cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
        	state.currentGroup3 = settings.requestedGroup3
    	}
+	// Set LED param
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: ParamToInteger(paramLED), parameterNumber: 3, size: 1).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+	
+	// Set Inverted param
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: ParamToInteger(paramInverted), parameterNumber: 4, size: 1).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
     delayBetween(cmds, 500)
 }
 
 def configure() {
-        log.info "configure triggered"
+        log.info "configure() called"
 		def cmds = []
         cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
 		cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
@@ -344,7 +315,24 @@ private parseAssocGroupList(list, group) {
     }  
     return nodes
 }
+
 def logsOff(){
     log.warn "debug logging disabled..."
     device.updateSetting("logEnable",[value:"false",type:"bool"])
+}
+
+def ParamToInteger(value) {
+	long newParam
+	if (value instanceof CharSequence) {
+		if (logEnable) log.debug "$value is a CharSequence"
+		def newString = value.split("-")
+		newParam = newString[0].toInteger()
+	} else {
+		if (value instanceof Boolean) {
+			newParam = value ? 1 : 0
+		} else {
+			newParam = value
+		}
+	}
+	return newParam
 }
