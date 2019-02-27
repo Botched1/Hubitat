@@ -8,8 +8,9 @@
  *  HUBITAT PORT
  *  1.0.0 (01/29/2019) - Ported to Hubitat by Jason Bottjen. Removed ST specifics, removed Polling and Health Check capabilities.
  *  1.1.0 (01/30/2019) - Fixed missing parenthesis in setLevel, and fixed an issue where switch on events were created every time dimmer level changed.                       
- *  1.2.0 (01/31/2019) - Reded CRC16 section based on Hubitat example to try and fix CRC16 errors
+ *  1.2.0 (01/31/2019) - Redid CRC16 section based on Hubitat example to try and fix CRC16 errors
  *  1.3.0 (01/31/2019) - Added multilevelget to refresh(), tweaked on/off refresh on long delay. May help some scenarios
+ *  1.4.0 (02/26/2019) - Revamped, moving most commands back to preferences. Removed all on/off steps and duration settings. Removed indicator capability. Removed doubletap commands.
  */
 
 metadata {
@@ -18,32 +19,12 @@ metadata {
 		capability "PushableButton"
 		capability "DoubleTapableButton"
 		capability "Configuration"
-		capability "Indicator"
 		capability "Refresh"
 		capability "Sensor"
 		capability "Switch"
 		capability "Switch Level"
 		capability "Light"
 		
-	    command "doubletapUp"
-        command "doubletapDown"
-        command "inverted"
-        command "notInverted"
-
-		attribute "inverted", "enum", ["inverted", "not inverted"]
-        attribute "zwaveSteps", "number"
-        attribute "zwaveDelay", "number"
-        attribute "manualSteps", "number"
-        attribute "manualDelay", "number"
-        attribute "allSteps", "number"
-        attribute "allDelay", "number"
-        command "setZwaveSteps", ["number"]
-        command "setZwaveDelay", ["number"]
-        command "setManualSteps", ["number"]
-        command "setManualDelay", ["number"]
-        command "setAllSteps", ["number"]
-        command "setAllDelay", ["number"]
-    
         fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.26", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
 	    fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.27", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
 	    fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.28", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
@@ -56,6 +37,29 @@ metadata {
 	}
 
  preferences {
+
+	        input (
+            type: "paragraph",
+            element: "paragraph",
+            title: "Dimmer General Settings",
+            description: ""
+        )
+
+	    input "paramLED", "enum", title: "LED Behavior", multiple: false, defaultValue: "0-LED ON When Dimmer OFF", options: ["0-LED ON When Dimmer OFF","1-LED ON When Dimmer ON","2-LED Always OFF"], required: false, displayDuringSetup: true
+	    input "paramInverted", "enum", title: "Dimmer Buttons Direction", multiple: false, defaultValue: "0-Normal", options: ["0-Normal","1-Inverted"], required: false, displayDuringSetup: true
+
+	        input (
+            type: "paragraph",
+            element: "paragraph",
+            title: "Dimmer Timing Settings. Total dimming time = steps*duration",
+            description: ""
+        )
+	 
+	    input "paramZSteps", "number", title: "Z-Wave Dimming Steps", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
+		input "paramZDuration", "number", title: "Z-Wave Dimming Duration (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
+	    input "paramPSteps", "number", title: "Physical Dimming Steps", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
+		input "paramPDuration", "number", title: "Physical Dimming Duration (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
+	 
         input (
             type: "paragraph",
             element: "paragraph",
@@ -215,50 +219,25 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 def on() {
 	if (logEnable) log.debug "Turn device ON"
 	def cmds = []
-	def zsteps
-	def zdelay
-    cmds << zwave.basicV1.basicSet(value: 0xFF).format()
+    sendEvent(name: "switch", value: "on", isStateChange: true)
+	cmds << zwave.basicV1.basicSet(value: 0xFF).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
-	if (device.currentValue("zwaveSteps")) {
-		zsteps = device.currentValue("zwaveSteps")
-	} else {
-		zsteps = 1
-	}
-	if (device.currentValue("zwaveDelay")) {
-		zdelay = device.currentValue("zwaveDelay")
-	} else {
-		zdelay = 3
-	}
-	
-    def delay = (zsteps * zdelay * 10 + 3000).toInteger()
-	if (logEnable) log.debug "delay: $delay"
-	delayBetween(cmds, delay)
-	
+	delayBetween(cmds, 3000)
 }
 
 def off() {
 	if (logEnable) log.debug "Turn device OFF"
 	def cmds = []
+	sendEvent(name: "switch", value: "off", isStateChange: true)
     cmds << zwave.basicV1.basicSet(value: 0x00).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
-		if (device.currentValue("zwaveSteps")) {
-		zsteps = device.currentValue("zwaveSteps")
-	} else {
-		zsteps = 1
-	}
-	if (device.currentValue("zwaveDelay")) {
-		zdelay = device.currentValue("zwaveDelay")
-	} else {
-		zdelay = 3
-	}
-    def delay = (zsteps * zdelay * 10 + 3000).toInteger()
-	if (logEnable) log.debug "delay: $delay"
-	delayBetween(cmds, delay)}
+	delayBetween(cmds, 3000)}
 
 def setLevel(value) {
 	def valueaux = value as Integer
 	def level = Math.max(Math.min(valueaux, 99), 0)
 	def currval = device.currentValue("switch")
+	def delay = 0
 	state.level = level
 	
 	if (logEnable) log.debug "SetLevel (value) - currval: $currval"
@@ -267,19 +246,20 @@ def setLevel(value) {
 		sendEvent(name: "switch", value: "on")
 	} else if (level == 0 && currval == "on") {
 		sendEvent(name: "switch", value: "off")
+		delay += 2000
 	}
 	sendEvent(name: "level", value: level, unit: "%")
-	if (device.currentValue("zwaveSteps")) {
-		zsteps = device.currentValue("zwaveSteps")
+	if (settings.paramZSteps) {
+		zsteps = settings.paramZSteps
 	} else {
 		zsteps = 1
 	}
-	if (device.currentValue("zwaveDelay")) {
-		zdelay = device.currentValue("zwaveDelay")
+	if (settings.paramZDuration) {
+		zdelay = settings.paramZDuration
 	} else {
 		zdelay = 3
 	}
-    def delay = (zsteps * zdelay * 10 + 3000).toInteger()
+    delay = delay + (zsteps * zdelay * 10 + 1000).toInteger()
 	if (logEnable) log.debug "setLevel >> value: $level, delay: $delay"
 	delayBetween ([
     	zwave.basicV1.basicSet(value: level).format(),
@@ -288,58 +268,36 @@ def setLevel(value) {
 }
 
 def setLevel(value, duration) {
-	def valueaux = value as Integer
-	def level = Math.max(Math.min(valueaux, 99), 0)
-	state.level = level
-	def dimmingDuration = (duration < 128 ? duration : 128 + Math.round(duration / 60)).toInteger()
-	//def getStatusDelay = (duration < 128 ? (duration*1000)+2000 : (Math.round(duration / 60)*60*1000)+3000).toInteger()    
-	def getStatusDelay = (dimmingDuration + 3000).toInteger()    
-	if (logEnable) log.debug "setLevel(value, duration) >> value: $level, duration: $duration, delay: $getStatusDelay"
-	delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration).format(),
+	if (logEnable) log.debug "setLevel($value, $duration)"
+	def currval = device.currentValue("switch")
+	def getStatusDelay = (duration * 1000 + 1000).toInteger()
+	value = Math.max(Math.min(value.toInteger(), 99), 0)
+	state.level = value
+	if (value > 0 && currval == "off") {
+		sendEvent(name: "switch", value: "on")
+	} else if (value == 0 && currval == "on") {
+		sendEvent(name: "switch", value: "off")
+		delay += 2000
+	}
+	sendEvent(name: "level", value: value, unit: "%")
+	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $getStatusDelay"
+	delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format(),
 				   zwave.switchMultilevelV1.switchMultilevelGet().format()], getStatusDelay)
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
 	if (logEnable) log.debug "SwitchMultilevelReport"
-	dimmerEvents(cmd)
+	if (cmd.value) {
+		sendEvent(name: "level", value: cmd.value, unit: "%")
+		if (device.currentValue("switch") == "off") {sendEvent(name: "switch", value: "on", isStateChange: true)}
+	} else {
+		if (device.currentValue("switch") == "on") {sendEvent(name: "switch", value: "off", isStateChange: true)}
+	}
+	
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd) {
-	if (logEnable) log.debug "SwitchMultilevelSet"
-	dimmerEvents(cmd)
-}
-
-private dimmerEvents(hubitat.zwave.Command cmd) {
-	if (logEnable) log.debug "dimmerEvents"
-	if (logEnable) log.debug "device.currentValue(switch): " + device.currentValue("switch")
-	def currvalue = device.currentValue("switch")
-	def value = (cmd.value ? "on" : "off")
-	def result = []
-	if (currvalue != value) {
-		result << createEvent(name: "switch", value: value, isStateChange: true)
-	}
-	if (cmd.value && cmd.value <= 100) {
-		result << createEvent(name: "level", value: cmd.value, unit: "%")
-	}
-	return result
-}
-
-def indicatorWhenOn() {
-	if (logEnable) log.debug "indicatorWhenOn"
-	sendEvent(name: "indicatorStatus", value: "when on", display: false)
-	zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 3, size: 1).format()
-}
-
-def indicatorWhenOff() {
-	if (logEnable) log.debug "indicatorWhenOff"
-	sendEvent(name: "indicatorStatus", value: "when off", display: false)
-	zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 3, size: 1).format()
-}
-
-def indicatorNever() {
-	if (logEnable) log.debug "indicatorNever"
-	sendEvent(name: "indicatorStatus", value: "never", display: false)
-	zwave.configurationV2.configurationSet(configurationValue: [2], parameterNumber: 3, size: 1).format()
+	log.warn "SwitchMultilevelSet Called. This doesn't do anything righnt now."
 }
 
 def refresh() {
@@ -350,7 +308,11 @@ def refresh() {
 	cmds << zwave.switchMultilevelV1.switchMultilevelGet().format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
-    cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 7).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 8).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 9).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 10).format()
+	cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
 	if (getDataValue("MSR") == null) {
 		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
 	}
@@ -359,70 +321,6 @@ def refresh() {
 
 def installed() {
 	configure()
-}
-
-def doubletapUp() {
-	if (logEnable) log.debug "Doubletap Up Triggered"
-	sendEvent(name: "doubleTapped", value: 1, descriptionText: "Doubletap up (button 1) on $device.displayName", isStateChange: true)
-}
-
-def doubletapDown() {
-	if (logEnable) log.debug "Doubletap Down Triggered"
-	sendEvent(name: "doubleTapped", value: 2, descriptionText: "Doubletap down (button 2) on $device.displayName", isStateChange: true)
-}
-
-def inverted() {
-	if (logEnable) log.debug "Inverted Triggered"
-	sendEvent(name: "inverted", value: "inverted", display: false)
-	zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 4, size: 1).format()
-}
-
-def notInverted() {
-	if (logEnable) log.debug "Not Inverted Triggered"
-	sendEvent(name: "inverted", value: "not inverted", display: false)
-	zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()
-}
-
-def setZwaveSteps(steps) {
-	steps = Math.max(Math.min(steps.toInteger(), 99), 1)
-	sendEvent(name: "zwaveSteps", value: steps, displayed: false)	
-	if (logEnable) log.debug "setZwaveSteps steps: $steps"	
-	zwave.configurationV2.configurationSet(configurationValue: [steps], parameterNumber: 7, size: 1).format()
-}
-
-def setZwaveDelay(delay) {
-	delay = Math.max(Math.min(delay.toInteger(), 255), 1)
-	sendEvent(name: "zwaveDelay", value: delay, displayed: false)
-	if (logEnable) log.debug "setZwaveDelay delay: $delay"
-	zwave.configurationV2.configurationSet(configurationValue: [0,delay], parameterNumber: 8, size: 2).format()
-}
-
-def setManualSteps(steps) {
-	steps = Math.max(Math.min(steps.toInteger(), 99), 1)
-	sendEvent(name: "manualSteps", value: steps, displayed: false)	
-	if (logEnable) log.debug "setManualSteps steps: $steps"	
-	zwave.configurationV2.configurationSet(configurationValue: [steps], parameterNumber: 9, size: 1).format()
-}
-
-def setManualDelay(delay) {
-	delay = Math.max(Math.min(delay.toInteger(), 255), 1)
-	sendEvent(name: "manualDelay", value: delay, displayed: false)
-	if (logEnable) log.debug "setManualDelay delay: $delay"
-	zwave.configurationV2.configurationSet(configurationValue: [0,delay], parameterNumber: 10, size: 2).format()
-}
-
-def setAllSteps(steps) {
-	steps = Math.max(Math.min(steps.toInteger(), 99), 1)
-	sendEvent(name: "allSteps", value: steps, displayed: false)
-	if (logEnable) log.debug "setAllSteps steps: $steps"	
-	zwave.configurationV2.configurationSet(configurationValue: [steps], parameterNumber: 11, size: 1).format()
-}
-
-def setAllDelay(delay) {
-	delay = Math.max(Math.min(delay.toInteger(), 255), 1)
-	sendEvent(name: "allDelay", value: delay, displayed: false)
-	if (logEnable) log.debug "setAllDelay delay: $delay"
-	zwave.configurationV2.configurationSet(configurationValue: [0,delay], parameterNumber: 12, size: 2).format()
 }
 
 def updated() {
@@ -455,6 +353,31 @@ def updated() {
        	cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
        	state.currentGroup3 = settings.requestedGroup3
    	}
+	
+	// Set LED param
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: ParamToInteger(paramLED), parameterNumber: 3, size: 1).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+	
+	// Set Inverted param
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: ParamToInteger(paramInverted), parameterNumber: 4, size: 1).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
+	
+	// Set Z Steps
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramZSteps.toInteger(), parameterNumber: 7, size: 1).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 7).format()
+	
+	// Set Z Duration
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramZDuration.toInteger(), parameterNumber: 8, size: 2).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 8).format()
+	
+	// Set P Steps
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramPSteps.toInteger(), parameterNumber: 9, size: 1).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 9).format()
+	
+	// Set P Duration
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramPDuration.toInteger(), parameterNumber: 10, size: 2).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 10).format()
+
     delayBetween(cmds, 500)
 }
 
@@ -499,7 +422,24 @@ private parseAssocGroupList(list, group) {
     }  
     return nodes
 }
+
 def logsOff(){
     log.warn "debug logging disabled..."
     device.updateSetting("logEnable",[value:"false",type:"bool"])
+}
+
+def ParamToInteger(value) {
+	long newParam
+	if (value instanceof CharSequence) {
+		if (logEnable) log.debug "$value is a CharSequence"
+		def newString = value.split("-")
+		newParam = newString[0].toInteger()
+	} else {
+		if (value instanceof Boolean) {
+			newParam = value ? 1 : 0
+		} else {
+			newParam = value
+		}
+	}
+	return newParam
 }
