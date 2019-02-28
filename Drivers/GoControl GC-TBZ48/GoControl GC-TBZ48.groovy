@@ -1,4 +1,6 @@
 /**
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GoControl%20GC-TBZ48/GoControl%20GC-TBZ48.groovy
+ *
  *  GoControl GC-TBZ48 driver for Hubitat
  *
  *  Copyright 2019 Jason Bottjen
