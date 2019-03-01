@@ -11,6 +11,7 @@
  *  1.5.0 (01/29/2019) - Added control of indicator light
  *  1.6.0 (01/31/2019) - Reded CRC16 section based on Hubitat example to try and fix CRC16 errors
  *  1.7.0 (02/26/2019) - Synchronized with dimmer driver. Moved some commands to preferences. Removed doubletap command buttons (but not doubletap events). Removed indicator capability.
+ *  1.8.0 (02/28/2019) - Modified preference code, removed unneeded ParamToInt function, improved wording in configuration report
  */
 
 metadata {
@@ -40,8 +41,8 @@ metadata {
             description: ""
         )
 
-	    input "paramLED", "enum", title: "LED Behavior", multiple: false, defaultValue: "0-LED ON When Switch OFF", options: ["0-LED ON When Switch OFF","1-LED ON When Switch ON","2-LED Always OFF"], required: false, displayDuringSetup: true
-	    input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, defaultValue: "0-Normal", options: ["0-Normal","1-Inverted"], required: false, displayDuringSetup: true
+	    input "paramLED", "enum", title: "LED Behavior", multiple: false, options: ["0" : "LED ON When Switch OFF (default)", "1" : "LED ON When Switch ON", "2" : "LED Always OFF"], required: false, displayDuringSetup: true
+	    input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
 
 	 input (
             type: "paragraph",
@@ -70,7 +71,9 @@ metadata {
     }
 }
 
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Parse
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def parse(String description) {
     def result = null
 	if (description != "updated") {
@@ -89,6 +92,9 @@ def parse(String description) {
 	return result
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Z-Wave Messages
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 	log.warn("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
 	def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data,1)
@@ -141,15 +147,15 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
     def result = []
 	def name = ""
     def value = ""
-    def reportValue = cmd.configurationValue[0]
+    def reportValue = config // cmd.configurationValue[0]
     switch (cmd.parameterNumber) {
         case 3:
-            name = "indicatorStatus"
-            value = reportValue == 1 ? "when on" : reportValue == 2 ? "never" : "when off"
+            name = "LED Behavior"
+			value = reportValue == 0 ? "LED ON When Switch OFF (default)" : reportValue == 1 ? "LED ON When Switch ON" : reportValue == 2 ? "LED Always OFF" : "error"
             break
         case 4:
-            name = "inverted"
-            value = reportValue == 1 ? "true" : "false"
+			name = "Invert Buttons"
+            value = reportValue == 0 ? "Disabled (default)" : reportValue == 1 ? "Enabled" : "error"
             break
         default:
             break
@@ -199,7 +205,9 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
     log.warn "${device.displayName} received unhandled command: ${cmd}"
 }
 
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Driver Commands / Functions
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def on() {
 	if (logEnable) log.debug "Turn device ON"
 	delayBetween([
@@ -264,13 +272,22 @@ def updated() {
        	cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
        	state.currentGroup3 = settings.requestedGroup3
    	}
+
 	// Set LED param
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: ParamToInteger(paramLED), parameterNumber: 3, size: 1).format()
+	if (paramLED==null) {
+		paramLED = 0
+	}
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLED, parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
-	
+
 	// Set Inverted param
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: ParamToInteger(paramInverted), parameterNumber: 4, size: 1).format()
+	if (paramInverted==null) {
+		paramInverted = 0
+	}
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted, parameterNumber: 4, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
+	
+	//
     delayBetween(cmds, 500)
 }
 
@@ -319,20 +336,4 @@ private parseAssocGroupList(list, group) {
 def logsOff(){
     log.warn "debug logging disabled..."
     device.updateSetting("logEnable",[value:"false",type:"bool"])
-}
-
-def ParamToInteger(value) {
-	long newParam
-	if (value instanceof CharSequence) {
-		if (logEnable) log.debug "$value is a CharSequence"
-		def newString = value.split("-")
-		newParam = newString[0].toInteger()
-	} else {
-		if (value instanceof Boolean) {
-			newParam = value ? 1 : 0
-		} else {
-			newParam = value
-		}
-	}
-	return newParam
 }
