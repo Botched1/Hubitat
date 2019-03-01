@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GoControl%20GC-TBZ48/GoControl%20GC-TBZ48.groovy
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE-Jasco%20Z-Wave%20Plus%20Motion%20Switch/GE-Jasco%20Z-Wave%20Plus%20Motion%20Switch.groovy
  *
  *  GE-Jasco Z-Wave Plus Motion Switch
  *
