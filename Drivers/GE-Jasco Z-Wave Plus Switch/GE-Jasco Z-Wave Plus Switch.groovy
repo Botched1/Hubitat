@@ -1,4 +1,6 @@
 /**
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE-Jasco%20Z-Wave%20Plus%20Switch/GE-Jasco%20Z-Wave%20Plus%20Switch.groovy
+ *
  *  GE Z-Wave Plus Switch
  *
  *
