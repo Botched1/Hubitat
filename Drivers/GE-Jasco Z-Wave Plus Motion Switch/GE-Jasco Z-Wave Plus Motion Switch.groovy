@@ -8,6 +8,7 @@
  *  HUBITAT PORT
  *  1.0.0 (02/28/2019) - Original version.
  *  1.0.1 (03/03/2019) - Fixed small association setting bug.
+ *  1.1.0 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
  */
 
 metadata {
@@ -60,8 +61,20 @@ def parse(String description) {
 // Z-Wave Messages
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
-	log.warn("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
-	def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data,1)
+	if (logEnable) log.debug("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
+	
+	def newVersion = 1
+	
+	// Configuration = 112 decimal
+	// Notification = 113 decimal
+	// Manufacturer Specific = 114 decimal
+	// Association = 133 decimal
+	if (cmd.commandClass == 112) {newVersion = 2}
+	if (cmd.commandClass == 113) {newVersion = 3}								 
+	if (cmd.commandClass == 114) {newVersion = 2}								 
+	if (cmd.commandClass == 133) {newVersion = 2}		
+	
+	def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data, newVersion)
 	if (encapsulatedCommand) {
        zwaveEvent(encapsulatedCommand)
    } else {
