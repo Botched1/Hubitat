@@ -10,7 +10,8 @@
  *  HUBITAT PORT
  *  1.0.0 (03/03/2019) - Initial verson.
  *  1.1.0 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
- */
+ *  1.1.1 (03/03/2019) - Cleaned up some warning logging that should have been converted to debug.
+*/
 
 metadata {
 	definition (name: "GE Z-Wave Plus Motion Dimmer", namespace: "Botched1", author: "Jason Bottjen") {
@@ -66,7 +67,7 @@ def parse(String description) {
 			result = zwaveEvent(cmd)
         }
 	}
-    if (!result) { log.warn "Parse returned ${result} for $description" }
+    if (!result) { if (logEnable) log.debug "Parse returned ${result} for $description" }
     else {if (logEnable) log.debug "Parse returned ${result}"}
 	
 	return result
@@ -261,7 +262,7 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd) {
-	log.warn "SwitchMultilevelSet Called. This doesn't do anything righnt now."
+	log.warn "SwitchMultilevelSet Called. This doesn't do anything right now in this driver."
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
