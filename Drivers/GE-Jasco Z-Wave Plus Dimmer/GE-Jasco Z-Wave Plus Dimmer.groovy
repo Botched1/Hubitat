@@ -16,6 +16,7 @@
  *  1.5.0 (03/03/2019) - Removed unneeded functions, changed preferences format to be consistent with switch driver
  *  1.6.0 (03/03/2019) - Yet another attempt to get CRC16 encapsulation working correctly
  *  1.6.1 (03/03/2019) - Yet another attempt to get CRC16 encapsulation working correctly
+ *  1.6.2 (03/03/2019) - Fixed some leftover warning logs that should have been changed to debug
  */
 
 metadata {
@@ -107,7 +108,7 @@ def parse(String description) {
 			result = zwaveEvent(cmd)
         }
 	}
-    if (!result) { log.warn "Parse returned ${result} for $description" }
+    if (!result) { if (logEnable) log.debug "Parse returned ${result} for $description" }
     else {if (logEnable) log.debug "Parse returned ${result}"}
 	
 	return result
@@ -246,7 +247,7 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd) {
-	log.warn "SwitchMultilevelSet V3 Called. This doesn't do anything righnt now."
+	log.warn "SwitchMultilevelSet V3 Called. This doesn't do anything in this driver right now."
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
