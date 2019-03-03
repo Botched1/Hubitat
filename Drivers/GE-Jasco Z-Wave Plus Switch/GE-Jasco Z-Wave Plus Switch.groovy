@@ -100,7 +100,17 @@ def parse(String description) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 	log.warn("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
-	def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data,1)
+	
+	def newVersion = 1
+	
+	// Configuration = 112 decimal
+	// Manufacturer Specific = 114 decimal
+	// Association = 133 decimal
+	if (cmd.commandClass == 112) {newVersion = 2}
+	if (cmd.commandClass == 114) {newVersion = 2}								 
+	if (cmd.commandClass == 133) {newVersion = 2}		
+	
+	def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data, newVersion)
 	if (encapsulatedCommand) {
        zwaveEvent(encapsulatedCommand)
    } else {
@@ -130,20 +140,6 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
     return result
 }
 
-def zwaveEvent(hubitat.zwave.commands.associationv1.AssociationReport cmd) {
-	if (logEnable) log.debug "---ASSOCIATION REPORT V1--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
-    if (cmd.groupingIdentifier == 3) {
-    	if (cmd.nodeId.contains(zwaveHubNodeId)) {
-        	sendEvent(name: "numberOfButtons", value: 2, displayed: false)
-        }
-        else {
-        	sendEvent(name: "numberOfButtons", value: 0, displayed: false)
-			zwave.associationV1.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
-			zwave.associationV1.associationGet(groupingIdentifier: 3).format()
-        }
-    }
-}
- 
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
 	if (logEnable) log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
     if (cmd.groupingIdentifier == 3) {
@@ -156,29 +152,6 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
 			zwave.associationV2.associationGet(groupingIdentifier: 3).format()
         }
     }
-}
-
-def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
-	if (logEnable) log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} sent ${cmd}"
-    def config = cmd.scaledConfigurationValue.toInteger()
-    def result = []
-	def name = ""
-    def value = ""
-    def reportValue = config // cmd.configurationValue[0]
-    switch (cmd.parameterNumber) {
-        case 3:
-            name = "LED Behavior"
-			value = reportValue == 0 ? "LED ON When Switch OFF (default)" : reportValue == 1 ? "LED ON When Switch ON" : reportValue == 2 ? "LED Always OFF" : "error"
-            break
-        case 4:
-			name = "Invert Buttons"
-            value = reportValue == 0 ? "Disabled (default)" : reportValue == 1 ? "Enabled" : "error"
-            break
-        default:
-            break
-    }
-	result << createEvent([name: name, value: value, displayed: false])
-	return result
 }
 
 def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
@@ -216,18 +189,6 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 		desc = "Switch turned OFF"	
 	}
 	createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", isStateChange: true])
-}
-
-def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv1.ManufacturerSpecificReport cmd) {
-    log.debug "---MANUFACTURER SPECIFIC REPORT V1--- ${device.displayName} sent ${cmd}"
-	log.debug "manufacturerId:   ${cmd.manufacturerId}"
-	log.debug "manufacturerName: ${cmd.manufacturerName}"
-    state.manufacturer=cmd.manufacturerName
-	log.debug "productId:        ${cmd.productId}"
-	log.debug "productTypeId:    ${cmd.productTypeId}"
-	def msr = String.format("%04X-%04X-%04X", cmd.manufacturerId, cmd.productTypeId, cmd.productId)
-	updateDataValue("MSR", msr)	
-    sendEvent([descriptionText: "$device.displayName MSR: $msr", isStateChange: false])
 }
 
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
