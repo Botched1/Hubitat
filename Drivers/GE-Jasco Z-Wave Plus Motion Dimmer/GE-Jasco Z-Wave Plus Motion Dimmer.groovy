@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: https://
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE-Jasco%20Z-Wave%20Plus%20Motion%20Dimmer/GE-Jasco%20Z-Wave%20Plus%20Motion%20Dimmer.groovy
  *
  *  GE Z-Wave Plus Motion Dimmer
  *
