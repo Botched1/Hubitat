@@ -15,6 +15,7 @@
  *  1.4.0 (02/26/2019) - Revamped, moving most commands back to preferences. Removed all on/off steps and duration settings. Removed indicator capability. Removed doubletap commands.
  *  1.5.0 (03/03/2019) - Removed unneeded functions, changed preferences format to be consistent with switch driver
  *  1.6.0 (03/03/2019) - Yet another attempt to get CRC16 encapsulation working correctly
+ *  1.6.1 (03/03/2019) - Yet another attempt to get CRC16 encapsulation working correctly
  */
 
 metadata {
