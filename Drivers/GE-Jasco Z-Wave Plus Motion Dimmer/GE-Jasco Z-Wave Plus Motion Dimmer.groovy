@@ -75,7 +75,7 @@ def parse(String description) {
 // Z-Wave Messages
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
-	log.warn("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
+	if (logEnable) log.debug "zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}"
 
 	def newVersion = 1
 	
