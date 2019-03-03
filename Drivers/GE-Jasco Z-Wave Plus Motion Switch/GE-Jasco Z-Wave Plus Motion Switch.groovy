@@ -7,6 +7,7 @@
  *
  *  HUBITAT PORT
  *  1.0.0 (02/28/2019) - Original version.
+ *  1.0.1 (03/03/2019) - Fixed small association setting bug.
  */
 
 metadata {
@@ -308,7 +309,7 @@ def configure() {
 		def cmds = []
         cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
 		cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
-		cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
+		cmds << zwave.associationV1.associationRemove(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
         delayBetween(cmds, 500)
 }
 
