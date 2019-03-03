@@ -14,6 +14,7 @@
  *  1.3.0 (01/31/2019) - Added multilevelget to refresh(), tweaked on/off refresh on long delay. May help some scenarios
  *  1.4.0 (02/26/2019) - Revamped, moving most commands back to preferences. Removed all on/off steps and duration settings. Removed indicator capability. Removed doubletap commands.
  *  1.5.0 (03/03/2019) - Removed unneeded functions, changed preferences format to be consistent with switch driver
+ *  1.6.0 (03/03/2019) - Yet another attempt to get CRC16 encapsulation working correctly
  */
 
 metadata {
@@ -90,7 +91,9 @@ metadata {
     }
 }
 
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Parse
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def parse(String description) {
     def result = null
 	if (description != "updated") {
@@ -109,6 +112,9 @@ def parse(String description) {
 	return result
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Z-Wave Messages
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 	log.warn("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
 	def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data,1)
@@ -155,6 +161,29 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
     }
 }
 
+def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
+	if (logEnable) log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} sent ${cmd}"
+    def config = cmd.scaledConfigurationValue.toInteger()
+    def result = []
+	def name = ""
+    def value = ""
+    def reportValue = cmd.configurationValue[0]
+    switch (cmd.parameterNumber) {
+        case 3:
+            name = "indicatorStatus"
+            value = reportValue == 1 ? "when on" : reportValue == 2 ? "never" : "when off"
+            break
+        case 4:
+            name = "inverted"
+            value = reportValue == 1 ? "true" : "false"
+            break
+        default:
+            break
+    }
+	result << createEvent([name: name, value: value, displayed: false])
+	return result
+}
+
 def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	if (logEnable) log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
     def config = cmd.scaledConfigurationValue.toInteger()
@@ -192,6 +221,18 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", isStateChange: true])
 }
 
+def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv1.ManufacturerSpecificReport cmd) {
+    log.debug "---MANUFACTURER SPECIFIC REPORT V1--- ${device.displayName} sent ${cmd}"
+	log.debug "manufacturerId:   ${cmd.manufacturerId}"
+	log.debug "manufacturerName: ${cmd.manufacturerName}"
+    state.manufacturer=cmd.manufacturerName
+	log.debug "productId:        ${cmd.productId}"
+	log.debug "productTypeId:    ${cmd.productTypeId}"
+	def msr = String.format("%04X-%04X-%04X", cmd.manufacturerId, cmd.productTypeId, cmd.productId)
+	updateDataValue("MSR", msr)	
+    sendEvent([descriptionText: "$device.displayName MSR: $msr", isStateChange: false])
+}
+
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
     log.debug "---MANUFACTURER SPECIFIC REPORT V2--- ${device.displayName} sent ${cmd}"
 	log.debug "manufacturerId:   ${cmd.manufacturerId}"
@@ -215,10 +256,41 @@ def zwaveEvent(hubitat.zwave.commands.hailv1.Hail cmd) {
 	[name: "hail", value: "hail", descriptionText: "Switch button was pressed", displayed: false]
 }
 
+def zwaveEvent(hubitat.zwave.commands.switchmultilevelv1.SwitchMultilevelReport cmd) {
+	if (logEnable) log.debug "---SwitchMultilevelReport V1---  ${device.displayName} sent ${cmd}"
+	if (cmd.value) {
+		sendEvent(name: "level", value: cmd.value, unit: "%")
+		if (device.currentValue("switch") == "off") {sendEvent(name: "switch", value: "on", isStateChange: true)}
+	} else {
+		if (device.currentValue("switch") == "on") {sendEvent(name: "switch", value: "off", isStateChange: true)}
+	}
+}
+
+def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
+	if (logEnable) log.debug "---SwitchMultilevelReport V3---  ${device.displayName} sent ${cmd}"
+	if (cmd.value) {
+		sendEvent(name: "level", value: cmd.value, unit: "%")
+		if (device.currentValue("switch") == "off") {sendEvent(name: "switch", value: "on", isStateChange: true)}
+	} else {
+		if (device.currentValue("switch") == "on") {sendEvent(name: "switch", value: "off", isStateChange: true)}
+	}
+}
+
+def zwaveEvent(hubitat.zwave.commands.switchmultilevelv1.SwitchMultilevelSet cmd) {
+	log.warn "SwitchMultilevelSet V1 Called. This doesn't do anything righnt now."
+}
+
+def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd) {
+	log.warn "SwitchMultilevelSet V3 Called. This doesn't do anything righnt now."
+}
+
 def zwaveEvent(hubitat.zwave.Command cmd) {
     log.warn "${device.displayName} received unhandled command: ${cmd}"
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Driver Commands / Functions
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def on() {
 	if (logEnable) log.debug "Turn device ON"
 	def cmds = []
@@ -286,21 +358,6 @@ def setLevel(value, duration) {
 	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $getStatusDelay"
 	delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format(),
 				   zwave.switchMultilevelV1.switchMultilevelGet().format()], getStatusDelay)
-}
-
-def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
-	if (logEnable) log.debug "SwitchMultilevelReport"
-	if (cmd.value) {
-		sendEvent(name: "level", value: cmd.value, unit: "%")
-		if (device.currentValue("switch") == "off") {sendEvent(name: "switch", value: "on", isStateChange: true)}
-	} else {
-		if (device.currentValue("switch") == "on") {sendEvent(name: "switch", value: "off", isStateChange: true)}
-	}
-	
-}
-
-def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd) {
-	log.warn "SwitchMultilevelSet Called. This doesn't do anything righnt now."
 }
 
 def refresh() {
