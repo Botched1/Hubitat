@@ -22,6 +22,9 @@ metadata {
 		capability "Switch"
 		capability "Switch Level"
 		capability "Light"
+		
+		command "setDefaultDimmerLevel", [[name:"Default Dimmer Level",type:"NUMBER", description:"Default Dimmer Level Used when Turning ON. (0=Last Dimmer Value)", range: "0..99"]]
+
 	}
 
  preferences {
@@ -35,15 +38,15 @@ metadata {
 	 input "paramMotionResetTimer", "enum", title: "Motion Detection Reset Time", options: ["0" : "Disabled", "1" : "10 sec", "2" : "20 sec (default)", "3" : "30 sec", "4" : "45 sec", "110" : "27 mins"], required: false
 	 //
 	 input (type: "paragraph", element: "paragraph", title: "Dimmer Timing Settings. Total dimming time = steps*duration", description: "")
-     input "paramZSteps", "number", title: "Z-Wave Dimming Steps", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
+	 input "paramZSteps", "number", title: "Z-Wave Dimming Steps", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
      input "paramZDuration", "number", title: "Z-Wave Dimming Duration (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
 	 input "paramPSteps", "number", title: "Physical Dimming Steps", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
 	 input "paramPDuration", "number", title: "Physical Dimming Duration (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
-	 input "paramSwitchMode", "enum", title: "Switch Mode Enable", multiple: false, options: ["0" : "Disable (default)", "1" : "Enable"], required: false, displayDuringSetup: true
-	 input "paramSwitchModeLevel", "number", title: "Brightness Level when in Switch Mode (0=Last Level)", multiple: false, defaultValue: "0", range: "0..99", required: false, displayDuringSetup: true	 
+	 input "paramSwitchMode", "enum", title: "Switch Mode Enable (physical switch buttons only do ON/OFF - no dimming)", multiple: false, options: ["0" : "Disable (default)", "1" : "Enable"], required: false, displayDuringSetup: true
+	 input "paramDefaultDimmerLevel", "number", title: "Default Dimmer Level (0=Last Dimmer Level)", multiple: false, defaultValue: "0", range: "0..99", required: false, displayDuringSetup: true	 
 	 input "paramDimUpRate", "enum", title: "Speed to Dim up the light to the default level", multiple: false, options: ["0" : "Quickly (Default)", "1" : "Slowly"], required: false, displayDuringSetup: true
 	 //	 
-	 input ( type: "paragraph", element: "paragraph", title: "", description: "Logging")
+	 input ( type: "paragraph", element: "paragraph", title: "Logging", description: "")
 	 input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
    }
 }
@@ -132,7 +135,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
             value = reportValue == 0 ? "Disabled" : reportValue == 1 ? "Enabled (default)" : "error"
             break
         case 7:
-            name = "Z-Wave Dimming # of Steps"
+            name = "Z-Wave Dimming Number of Steps"
             value = reportValue
             break
         case 8:
@@ -140,7 +143,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
             value = reportValue
             break
         case 9:
-            name = "Physical Dimming # of Steps"
+            name = "Physical Dimming Number of Steps"
             value = reportValue
             break
         case 10:
@@ -163,9 +166,13 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
             name = "Switch Mode"
             value = reportValue == 0 ? "Disabled (default)" : reportValue == 1 ? "Enabled" : "error"
             break
-        case 16:
+        case 17:
             name = "Switch Mode Dimmer Level"
             value = reportValue
+            break
+        case 18:
+            name = "Dimming Rate"
+            value = reportValue == 0 ? "Quickly (default)" : reportValue == 1 ? "Slowly" : "error"
             break
         default:
             break
@@ -314,6 +321,15 @@ def setLevel(value, duration) {
 				   zwave.switchMultilevelV1.switchMultilevelGet().format()], getStatusDelay)
 }
 
+def setDefaultDimmerLevel(value) {
+
+	if (logEnable) log.debug "Setting default dimmer level: ${value}"
+    def cmds = []
+    cmds << zwave.configurationV1.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
+  	cmds << zwave.configurationV1.configurationGet(parameterNumber: 17).format()
+    delayBetween(cmds, 500)
+}
+
 def refresh() {
 	log.info "refresh() is called"
 	
@@ -338,7 +354,7 @@ def refresh() {
 	if (getDataValue("MSR") == null) {
 		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
 	}
-	delayBetween(cmds,1000)
+	delayBetween(cmds,500)
 }
 
 def installed() {
@@ -363,28 +379,28 @@ def updated() {
 	if (paramLightTimer==null) {
 		paramLightTimer = 5
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightTimer, parameterNumber: 1, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightTimer.toInteger(), parameterNumber: 1, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
 	
 	// Set Operation Mode param
 	if (paramOperationMode==null) {
 		paramOperationMode = 3
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramOperationMode, parameterNumber: 3, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramOperationMode.toInteger(), parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
 	
 	// Set Inverted param
 	if (paramInverted==null) {
 		paramInverted = 0
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted, parameterNumber: 5, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted.toInteger(), parameterNumber: 5, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 5).format()
 
 	// Set Motion Enabled param
 	if (paramMotionEnabled==null) {
 		paramMotionEnabled = 1
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionEnabled, parameterNumber: 6, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionEnabled.toInteger(), parameterNumber: 6, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 6).format()
 
 	// Set Z Steps
@@ -419,45 +435,45 @@ def updated() {
 	if (paramMotionSensitivity==null) {
 		paramMotionSensitivity = 2
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionSensitivity, parameterNumber: 13, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionSensitivity.toInteger(), parameterNumber: 13, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 13).format()
 
 	// Set Light Sense param
 	if (paramLightSense==null) {
 		paramLightSense = 1
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightSense, parameterNumber: 14, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightSense.toInteger(), parameterNumber: 14, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 14).format()
 
 	// Set Motion Reset Timer param
 	if (paramMotionResetTimer==null) {
 		paramMotionResetTimer = 2
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionResetTimer, parameterNumber: 15, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionResetTimer.toInteger(), parameterNumber: 15, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 15).format()
 
 	// Set Switch Mode
 	if (paramSwitchMode==null) {
 		paramSwitchMode = 0
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramSwitchMode, parameterNumber: 16, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramSwitchMode.toInteger(), parameterNumber: 16, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
 
-	// Set Switch Mode Dimmer Level
-	if (paramSwitchModeLevel==null) {
-		paramSwitchModeLevel = 0
+	// Set Default Dimmer Level
+	if (paramDefaultDimmerLevel==null) {
+		paramDefaultDimmerLevel = 0
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramSwitchModeLevel, parameterNumber: 17, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramDefaultDimmerLevel.toInteger(), parameterNumber: 17, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
 
 	// Set Dim Up Rate
 	if (paramDimUpRate==null) {
 		paramDimUpRate = 0
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramDimUpRate, parameterNumber: 18, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramDimUpRate.toInteger(), parameterNumber: 18, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 18).format()
 
-	
+	//
     delayBetween(cmds, 500)
 }
 
