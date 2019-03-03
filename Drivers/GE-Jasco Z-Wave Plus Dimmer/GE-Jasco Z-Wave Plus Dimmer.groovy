@@ -1,4 +1,6 @@
 /**
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE-Jasco%20Z-Wave%20Plus%20Dimmer/GE-Jasco%20Z-Wave%20Plus%20Dimmer.groovy
+ *
  *  GE Z-Wave Plus Dimmer
  *
  *
@@ -11,6 +13,7 @@
  *  1.2.0 (01/31/2019) - Redid CRC16 section based on Hubitat example to try and fix CRC16 errors
  *  1.3.0 (01/31/2019) - Added multilevelget to refresh(), tweaked on/off refresh on long delay. May help some scenarios
  *  1.4.0 (02/26/2019) - Revamped, moving most commands back to preferences. Removed all on/off steps and duration settings. Removed indicator capability. Removed doubletap commands.
+ *  1.5.0 (03/03/2019) - Removed unneeded functions, changed preferences format to be consistent with switch driver
  */
 
 metadata {
@@ -45,8 +48,8 @@ metadata {
             description: ""
         )
 
-	    input "paramLED", "enum", title: "LED Behavior", multiple: false, defaultValue: "0-LED ON When Dimmer OFF", options: ["0-LED ON When Dimmer OFF","1-LED ON When Dimmer ON","2-LED Always OFF"], required: false, displayDuringSetup: true
-	    input "paramInverted", "enum", title: "Dimmer Buttons Direction", multiple: false, defaultValue: "0-Normal", options: ["0-Normal","1-Inverted"], required: false, displayDuringSetup: true
+	    input "paramLED", "enum", title: "LED Behavior", multiple: false, options: ["0" : "LED ON When Switch OFF (default)", "1" : "LED ON When Switch ON", "2" : "LED Always OFF"], required: false, displayDuringSetup: true
+	    input "paramInverted", "enum", title: "Dimmer Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
 
 	        input (
             type: "paragraph",
@@ -355,11 +358,11 @@ def updated() {
    	}
 	
 	// Set LED param
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: ParamToInteger(paramLED), parameterNumber: 3, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLED.toInteger(), parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
 	
 	// Set Inverted param
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: ParamToInteger(paramInverted), parameterNumber: 4, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted.toInteger(), parameterNumber: 4, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
 	
 	// Set Z Steps
@@ -426,20 +429,4 @@ private parseAssocGroupList(list, group) {
 def logsOff(){
     log.warn "debug logging disabled..."
     device.updateSetting("logEnable",[value:"false",type:"bool"])
-}
-
-def ParamToInteger(value) {
-	long newParam
-	if (value instanceof CharSequence) {
-		if (logEnable) log.debug "$value is a CharSequence"
-		def newString = value.split("-")
-		newParam = newString[0].toInteger()
-	} else {
-		if (value instanceof Boolean) {
-			newParam = value ? 1 : 0
-		} else {
-			newParam = value
-		}
-	}
-	return newParam
 }
