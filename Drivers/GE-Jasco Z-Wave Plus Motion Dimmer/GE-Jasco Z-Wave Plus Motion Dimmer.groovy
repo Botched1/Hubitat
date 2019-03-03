@@ -40,7 +40,7 @@ metadata {
 	 input "paramPSteps", "number", title: "Physical Dimming Steps", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
 	 input "paramPDuration", "number", title: "Physical Dimming Duration (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
 	 input "paramSwitchMode", "enum", title: "Switch Mode Enable", multiple: false, options: ["0" : "Disable (default)", "1" : "Enable"], required: false, displayDuringSetup: true
-	 input "paramSwitchModeLevel", "number", title: "Brightness Level when in Switch Mode", multiple: false, defaultValue: "99", range: "1..99", required: false, displayDuringSetup: true	 
+	 input "paramSwitchModeLevel", "number", title: "Brightness Level when in Switch Mode (0=Last Level)", multiple: false, defaultValue: "0", range: "0..99", required: false, displayDuringSetup: true	 
 	 input "paramDimUpRate", "enum", title: "Speed to Dim up the light to the default level", multiple: false, options: ["0" : "Quickly (Default)", "1" : "Slowly"], required: false, displayDuringSetup: true
 	 //	 
 	 input ( type: "paragraph", element: "paragraph", title: "", description: "Logging")
@@ -334,6 +334,7 @@ def refresh() {
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 15).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 18).format()
 	if (getDataValue("MSR") == null) {
 		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
 	}
@@ -444,11 +445,19 @@ def updated() {
 
 	// Set Switch Mode Dimmer Level
 	if (paramSwitchModeLevel==null) {
-		paramSwitchModeLevel = 99
+		paramSwitchModeLevel = 0
 	}
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramSwitchModeLevel, parameterNumber: 17, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
 
+	// Set Dim Up Rate
+	if (paramDimUpRate==null) {
+		paramDimUpRate = 0
+	}
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramDimUpRate, parameterNumber: 18, size: 1).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 18).format()
+
+	
     delayBetween(cmds, 500)
 }
 
