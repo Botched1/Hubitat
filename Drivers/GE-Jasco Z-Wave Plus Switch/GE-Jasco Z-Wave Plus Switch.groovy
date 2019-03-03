@@ -16,6 +16,7 @@
  *  1.8.0 (02/28/2019) - Modified preference code, removed unneeded ParamToInt function, improved wording in configuration report
  *  1.9.0 (03/03/2019) - Update to fix some CRC16 encapsulation issues
  *  1.9.1 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
+ *  1.9.2 (03/03/2019) - Cleaned up some errant warning messages that should have been debug.
  */
 
 metadata {
@@ -90,7 +91,7 @@ def parse(String description) {
 			result = zwaveEvent(cmd)
         }
 	}
-    if (!result) { log.warn "Parse returned ${result} for $description" }
+    if (!result) {if (logEnable) log.debug "Parse returned ${result} for $description" }
     else {if (logEnable) log.debug "Parse returned ${result}"}
 	
 	return result
