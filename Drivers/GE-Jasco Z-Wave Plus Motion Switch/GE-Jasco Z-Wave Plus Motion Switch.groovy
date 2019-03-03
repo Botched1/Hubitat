@@ -9,7 +9,8 @@
  *  1.0.0 (02/28/2019) - Original version.
  *  1.0.1 (03/03/2019) - Fixed small association setting bug.
  *  1.1.0 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
- */
+ *  1.1.1 (03/03/2019) - Cleaned up some errant wanring messages that should have been debug.
+*/
 
 metadata {
 	definition (name: "GE Z-Wave Plus Motion Switch", namespace: "Botched1", author: "Jason Bottjen") {
@@ -52,7 +53,7 @@ def parse(String description) {
 			result = zwaveEvent(cmd)
         }
 	}
-    if (!result) { log.warn "Parse returned ${result} for $description" }
+    if (!result) { if (logEnable) log.debug "Parse returned ${result} for $description" }
     else {if (logEnable) log.debug "Parse returned ${result}"}
 	
 	return result
@@ -61,7 +62,7 @@ def parse(String description) {
 // Z-Wave Messages
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
-	if (logEnable) log.debug("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
+	if (logEnable) log.debug "zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}"
 	
 	def newVersion = 1
 	
