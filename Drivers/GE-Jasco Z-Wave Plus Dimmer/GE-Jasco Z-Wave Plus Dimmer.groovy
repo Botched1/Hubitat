@@ -17,6 +17,7 @@
  *  1.6.0 (03/03/2019) - Yet another attempt to get CRC16 encapsulation working correctly
  *  1.6.1 (03/03/2019) - Yet another attempt to get CRC16 encapsulation working correctly
  *  1.6.2 (03/03/2019) - Fixed some leftover warning logs that should have been changed to debug
+ *  1.7.0 (03/03/2019) - Added parameter validation checking to prevent errors if a user saves without specifying the settings 
  */
 
 metadata {
@@ -381,26 +382,44 @@ def updated() {
    	}
 	
 	// Set LED param
+	if (paramLED==null) {
+		paramLED = 0
+	}	
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLED.toInteger(), parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
 	
 	// Set Inverted param
+	if (paramInverted==null) {
+		paramInverted = 0
+	}	
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted.toInteger(), parameterNumber: 4, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
-	
+
 	// Set Z Steps
+	if (paramZSteps==null) {
+		paramZSteps = 1
+	}
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramZSteps.toInteger(), parameterNumber: 7, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 7).format()
 	
 	// Set Z Duration
+	if (paramZDuration==null) {
+		paramZDuration = 3
+	}
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramZDuration.toInteger(), parameterNumber: 8, size: 2).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 8).format()
 	
 	// Set P Steps
+	if (paramPSteps==null) {
+		paramPSteps = 1
+	}
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramPSteps.toInteger(), parameterNumber: 9, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 9).format()
 	
 	// Set P Duration
+	if (paramPDuration==null) {
+		paramPDuration = 3
+	}
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramPDuration.toInteger(), parameterNumber: 10, size: 2).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 10).format()
 
