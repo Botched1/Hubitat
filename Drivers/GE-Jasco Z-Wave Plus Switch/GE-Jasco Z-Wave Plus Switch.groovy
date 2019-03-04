@@ -17,6 +17,7 @@
  *  1.9.0 (03/03/2019) - Update to fix some CRC16 encapsulation issues
  *  1.9.1 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
  *  1.9.2 (03/03/2019) - Cleaned up some errant warning messages that should have been debug.
+ *  2.0.0 (03/03/2019) - Added descriptionText logging
  */
 
 metadata {
@@ -72,7 +73,8 @@ metadata {
             required: false
         )
 			input ( type: "paragraph", element: "paragraph", title: "", description: "Logging")
-			input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true		
+			input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
+	 		input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true	
     }
 }
 
@@ -132,11 +134,13 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	
 	if (cmd.value == 255) {
 		if (logEnable) log.debug "Double Up Triggered"
-		result << createEvent([name: "doubleTapped", value: 1, descriptionText: "Doubletap up (button 1) on $device.displayName", isStateChange: true])
+		if (logDesc) log.info "$device.displayName had Doubletap up (button 1)"
+		result << createEvent([name: "doubleTapped", value: 1, descriptionText: "$device.displayName had Doubletap up (button 1)", isStateChange: true])
     }
 	else if (cmd.value == 0) {
 		if (logEnable) log.debug "Double Down Triggered"
-		result << createEvent([name: "doubleTapped", value: 2, descriptionText: "Doubletap down (button 2) on $device.displayName", isStateChange: true])
+		if (logDesc) log.info "$device.displayName had Doubletap down (button 2)"
+		result << createEvent([name: "doubleTapped", value: 2, descriptionText: "$device.displayName had Doubletap down (button 2)", isStateChange: true])
     }
 
     return result
@@ -182,15 +186,25 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
     if (logEnable) log.debug "---BINARY SWITCH REPORT V1--- ${device.displayName} sent ${cmd}"
     
-	def desc
+	def desc, newValue, curValue
 	
-	if (cmd.value == 255) {
-		desc = "Switch turned ON"
+	curValue = device.currentValue("switch")
+
+	if (cmd.value) { // == 255) {
+		desc = "$device.displayName is on"
+		//if (logDesc) log.info "$device.displayName is on"
+		newValue = "on"
+	} else {
+		desc = "$device.displayName is off"
+		//if (logDesc) log.info "$device.displayName is off"
+		newValue = "off"
 	}
-	else if (cmd.value == 0) {
-		desc = "Switch turned OFF"	
+
+	if (curValue != newValue) {
+		if (logDesc) log.info "$device.displayName is " + (cmd.value ? "on" : "off")
+		createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", isStateChange: true])
 	}
-	createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", isStateChange: true])
+	
 }
 
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
