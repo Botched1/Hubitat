@@ -18,6 +18,7 @@
  *  1.6.1 (03/03/2019) - Yet another attempt to get CRC16 encapsulation working correctly
  *  1.6.2 (03/03/2019) - Fixed some leftover warning logs that should have been changed to debug
  *  1.7.0 (03/03/2019) - Added parameter validation checking to prevent errors if a user saves without specifying the settings 
+ *  1.8.0 (03/03/2019) - Added in descriptiveText loggging
  */
 
 metadata {
@@ -90,7 +91,9 @@ metadata {
             required: false
         )
 			input ( type: "paragraph", element: "paragraph", title: "", description: "Logging")
-			input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true		
+			input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false	
+			input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true	
+	 
     }
 }
 
@@ -152,11 +155,13 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	
 	if (cmd.value == 255) {
 		if (logEnable) log.debug "Double Up Triggered"
-		result << createEvent([name: "doubleTapped", value: 1, descriptionText: "Doubletap up (button 1) on $device.displayName", isStateChange: true])
+		if (logDesc) log.info "$device.displayName had Doubletap up (button 1)"
+		result << createEvent([name: "doubleTapped", value: 1, descriptionText: "$device.displayName had Doubletap up (button 1)", isStateChange: true])
     }
 	else if (cmd.value == 0) {
 		if (logEnable) log.debug "Double Down Triggered"
-		result << createEvent([name: "doubleTapped", value: 2, descriptionText: "Doubletap down (button 2) on $device.displayName", isStateChange: true])
+		if (logDesc) log.info "$device.displayName had Doubletap down (button 2)"
+		result << createEvent([name: "doubleTapped", value: 2, descriptionText: "$device.displayName had Doubletap down (button 2)", isStateChange: true])
     }
 
     return result
@@ -239,11 +244,20 @@ def zwaveEvent(hubitat.zwave.commands.hailv1.Hail cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
 	if (logEnable) log.debug "---SwitchMultilevelReport V3---  ${device.displayName} sent ${cmd}"
+	state.level
 	if (cmd.value) {
-		sendEvent(name: "level", value: cmd.value, unit: "%")
-		if (device.currentValue("switch") == "off") {sendEvent(name: "switch", value: "on", isStateChange: true)}
+		sendEvent(name: "level", value: cmd.value, unit: "%", descriptionText: "$device.displayName is " + cmd.value + "%")
+		if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
+		//
+		if (device.currentValue("switch") == "off") {
+			sendEvent(name: "switch", value: "on", isStateChange: true, descriptionText: "$device.displayName is on")
+			if (logDesc) log.info "$device.displayName is on"
+		}
 	} else {
-		if (device.currentValue("switch") == "on") {sendEvent(name: "switch", value: "off", isStateChange: true)}
+		if (device.currentValue("switch") == "on") {
+			sendEvent(name: "switch", value: "off", isStateChange: true, , descriptionText: "$device.displayName is off")
+			if (logDesc) log.info "$device.displayName is off"
+		}
 	}
 }
 
@@ -261,7 +275,8 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 def on() {
 	if (logEnable) log.debug "Turn device ON"
 	def cmds = []
-    sendEvent(name: "switch", value: "on", isStateChange: true)
+    sendEvent(name: "switch", value: "on", isStateChange: true, descriptionText: "$device.displayName is on")
+	if (logDesc) log.info "$device.displayName is on"
 	cmds << zwave.basicV1.basicSet(value: 0xFF).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	delayBetween(cmds, 3000)
@@ -270,7 +285,8 @@ def on() {
 def off() {
 	if (logEnable) log.debug "Turn device OFF"
 	def cmds = []
-	sendEvent(name: "switch", value: "off", isStateChange: true)
+	sendEvent(name: "switch", value: "off", isStateChange: true, descriptionText: "$device.displayName is off")
+	if (logDesc) log.info "$device.displayName is off"
     cmds << zwave.basicV1.basicSet(value: 0x00).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	delayBetween(cmds, 3000)}
@@ -285,12 +301,16 @@ def setLevel(value) {
 	if (logEnable) log.debug "SetLevel (value) - currval: $currval"
 	
 	if (level > 0 && currval == "off") {
-		sendEvent(name: "switch", value: "on")
+		sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName is on")
+		if (logDesc) log.info "$device.displayName is on"
 	} else if (level == 0 && currval == "on") {
-		sendEvent(name: "switch", value: "off")
+		sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName is off")
+		if (logDesc) log.info "$device.displayName is off"
 		delay += 2000
 	}
-	sendEvent(name: "level", value: level, unit: "%")
+	sendEvent(name: "level", value: level, unit: "%", descriptionText: "$device.displayName is " + level + "%")
+	//if (logDesc) log.info "$device.displayName is " + level + "%2"
+	
 	if (settings.paramZSteps) {
 		zsteps = settings.paramZSteps
 	} else {
@@ -316,12 +336,15 @@ def setLevel(value, duration) {
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	state.level = value
 	if (value > 0 && currval == "off") {
-		sendEvent(name: "switch", value: "on")
+		sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName is on")
+		if (logDesc) {log.info "$device.displayName is on"}
 	} else if (value == 0 && currval == "on") {
-		sendEvent(name: "switch", value: "off")
+		sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName is off")
+		if (logDesc) {log.info "$device.displayName is off"}
 		delay += 2000
 	}
-	sendEvent(name: "level", value: value, unit: "%")
+	sendEvent(name: "level", value: value, unit: "%", descriptionText: "$device.displayName is " + value + "%")
+	//if (logDesc) log.info "$device.displayName is " + value + "%3"
 	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $getStatusDelay"
 	delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format(),
 				   zwave.switchMultilevelV1.switchMultilevelGet().format()], getStatusDelay)
