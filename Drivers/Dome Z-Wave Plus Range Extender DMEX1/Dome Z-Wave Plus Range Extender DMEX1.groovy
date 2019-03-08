@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: 
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/Dome%20Z-Wave%20Plus%20Range%20Extender%20DMEX1/Dome%20Z-Wave%20Plus%20Range%20Extender%20DMEX1.groovy
  *
  *  Dome Z-Wave Plus Range Extender DMEX1
  *
