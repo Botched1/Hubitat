@@ -11,13 +11,11 @@ metadata {
 		capability "Actuator"
 		capability "Configuration"
 		capability "Refresh"
-		
-		// fingerprint mfr:"0063", prod:"4952", model: "3132", ver: "5.20", deviceJoinName: "Jasco Z-Wave Plus Toggle Switch"
 	}
 
  preferences {
-	    input name: "paramNLOff", type: "number", title: "Night light OFF Threshold", multiple: false
-	    input name: "paramNLOn", type: "number", title: "Night light ON Threshold", multiple: false
+	    input name: "paramNLOff", type: "number", title: "Night light OFF Threshold (0-10)", multiple: false
+	    input name: "paramNLOn", type: "number", title: "Night light ON Threshold (0-10)", multiple: false
 		input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
     }
 }
