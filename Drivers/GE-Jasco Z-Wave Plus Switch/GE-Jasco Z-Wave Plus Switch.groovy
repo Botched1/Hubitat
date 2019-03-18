@@ -18,6 +18,7 @@
  *  1.9.1 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
  *  1.9.2 (03/03/2019) - Cleaned up some errant warning messages that should have been debug.
  *  2.0.0 (03/03/2019) - Added descriptionText logging
+ *  2.0.1 (03/18/2019) - Fixed issue with parameters not saving correctly / not updating on device
  */
 
 metadata {
@@ -306,14 +307,14 @@ def updated() {
 	if (paramLED==null) {
 		paramLED = 0
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLED, parameterNumber: 3, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLED.toInteger(), parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
 
 	// Set Inverted param
 	if (paramInverted==null) {
 		paramInverted = 0
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted, parameterNumber: 4, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted.toInteger(), parameterNumber: 4, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
 	
 	//
