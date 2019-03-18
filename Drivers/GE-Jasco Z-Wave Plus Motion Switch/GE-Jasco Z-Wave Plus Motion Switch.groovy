@@ -10,6 +10,7 @@
  *  1.0.1 (03/03/2019) - Fixed small association setting bug.
  *  1.1.0 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
  *  1.1.1 (03/03/2019) - Cleaned up some errant wanring messages that should have been debug.
+ *  1.2.0 (03/18/2019) - Fixed parameters not saving correctly / not actually changing values on device
 */
 
 metadata {
@@ -268,7 +269,7 @@ def updated() {
 	if (paramLightTimer==null) {
 		paramLightTimer = 5
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightTimer, parameterNumber: 1, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightTimer.toInteger(), parameterNumber: 1, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
 	
 	
@@ -276,45 +277,46 @@ def updated() {
 	if (paramOperationMode==null) {
 		paramOperationMode = 3
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramOperationMode, parameterNumber: 3, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramOperationMode.toInteger(), parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
 	
 	// Set Inverted param
 	if (paramInverted==null) {
 		paramInverted = 0
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted, parameterNumber: 5, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted.toInteger(), parameterNumber: 5, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 5).format()
 
 	// Set Motion Enabled param
 	if (paramMotionEnabled==null) {
 		paramMotionEnabled = 1
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionEnabled, parameterNumber: 6, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionEnabled.toInteger(), parameterNumber: 6, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 6).format()
 
 	// Set Motion Sensitivity param
 	if (paramMotionSensitivity==null) {
 		paramMotionSensitivity = 2
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionSensitivity, parameterNumber: 13, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionSensitivity.toInteger(), parameterNumber: 13, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 13).format()
 
 	// Set Light Sense param
 	if (paramLightSense==null) {
 		paramLightSense = 1
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightSense, parameterNumber: 14, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightSense.toInteger(), parameterNumber: 14, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 14).format()
 
 	// Set Motion Reset Timer param
 	if (paramMotionResetTimer==null) {
 		paramMotionResetTimer = 2
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionResetTimer, parameterNumber: 15, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionResetTimer.toInteger(), parameterNumber: 15, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 15).format()
 
 	//
+	if (logEnable) log.debug "cmds: $cmds"
 	delayBetween(cmds, 500)
 }
 
