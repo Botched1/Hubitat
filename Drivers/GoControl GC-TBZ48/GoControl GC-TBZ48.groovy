@@ -562,6 +562,23 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	def csp = getDataValue("coolingSetpoint")
 	def hsp = getDataValue("heatingSetpoint")
 
+	if (lrm == null) {
+		if (tm == "cool") {
+			updateDataValue("lastRunningMode", "cool")
+			lrm = "cool"
+		} else {
+			if (tm == "heat") {
+				updateDataValue("lastRunningMode", "heat")
+				lrm = "heat"
+			} else {
+				if (tm == "auto") {
+					updateDataValue("lastRunningMode", "heat")
+					lrm = "heat"
+				}
+			}	
+		}
+	}
+	
 	def map2 = [:]
 	map2.value = cmd.scaledValue
 	map2.unit = getTemperatureScale()
