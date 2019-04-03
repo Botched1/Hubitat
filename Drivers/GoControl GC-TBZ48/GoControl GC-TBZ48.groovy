@@ -16,6 +16,7 @@
  *
  *  Version 1.0 - 02/24/2019     Initial Version
  *  Version 1.1 - 02/27/2019     Removed unused code leftover from other drivers. Added param 23 to config to ensure reporting from thermostat works correctly.
+ *  Version 1.2 - 04/03/2019     Added thermostatSetpoint and lastRunningMode as data variables
  */
 metadata {
 	definition (name: "GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
@@ -31,6 +32,8 @@ metadata {
 		//capability "Switch"
        
 		command "SensorCal", [[name:"calibration",type:"ENUM", description:"Number of degrees to add/subtract from thermostat sensor", constraints:["0", "-7", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6", "7"]]]
+		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]
+
 		
 		attribute "thermostatFanState", "string"
 		attribute "currentSensorCal", "number"
@@ -318,6 +321,16 @@ def SensorCal(value) {
 		], 500)
 }
 
+def DebugLogging(value) {
+	if (value=="OFF") {logsoff}
+    if (value=="ON") {
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(1800,logsOff)
+	}
+	
+}
+
 def updated() {
 	if (logEnable) log.debug "Executing 'updated'"
 
@@ -506,9 +519,11 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	switch (cmd.setpointType) {
 		case 1:
 			map.name = "heatingSetpoint"
+			updateDataValue("heatingSetpoint", map.value.toString())
 			break;
 		case 2:
 			map.name = "coolingSetpoint"
+			updateDataValue("coolingSetpoint", map.value.toString())
 			break;
 		default:
 			return [:]
@@ -517,9 +532,57 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	state.scale = cmd.scale
 	state.precision = cmd.precision
     if (logEnable) log.debug "In ThermostatSetpointReport map is $map"
-    
 	sendEvent([name: map.name, value: map.value, displayed:true, unit: map.unit, isStateChange:true])
 
+	// Update thermostatSetpoint based on mode and operatingstate
+	def tos = getDataValue("thermostatOperatingState")
+	def tm = getDataValue("thermostatMode")
+	def lrm = getDataValue("lastRunningMode")
+	def csp = getDataValue("coolingSetpoint")
+	def hsp = getDataValue("heatingSetpoint")
+
+	if ((tos == "idle") && tm == "auto") {
+		if (lrm == "cool") {
+			if (map.name == "coolingSetpoint") {
+				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
+				updateDataValue("thermostatSetpoint", map.value.toString())
+			} else { 
+				if (logEnable) log.debug "thermostatSetpoint being set to " + csp
+				updateDataValue("thermostatSetpoint", csp)
+			}	
+		}
+		if (getDataValue("lastRunningMode") == "heat") {
+			if (map.name == "heatingSetpoint") {
+				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
+				updateDataValue("thermostatSetpoint", map.value.toString())
+			} else { 
+				if (logEnable) log.debug "thermostatSetpoint being set to " + hsp
+				updateDataValue("thermostatSetpoint", hsp)
+			}	
+		}
+	}
+	
+	if (tm == "cool") {		
+			if (map.name == "coolingSetpoint") {
+				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
+				updateDataValue("thermostatSetpoint", map.value.toString())
+			} else { 
+				if (logEnable) log.debug "thermostatSetpoint being set to " + csp
+				updateDataValue("thermostatSetpoint", csp)
+			}	
+	}
+
+	if (tm == "heat") {		
+			if (map.name == "heatingSetpoint") {
+				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
+				updateDataValue("thermostatSetpoint", map.value.toString())
+			} else { 
+				if (logEnable) log.debug "thermostatSetpoint being set to " + hsp
+				updateDataValue("thermostatSetpoint", hsp)
+			}	
+	}
+	if (logEnable) log.debug "thermostatSetpoint is " + getDataValue("thermostatSetpoint")
+	
 	if (logEnable) log.debug "ThermostatSetPointReport...END"
 	return map	
 }
@@ -554,7 +617,13 @@ def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev1.ThermostatOpera
 	}
 	map.name = "thermostatOperatingState"
     if (logEnable) log.debug "In ThermostatOperatingState map is $map"
-    sendEvent(map)
+    updateDataValue("thermostatOperatingState", map.value)
+	sendEvent(map)
+	// Update lastRunningMode variable. Needed for Google Home support.
+	if (map.value == "heating") {updateDataValue("lastRunningMode", "heat")}
+	if (map.value == "cooling") {updateDataValue("lastRunningMode", "cool")}
+    if (logEnable) log.debug "lastRunningMode is: " + getDataValue("lastRunningMode")
+    //								
 	if (logEnable) log.debug "thermostatOperatingStateV1...END"
 	return map
 }
@@ -580,6 +649,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatmodev1.ThermostatModeReport cmd)
 			map.value = "auto"
 			break
 	}
+	updateDataValue("thermostatMode", map.value)
 	sendEvent(map)
 	if (logEnable) log.debug "ThermostatModeReport...END"
 	return map
@@ -627,7 +697,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeSupportedRe
 	if (logEnable) log.debug "supportedModes: " + supportedModes
 	if(cmd.auto) { supportedModes += "auto " }
 	if (logEnable) log.debug "supportedModes: " + supportedModes
-		if (supportedModes) {
+	if (supportedModes) {
 		state.supportedModes = supportedModes
 	} else {
 		supportedModes = "off heat cool auto "
@@ -687,9 +757,10 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanstatev1.ThermostatFanStateRep
 			break
 		case 2:
 			map.value = "running high"
-            sendEvent(name: "thermostatFanState", value: "running high")
+			sendEvent(name: "thermostatFanState", value: "running high")
 			break
 	}
+	updateDataValue("thermostatFanState", map.value)
     if (logEnable) log.debug "In ThermostatFanStateReport map is $map"
     if (logEnable) log.debug "ThermostatFanStateReport...END"
 	return map
@@ -712,6 +783,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeRepor
 	map.name = "thermostatFanMode"
 	map.displayed = false
     if (logEnable) log.debug "In ThermostatFanModeReport map is $map"
+	updateDataValue("thermostatFanMode", map.value)
     sendEvent(map)
 	if (logEnable) log.debug "ThermostatFanModeReport...END"
 	return map
