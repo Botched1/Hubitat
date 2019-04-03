@@ -1,7 +1,7 @@
 /**
  *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GoControl%20GC-TBZ48/GoControl%20GC-TBZ48.groovy
  *
- *  GoControl GC-TBZ48 driver for Hubitat
+ * Enhanced GoControl GC-TBZ48 driver for Hubitat
  *
  *  Copyright 2019 Jason Bottjen
  *
@@ -16,10 +16,10 @@
  *
  *  Version 1.0 - 02/24/2019     Initial Version
  *  Version 1.1 - 02/27/2019     Removed unused code leftover from other drivers. Added param 23 to config to ensure reporting from thermostat works correctly.
- *  Version 1.2 - 04/03/2019     Added thermostatSetpoint and lastRunningMode as data variables
+ *  Version 1.2 - 04/03/2019     Added thermostatSetpoint, lastRunningMode, allowing for Hubitat Google Home integration support
  */
 metadata {
-	definition (name: "GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
+	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
 		
 		capability "Actuator"
 		capability "Configuration"
@@ -29,7 +29,6 @@ metadata {
 		capability "Temperature Measurement"
 		capability "Thermostat"
 		capability "Thermostat Fan Mode"
-		//capability "Switch"
        
 		command "SensorCal", [[name:"calibration",type:"ENUM", description:"Number of degrees to add/subtract from thermostat sensor", constraints:["0", "-7", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6", "7"]]]
 		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]
@@ -105,26 +104,45 @@ def parse(String description) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def setHeatingSetpoint(double degrees) {
 	if (logEnable) log.debug "setHeatingSetpoint...START"
-    def locationScale = getTemperatureScale()
-    if (logEnable) log.debug "stateScale is $state.scale"
+    
+	def locationScale = getTemperatureScale()
+    def p = (state.precision == null) ? 0 : state.precision
+	
+	if (p==0) {
+		degrees2 = Math.rint(degrees)
+	} else {
+        degrees2 = degrees2.round(p)
+	}
+	
+	if (logEnable) log.debug "stateScale is $state.scale"
     if (logEnable) log.debug "locationScale is $locationScale"
-	def p = (state.precision == null) ? 1 : state.precision
 	if (logEnable) log.debug "precision is $p"
     if (logEnable) log.debug "setpoint requested is $degrees"
+    if (logEnable) log.debug "setpoint written is $degrees2"
     if (logEnable) log.debug "setHeatingSetpoint...END"
-	return zwave.thermostatSetpointV1.thermostatSetpointSet(setpointType: 1, scale: state.scale, precision: p, scaledValue: degrees).format()
+	return zwave.thermostatSetpointV1.thermostatSetpointSet(setpointType: 1, scale: state.scale, precision: p, scaledValue: degrees2).format()
 }
 
 def setCoolingSetpoint(double degrees) {
 	if (logEnable) log.debug "setCoolingSetpoint...START"
-    def locationScale = getTemperatureScale()
-    if (logEnable) log.debug "stateScale is $state.scale"
+
+	def locationScale = getTemperatureScale()
+	def p = (state.precision == null) ? 0 : state.precision
+
+	if (p==0) {
+		degrees2 = Math.rint(degrees)
+	} else {
+		degrees2 = (Double)degrees
+		degrees2 = degrees2.round(p)
+	}
+	
+	if (logEnable) log.debug "stateScale is $state.scale"
     if (logEnable) log.debug "locationScale is $locationScale"
-	def p = (state.precision == null) ? 1 : state.precision
 	if (logEnable) log.debug "precision is $p"
     if (logEnable) log.debug "setpoint requested is $degrees"
+    if (logEnable) log.debug "setpoint written is $degrees2"
     if (logEnable) log.debug "setCoolingSetpoint...END"
-	return zwave.thermostatSetpointV1.thermostatSetpointSet(setpointType: 2, scale: state.scale, precision: p, scaledValue: degrees).format()
+	return zwave.thermostatSetpointV1.thermostatSetpointSet(setpointType: 2, scale: state.scale, precision: p, scaledValue: degrees2).format()
 }
 
 def off() {
@@ -528,8 +546,11 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 		default:
 			return [:]
 	}
+	if (logEnable) log.debug "Setpoint Size is $cmd.size"
 	state.size = cmd.size
+	if (logEnable) log.debug "Setpoint Scale is $cmd.scale"
 	state.scale = cmd.scale
+	if (logEnable) log.debug "Setpoint Precision is $cmd.precision"
 	state.precision = cmd.precision
     if (logEnable) log.debug "In ThermostatSetpointReport map is $map"
 	sendEvent([name: map.name, value: map.value, displayed:true, unit: map.unit, isStateChange:true])
@@ -541,23 +562,34 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	def csp = getDataValue("coolingSetpoint")
 	def hsp = getDataValue("heatingSetpoint")
 
+	def map2 = [:]
+	map2.value = cmd.scaledValue
+	map2.unit = getTemperatureScale()
+	map2.displayed = true
+	map2.name = "thermostatSetpoint"
+	
 	if ((tos == "idle") && tm == "auto") {
 		if (lrm == "cool") {
 			if (map.name == "coolingSetpoint") {
 				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
 				updateDataValue("thermostatSetpoint", map.value.toString())
+				map2.value = map.value
+				
 			} else { 
 				if (logEnable) log.debug "thermostatSetpoint being set to " + csp
 				updateDataValue("thermostatSetpoint", csp)
+				map2.value = csp
 			}	
 		}
 		if (getDataValue("lastRunningMode") == "heat") {
 			if (map.name == "heatingSetpoint") {
 				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
 				updateDataValue("thermostatSetpoint", map.value.toString())
+				map2.value = map.value
 			} else { 
 				if (logEnable) log.debug "thermostatSetpoint being set to " + hsp
 				updateDataValue("thermostatSetpoint", hsp)
+				map2.value = hsp
 			}	
 		}
 	}
@@ -566,9 +598,11 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 			if (map.name == "coolingSetpoint") {
 				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
 				updateDataValue("thermostatSetpoint", map.value.toString())
+				map2.value = map.value
 			} else { 
 				if (logEnable) log.debug "thermostatSetpoint being set to " + csp
 				updateDataValue("thermostatSetpoint", csp)
+				map2.value = csp
 			}	
 	}
 
@@ -576,11 +610,16 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 			if (map.name == "heatingSetpoint") {
 				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
 				updateDataValue("thermostatSetpoint", map.value.toString())
+				map2.value = map.value
 			} else { 
 				if (logEnable) log.debug "thermostatSetpoint being set to " + hsp
 				updateDataValue("thermostatSetpoint", hsp)
+				map2.value = hsp
 			}	
 	}
+
+	sendEvent([name: map2.name, value: map2.value, displayed:true, unit: map2.unit, isStateChange:false])
+
 	if (logEnable) log.debug "thermostatSetpoint is " + getDataValue("thermostatSetpoint")
 	
 	if (logEnable) log.debug "ThermostatSetPointReport...END"
@@ -649,6 +688,24 @@ def zwaveEvent(hubitat.zwave.commands.thermostatmodev1.ThermostatModeReport cmd)
 			map.value = "auto"
 			break
 	}
+	
+	// Sync lastRunningMode and thermostatSetpoint if the mode is changed
+	if (getDataValue("lastRunningMode") != map.value) {
+		if (map.value == "cool") {
+			updateDataValue("lastRunningMode", "cool")
+			def csp = getDataValue("coolingSetpoint")
+			updateDataValue("thermostatSetpoint", csp.toString())
+			sendEvent([name: "thermostatSetpoint", value: csp, displayed:true, unit: getTemperatureScale(), isStateChange:true])
+		} else {
+			if (map.value == "heat") {
+				updateDataValue("lastRunningMode", "heat")
+				def hsp = getDataValue("heatingSetpoint")
+				updateDataValue("thermostatSetpoint", hsp.toString())
+				sendEvent([name: "thermostatSetpoint", value: hsp, displayed:true, unit: getTemperatureScale(), isStateChange:true])
+			}
+		}											  
+	}
+	
 	updateDataValue("thermostatMode", map.value)
 	sendEvent(map)
 	if (logEnable) log.debug "ThermostatModeReport...END"
