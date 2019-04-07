@@ -8,6 +8,7 @@
  *
  *  VERSION HISTORY
  *  1.0.0 (04/06/2019) - Initial Version
+ *  1.0.1 (04/07/2019) - Fixed issue where "speed" wasn't calculated when speed changed from physical switch.
  */
 
 metadata {
@@ -209,7 +210,10 @@ def zwaveEvent(hubitat.zwave.commands.hailv1.Hail cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
 	if (logEnable) log.debug "---SwitchMultilevelReport V3---  ${device.displayName} sent ${cmd}"
-	state.level
+	//state.level
+	
+	def currSpeed = device.currentValue("speed")
+	
 	if (cmd.value) {
 		sendEvent(name: "level", value: cmd.value, unit: "%", descriptionText: "$device.displayName is " + cmd.value + "%")
 		if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
@@ -224,6 +228,13 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 			if (logDesc) log.info "$device.displayName is off"
 		}
 	}
+
+	if (cmd.value==0) {sendEvent([name: "speed", value: "off", descriptionText: "fan speed set to off"])}
+	if (cmd.value>0 && cmd.value<=paramLOW) {sendEvent([name: "speed", value: "low", displayed: true, descriptionText: "fan speed set to low"])}
+	if (cmd.value>paramLOW && cmd.value<=paramMEDLOW) {sendEvent([name: "speed", value: "medium-low", displayed: true, descriptionText: "fan speed set to medium-low"])}
+	if (cmd.value>paramMEDLOW && cmd.value<=paramMED) {sendEvent([name: "speed", value: "medium", displayed: true, descriptionText: "fan speed set to medium"])}
+	if (cmd.value>paramMED && cmd.value<=paramMEDHIGH) {sendEvent([name: "speed", value: "medium-high", displayed: true, descriptionText: "fan speed set to medium-high"])}
+	if (cmd.value>paramMEDHIGH && cmd.value<=99) {sendEvent([name: "speed", value: "high", displayed: true, descriptionText: "fan speed set to high"])}
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd) {
@@ -261,15 +272,15 @@ def on() {
 		sendEvent([name: "speed", value: "medium-low", displayed: true, descriptionText: "fan speed set to medium-low"])		
 		break
     case paramMED:
-		if (logEnable) log.debug "Setting Speed to low"	
+		if (logEnable) log.debug "Setting Speed to medium"	
 		sendEvent([name: "speed", value: "medium", displayed: true, descriptionText: "fan speed set to medium"])		
 		break
     case paramMEDHIGH:
-		if (logEnable) log.debug "Setting Speed to low"	
+		if (logEnable) log.debug "Setting Speed to medium-high"	
 		sendEvent([name: "speed", value: "medium-high", displayed: true, descriptionText: "fan speed set to medium-high"])		
 		break
     case paramHIGH:
-		if (logEnable) log.debug "Setting Speed to low"	
+		if (logEnable) log.debug "Setting Speed to high"	
 		sendEvent([name: "speed", value: "high", displayed: true, descriptionText: "fan speed set to high"])		
 		break
 	default:
@@ -376,7 +387,7 @@ def setSpeed(fanspeed) {
 			//if (logEnable) log.debug "speed auto detected"	
 			//sendEvent([name: "speed", value: "on", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
 			//on()
-			log.warn "Speed auto requested. This doesn't do anything in this driver right now."
+			log.warn "Speed AUTO requested. This doesn't do anything in this driver right now."
 			break
 		default:
             break
