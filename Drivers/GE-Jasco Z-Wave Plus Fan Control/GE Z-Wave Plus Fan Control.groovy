@@ -261,32 +261,13 @@ def on() {
 	if (paramMED==null) {paramMED = 60}	
 	if (paramMEDHIGH==null) {paramMEDHIGH = 80}	
 	if (paramHIGH==null) {paramHIGH = 99}
-	
-	switch (currlevel) {
-    case paramLOW:
-		if (logEnable) log.debug "Setting Speed to low"	
-		sendEvent([name: "speed", value: "low", displayed: true, descriptionText: "fan speed set to low"])		
-		break
-    case paramMEDLOW:
-		if (logEnable) log.debug "Setting Speed to medium-low"	
-		sendEvent([name: "speed", value: "medium-low", displayed: true, descriptionText: "fan speed set to medium-low"])		
-		break
-    case paramMED:
-		if (logEnable) log.debug "Setting Speed to medium"	
-		sendEvent([name: "speed", value: "medium", displayed: true, descriptionText: "fan speed set to medium"])		
-		break
-    case paramMEDHIGH:
-		if (logEnable) log.debug "Setting Speed to medium-high"	
-		sendEvent([name: "speed", value: "medium-high", displayed: true, descriptionText: "fan speed set to medium-high"])		
-		break
-    case paramHIGH:
-		if (logEnable) log.debug "Setting Speed to high"	
-		sendEvent([name: "speed", value: "high", displayed: true, descriptionText: "fan speed set to high"])		
-		break
-	default:
-		sendEvent([name: "speed", value: "on", displayed: true, descriptionText: "fan speed set to on"])		
-        break
-    }
+
+	if (currlevel==0) {sendEvent([name: "speed", value: "off", descriptionText: "fan speed set to off"])}
+	if (currlevel>0 && currlevel<=paramLOW) {sendEvent([name: "speed", value: "low", displayed: true, descriptionText: "fan speed set to low"])}
+	if (currlevel>paramLOW && currlevel<=paramMEDLOW) {sendEvent([name: "speed", value: "medium-low", displayed: true, descriptionText: "fan speed set to medium-low"])}
+	if (currlevel>paramMEDLOW && currlevel<=paramMED) {sendEvent([name: "speed", value: "medium", displayed: true, descriptionText: "fan speed set to medium"])}
+	if (currlevel>paramMED && currlevel<=paramMEDHIGH) {sendEvent([name: "speed", value: "medium-high", displayed: true, descriptionText: "fan speed set to medium-high"])}
+	if (currlevel>paramMEDHIGH && currlevel<=99) {sendEvent([name: "speed", value: "high", displayed: true, descriptionText: "fan speed set to high"])}
 	
 	cmds << zwave.basicV1.basicSet(value: 0xFF).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
