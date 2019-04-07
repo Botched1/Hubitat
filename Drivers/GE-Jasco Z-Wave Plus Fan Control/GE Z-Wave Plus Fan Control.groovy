@@ -329,52 +329,52 @@ def setSpeed(fanspeed) {
     switch (fanspeed) {
         case "low":
 			if (logEnable) log.debug "fanspeed low detected"	
-			sendEvent([name: "speed", value: "low", displayed: true, descriptionText: "fan speed set to $value"])		
+			sendEvent([name: "speed", value: "low", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
 			if (paramLOW==null) {paramLOW = 20}	
 			value = paramLOW
             setLevel(value)
 			break
 		case "medium-low":
 			if (logEnable) log.debug "fanspeed medium-low detected"	
-			sendEvent([name: "speed", value: "medium-low", displayed: true, descriptionText: "fan speed set to $value"])		
+			sendEvent([name: "speed", value: "medium-low", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
 			if (paramMEDLOW==null) {paramMEDLOW = 40}	
 			value = paramMEDLOW
 			setLevel(value)
             break
 		case "medium":
 			if (logEnable) log.debug "fanspeed medium detected"	
-			sendEvent([name: "speed", value: "medium", displayed: true, descriptionText: "fan speed set to $value"])		
+			sendEvent([name: "speed", value: "medium", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
 			if (paramMED==null) {paramMED = 60}	
 			value = paramMED
 			setLevel(value)
             break
 		case "medium-high":
 			if (logEnable) log.debug "fanspeed medium-high detected"	
-			sendEvent([name: "speed", value: "medium-high", displayed: true, descriptionText: "fan speed set to $value"])		
+			sendEvent([name: "speed", value: "medium-high", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
 			if (paramMEDHIGH==null) {paramMEDHIGH = 80}	
 			value = paramMEDHIGH
 			setLevel(value)
             break
 		case "high":
 			if (logEnable) log.debug "fanspeed high detected"	
-			sendEvent([name: "speed", value: "high", displayed: true, descriptionText: "fan speed set to $value"])		
+			sendEvent([name: "speed", value: "high", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
 			if (paramHIGH==null) {paramHIGH = 99}	
 			value = paramHIGH
 			setLevel(value)
             break
 		case "off":
 			if (logEnable) log.debug "speed off detected"
-			sendEvent([name: "speed", value: "off", displayed: true, descriptionText: "fan speed set to $value"])		
+			sendEvent([name: "speed", value: "off", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
 			off()
 			break
 		case "on":
 			if (logEnable) log.debug "speed on detected"	
-			//sendEvent([name: "speed", value: "on", displayed: true, descriptionText: "fan speed set to $value"])		
+			//sendEvent([name: "speed", value: "on", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
 			on()
 			break
 		case "auto":
 			//if (logEnable) log.debug "speed auto detected"	
-			//sendEvent([name: "speed", value: "on", displayed: true, descriptionText: "fan speed set to $value"])		
+			//sendEvent([name: "speed", value: "on", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
 			//on()
 			log.warn "Speed auto requested. This doesn't do anything in this driver right now."
 			break
