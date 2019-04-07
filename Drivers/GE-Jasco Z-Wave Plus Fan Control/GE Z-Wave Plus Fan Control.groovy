@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: 
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE-Jasco%20Z-Wave%20Plus%20Fan%20Control/GE%20Z-Wave%20Plus%20Fan%20Control.groovy
  *
  *  GE Z-Wave Plus Fan Control
  *
