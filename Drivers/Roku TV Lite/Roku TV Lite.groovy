@@ -1,11 +1,14 @@
 /**
  * Roku TV Lite
- * Download: https://github.com/apwelsh/hubitat
+ *
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/Roku%20TV%20Lite/Roku%20TV%20Lite.groovy
+ *
  * Description:
  * This is a device handler designed to manage and control a Roku TV or Player connected to the same network 
  * as the Hubitat hub.
  *
  * Based on the full featured Roku TV driver from Armand Welsh
+ * Download: https://github.com/apwelsh/hubitat
  *
  *-------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
