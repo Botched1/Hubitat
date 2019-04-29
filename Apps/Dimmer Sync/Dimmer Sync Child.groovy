@@ -25,6 +25,7 @@
  *  V1.1.1 - 01/15/2019 - Fixed restrictions by mode, 1.1.0 didn't work correctly.
  *  V1.1.2 - 01/28/2019 - Fixed another bug in restrictions by mode
  *  V1.2.0 - 02/26/2019 - Added slave offset variable/ability to have a fixed level offset from the master level
+ *  V1.3.0 - 04/27/2019 - Added Enable/Disable with External Switch
  */
 
 definition(
@@ -82,9 +83,10 @@ def pageConfig() {
 		input(name: "logEnable", type: "bool", defaultValue: "true", title: "Enable Debug Logging", description: "Enable extra logging for debugging.")
    	}
 	section(getFormat("header-darkcyan", " Restrictions")) {
-		input "modesYes", "bool", title: "Enable ON/dimmer restrictions by current mode(s)", required: true, defaultValue: false, submitOnChange: true	
+		input "modesYes", "bool", title: "Enable ON/dimmer restrictions", required: true, defaultValue: false, submitOnChange: true	
 			if(modesYes){	
 			input(name:"modes", type: "mode", title: "Allow ON/dimmer actions when current mode is:", multiple: true, required: false)
+			input(name:"onoffSwitch", type: "capability.switch", title: "Enable/Disable Sync with External Switch:", multiple: false, required: false)
 			}
    	}
 	display2()
@@ -149,31 +151,57 @@ def subscribeNow() {
 	subscribe(masterDimmer, "switch", masterONOFFHandler) 
 	subscribe(masterDimmer, "level", masterLEVELHandler) 
 	subscribe(location, "mode", statusHandler)
+	if (onoffSwitch) {
+		subscribe(onoffSwitch, "switch", onoffSwitchHandler)
+	}
 }
 
-def masterONOFFHandler(evt){
+def masterONOFFHandler(evt) {
 	LOGDEBUG("Event Value: " + evt.value)
-	if(evt.value == "on"){
+	if (evt.value == "on") 
+	{
 		LOGDEBUG("ON Check True")
 
 		def NewLevel = masterDimmer.currentValue("level").toInteger() + slaveOffset
 		if (NewLevel < 1) {NewLevel = 1}
 		if (NewLevel > 100) {NewLevel = 100}
 		
-		if(state.modeCheck == false){
+		if(state.modeCheck == false)
+		{
 			LOGDEBUG("Not in correct 'mode' to continue")
+			return
 		}
-		else {
-			slaveDimmer.each{
-				LOGDEBUG("Turning ON " + it)
-				delayBetween([it.on(), it.setLevel(NewLevel)], 500)
+		
+		if (onoffSwitch) 
+		{
+			if (onoffSwitch.currentValue("switch") == "off") 
+			{
+				LOGDEBUG("External enable/disable switch is OFF")
+				return
 			}
 		}
+		
+		slaveDimmer.each{
+			LOGDEBUG("Turning ON " + it)
+			if (it?.on()) {delayBetween([it.on(), it.setLevel(NewLevel)], 500)}
+		}
 	}
+
 	if(evt.value == "off"){
 		LOGDEBUG("OFF Check True")
 		// Do not do modeCheck on OFF. Always turn off, otherwise slave dimmers get stuck ON if already on
 		// at time of mode change.
+		//
+		// Do on/off check
+		if (onoffSwitch) 
+		{
+			if (onoffSwitch.currentValue("switch") == "off") 
+			{
+				LOGDEBUG("External enable/disable switch is OFF")
+				return
+			}
+		}
+		
 		slaveDimmer.each{
 			LOGDEBUG("Turning OFF " + it)
 			it.off()
@@ -185,18 +213,29 @@ def masterLEVELHandler(evt){
 	LOGDEBUG("Event Level Value: " + evt.value)
 	LOGDEBUG("slaveDimmer: " + slaveDimmer)
 	LOGDEBUG("Master ON/OFF: " + masterDimmer.currentValue("switch"))
+
 	def NewLevel = evt.value.toInteger() + slaveOffset
 	if (NewLevel < 1) {NewLevel = 1}
 	if (NewLevel > 100) {NewLevel = 100}
 	
-	if(state.modeCheck == false){
+	if(state.modeCheck == false)
+	{
 		LOGDEBUG("Not in correct 'mode' to change dimmer level")
+		return
 	}
-	else {	
-		slaveDimmer.each{
-			LOGDEBUG("Dimming " + it + " to " + NewLevel)
-			it.setLevel(NewLevel)
+	
+	if (onoffSwitch) 
+	{
+		if (onoffSwitch.currentValue("switch") == "off") 
+		{
+			LOGDEBUG("External enable/disable switch is OFF")
+			return
 		}
+	}
+		
+	slaveDimmer.each{
+		LOGDEBUG("Dimming " + it + " to " + NewLevel)
+		it.setLevel(NewLevel)
 	}
 }
 
@@ -218,6 +257,22 @@ def statusHandler(evt){
   modeCheck()
 }
 
+def onoffSwitchHandler(evt){
+  	LOGDEBUG("Enable/Disable Switch updated.Event Value: " + evt.value)
+	if (evt.value == "on")
+	{
+		def NewLevel = masterDimmer.currentValue("level").toInteger() + slaveOffset
+		if (NewLevel < 1) {NewLevel = 1}
+		if (NewLevel > 100) {NewLevel = 100}
+
+		slaveDimmer.each
+		{
+			LOGDEBUG("Turning ON " + it)
+			if (it?.on()) {delayBetween([it.on(), it.setLevel(NewLevel)], 500)}
+		}
+	}
+}
+
 def display() {
 	section() {
 		paragraph getFormat("line")
@@ -228,6 +283,6 @@ def display() {
 def display2() {
 	section() {
 		paragraph getFormat("line")
-		paragraph "<div style='color:#00CED1;text-align:center'>Dimmer Sync Child - App Version: 1.2.0</div>"
+		paragraph "<div style='color:#00CED1;text-align:center'>Dimmer Sync Child - App Version: 1.3.0</div>"
 	}
 }
