@@ -19,6 +19,7 @@
  *  1.9.2 (03/03/2019) - Cleaned up some errant warning messages that should have been debug.
  *  2.0.0 (03/03/2019) - Added descriptionText logging
  *  2.0.1 (03/18/2019) - Fixed issue with parameters not saving correctly / not updating on device
+ *  2.1.0 (05/05/2019) - Added physical/digital types to switch events
  */
 
 metadata {
@@ -30,14 +31,7 @@ metadata {
 		capability "Refresh"
 		capability "Sensor"
 		capability "Switch"		
-		capability "Light"
-		
-		fingerprint mfr:"0063", prod:"4952", model: "3036", ver: "5.20", deviceJoinName: "GE Z-Wave Plus Wall Switch"
-		fingerprint mfr:"0063", prod:"4952", model: "3037", ver: "5.20", deviceJoinName: "GE Z-Wave Plus Toggle Switch"
-		fingerprint mfr:"0063", prod:"4952", model: "3038", ver: "5.20", deviceJoinName: "GE Z-Wave Plus Toggle Switch"
-		fingerprint mfr:"0063", prod:"4952", model: "3130", ver: "5.20", deviceJoinName: "Jasco Z-Wave Plus Wall Switch"
-		fingerprint mfr:"0063", prod:"4952", model: "3131", ver: "5.20", deviceJoinName: "Jasco Z-Wave Plus Toggle Switch"
-		fingerprint mfr:"0063", prod:"4952", model: "3132", ver: "5.20", deviceJoinName: "Jasco Z-Wave Plus Toggle Switch"
+		capability "Light"		
 	}
 
  preferences {
@@ -84,6 +78,8 @@ metadata {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def parse(String description) {
     def result = null
+	if (logEnable) log.debug "parse() >> zwave.parse($description)"
+		
 	if (description != "updated") {
 		if (logEnable) log.debug "parse() >> zwave.parse($description)"
 		def cmd = zwave.parse(description, [0x20: 1, 0x25: 1, 0x56: 1, 0x70: 2, 0x72: 2, 0x85: 2])
@@ -136,12 +132,12 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	if (cmd.value == 255) {
 		if (logEnable) log.debug "Double Up Triggered"
 		if (logDesc) log.info "$device.displayName had Doubletap up (button 1)"
-		result << createEvent([name: "doubleTapped", value: 1, descriptionText: "$device.displayName had Doubletap up (button 1)", isStateChange: true])
+		result << createEvent([name: "doubleTapped", value: 1, descriptionText: "$device.displayName had Doubletap up (button 1)", type: "physical", isStateChange: true])
     }
 	else if (cmd.value == 0) {
 		if (logEnable) log.debug "Double Down Triggered"
 		if (logDesc) log.info "$device.displayName had Doubletap down (button 2)"
-		result << createEvent([name: "doubleTapped", value: 2, descriptionText: "$device.displayName had Doubletap down (button 2)", isStateChange: true])
+		result << createEvent([name: "doubleTapped", value: 2, descriptionText: "$device.displayName had Doubletap down (button 2)", type: "physical", isStateChange: true])
     }
 
     return result
@@ -187,7 +183,20 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
     if (logEnable) log.debug "---BINARY SWITCH REPORT V1--- ${device.displayName} sent ${cmd}"
     
-	def desc, newValue, curValue
+	def desc, newValue, curValue, newType
+	
+	// check state.bin variable to see if efvent is digital or physical
+	if (state.bin)
+	{
+		newType = "digital"
+	}
+	else
+	{
+		newType = "physical"
+	}
+	
+	// Reset state.bin variable
+	state.bin = 0
 	
 	curValue = device.currentValue("switch")
 
@@ -203,7 +212,7 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 
 	if (curValue != newValue) {
 		if (logDesc) log.info "$device.displayName is " + (cmd.value ? "on" : "off")
-		createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", isStateChange: true])
+		createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: "$newType", isStateChange: true])
 	}
 	
 }
@@ -240,6 +249,7 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def on() {
 	if (logEnable) log.debug "Turn device ON"
+	state.bin = -1
 	delayBetween([
 		zwave.switchBinaryV1.switchBinarySet(switchValue: 0xFF).format(),
 		zwave.switchBinaryV1.switchBinaryGet().format()
@@ -248,6 +258,7 @@ def on() {
 
 def off() {
 	if (logEnable) log.debug "Turn device OFF"
+	state.bin = -1
 	delayBetween([
 		zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format(),
 		zwave.switchBinaryV1.switchBinaryGet().format()
@@ -323,6 +334,7 @@ def updated() {
 
 def configure() {
         log.info "configure() called"
+		state.bin = -1
 		def cmds = []
         cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
 		cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
@@ -345,9 +357,10 @@ private parseAssocGroupList(list, group) {
             else if (node.matches("\\p{XDigit}+")) {
                 def nodeId = Integer.parseInt(node,16)
                 if (nodeId == zwaveHubNodeId) {
-                	log.warn "Association Group ${group}: Adding the hub as an association is not allowed (it would break double-tap)."
+                	log.warn "Association Group ${group}: Adding the hub ID as an association is not allowed."
                 }
-                else if ( (nodeId > 0) & (nodeId < 256) ) {
+                else 
+				if ( (nodeId > 0) & (nodeId < 256) ) {
                     nodes << nodeId
                     count++
                 }
@@ -359,7 +372,8 @@ private parseAssocGroupList(list, group) {
                 log.warn "Association Group ${group}: Invalid member: ${node}"
             }
         }
-    }  
+    }
+	if (logEnable) log.debug "Nodes is $nodes"
     return nodes
 }
 
