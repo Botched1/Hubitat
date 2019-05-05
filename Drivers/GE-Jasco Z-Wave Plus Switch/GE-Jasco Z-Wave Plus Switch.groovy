@@ -185,7 +185,7 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
     
 	def desc, newValue, curValue, newType
 	
-	// check state.bin variable to see if efvent is digital or physical
+	// check state.bin variable to see if event is digital or physical
 	if (state.bin)
 	{
 		newType = "digital"
@@ -201,11 +201,11 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	curValue = device.currentValue("switch")
 
 	if (cmd.value) { // == 255) {
-		desc = "$device.displayName is on"
+		desc = "$device.displayName was turned on [$newType]"
 		//if (logDesc) log.info "$device.displayName is on"
 		newValue = "on"
 	} else {
-		desc = "$device.displayName is off"
+		desc = "$device.displayName was turned off [$newType]"
 		//if (logDesc) log.info "$device.displayName is off"
 		newValue = "off"
 	}
