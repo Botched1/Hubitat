@@ -288,7 +288,7 @@ def on() {
 	if (logEnable) log.debug "Turn device ON"
 	state.bin = -1
 	if (logEnable) log.debug "state.level is $state.level"
-	if (state.level == 0 || state.level == "") {state.level=99}
+	if (state.level == 0 || state.level == "" || state.level == null) {state.level=99}
 	setLevel(state.level, 0)
 }
 
