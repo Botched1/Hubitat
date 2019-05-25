@@ -17,7 +17,7 @@
  */
 metadata 
 {
-	definition(name: "HubConnect GE Motion Dimmer", namespace: "shackrat", author: "Jason Bottjen", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/HubConnect/master/UniversalDrivers/HubConnect-Motion-Sensor.groovy")
+	definition(name: "HubConnect GE Motion Dimmer", namespace: "shackrat", author: "Jason Bottjen", importUrl: "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/HubConnect/HubConnect%20GE%20Motion%20Dimmer.groozy")
 	{
 		capability "Switch"
        	capability "Switch Level"
@@ -132,4 +132,4 @@ def sync()
 	parent.syncDevice(device.deviceNetworkId, "motion")
 	sendEvent([name: "version", value: "v${driverVersion.major}.${driverVersion.minor}.${driverVersion.build}"])
 }
-def getDriverVersion() {[platform: "Universal", major: 1, minor: 1, build: 1]}
+def getDriverVersion() {[platform: "User", major: 1, minor: 1, build: 1]}
