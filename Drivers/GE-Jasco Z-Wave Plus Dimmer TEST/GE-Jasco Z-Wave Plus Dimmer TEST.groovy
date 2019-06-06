@@ -23,7 +23,7 @@
  */
 
 metadata {
-	definition (name: "GE Z-Wave Plus Dimmer", namespace: "Botched1", author: "Jason Bottjen") {
+	definition (name: "GE Z-Wave Plus Dimmer TEST", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Actuator"
 		capability "PushableButton"
 		capability "DoubleTapableButton"
