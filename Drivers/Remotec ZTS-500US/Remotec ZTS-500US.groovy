@@ -667,6 +667,21 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev3.ThermostatFanModeRepor
 	if (logEnable) log.debug "ThermostatFanModeReport...END"
 }
 
+def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
+	def result = []
+	def map = [ name: "battery", unit: "%" ]
+	if (cmd.batteryLevel == 0xFF) {
+		map.value = 1
+		map.descriptionText = "${device.displayName} battery is low"
+		map.isStateChange = true
+	} else {
+		map.value = cmd.batteryLevel
+	}
+	state.lastbatt = now()
+	result << createEvent(map)
+	result
+}
+
 def updateState(String name, String value) {
 	if (logEnable) log.debug "updateState...START"
 	state[name] = value
