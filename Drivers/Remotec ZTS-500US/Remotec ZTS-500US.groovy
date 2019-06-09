@@ -18,6 +18,7 @@
  *                               Put filter parameters in MONTHS instead of HOURS, per current vendor firmware version.
  *  Version 1.3 - 02/20/2019     Added the remainder of configurable parameters - Temp Differential, Max Heat SP, Min Cool SP, LED Level, Sleep Timer, Temp Report Threshhold,
  *                                                                                Temp Report Time Interval
+ *  Version 1.4 - 06/09/2019     Added BatteryReport
  */
 metadata {
 	definition (name: "Remotec ZTS-500", namespace: "Botched1", author: "Jason Bottjen") {
