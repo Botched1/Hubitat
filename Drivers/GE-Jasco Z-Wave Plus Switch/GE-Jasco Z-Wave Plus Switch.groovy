@@ -20,6 +20,7 @@
  *  2.0.0 (03/03/2019) - Added descriptionText logging
  *  2.0.1 (03/18/2019) - Fixed issue with parameters not saving correctly / not updating on device
  *  2.1.0 (05/05/2019) - Added physical/digital types to switch events
+ *  2.2.0 (06/15/2019) - Added numberOfButtons event
  */
 
 metadata {
@@ -289,6 +290,8 @@ def updated() {
     log.warn "description logging is: ${txtEnable == true}"
     if (logEnable) runIn(1800,logsOff)
 
+    sendEvent(name: "numberOfButtons", value: 2)
+	
     if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
     state.lastUpdated = now()
 
@@ -334,9 +337,11 @@ def updated() {
 
 def configure() {
         log.info "configure() called"
-		state.bin = -1
-		def cmds = []
-        cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+	state.bin = -1
+	def cmds = []
+        sendEvent(name: "numberOfButtons", value: 2)
+	
+	cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
 		cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
 		cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
         delayBetween(cmds, 500)
