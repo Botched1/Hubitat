@@ -19,6 +19,7 @@
  *  Version 1.3 - 02/20/2019     Added the remainder of configurable parameters - Temp Differential, Max Heat SP, Min Cool SP, LED Level, Sleep Timer, Temp Report Threshhold,
  *                                                                                Temp Report Time Interval
  *  Version 1.4 - 06/09/2019     Added BatteryReport
+ *  Version 1.4.1 - 06/22/2019   BatteryReport bug fixes
  */
 metadata {
 	definition (name: "Remotec ZTS-500", namespace: "Botched1", author: "Jason Bottjen") {
@@ -663,24 +664,26 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev3.ThermostatFanModeRepor
 	}
 	map.name = "thermostatFanMode"
 	map.displayed = false
-    if (logEnable) log.debug "In ThermostatFanModeReport map is $map"
-    sendEvent(map)
+    	if (logEnable) log.debug "In ThermostatFanModeReport map is $map"
+    	sendEvent(map)
 	if (logEnable) log.debug "ThermostatFanModeReport...END"
 }
 
 def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
-	def result = []
-	def map = [ name: "battery", unit: "%" ]
-	if (cmd.batteryLevel == 0xFF) {
-		map.value = 1
-		map.descriptionText = "${device.displayName} battery is low"
-		map.isStateChange = true
-	} else {
-		map.value = cmd.batteryLevel
-	}
+	if (logEnable) log.debug "BatteryReport...START"
+	if (logEnable) log.debug "cmd: " + cmd
+	def map = [:]
+	map.name = "battery"
+	map.unit = "%"
+	map.value = cmd.batteryLevel
+	map.descriptionText = "${device.displayName} battery level is $map.value"
+	map.isStateChange = true
+	
 	state.lastbatt = now()
-	result << createEvent(map)
-	result
+
+	sendEvent(map)
+
+	if (logEnable) log.debug "BatteryReport...END"
 }
 
 def updateState(String name, String value) {
