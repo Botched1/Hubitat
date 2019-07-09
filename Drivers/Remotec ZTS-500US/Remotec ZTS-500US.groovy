@@ -20,6 +20,7 @@
  *                                                                                Temp Report Time Interval
  *  Version 1.4 - 06/09/2019     Added BatteryReport
  *  Version 1.4.1 - 06/22/2019   BatteryReport bug fixes
+ *  Version 1.5 - 07/09/2019     Added thermostatSetpoint, lastRunningMode, allowing for Hubitat Google Home integration support 
  */
 metadata {
 	definition (name: "Remotec ZTS-500", namespace: "Botched1", author: "Jason Bottjen") {
