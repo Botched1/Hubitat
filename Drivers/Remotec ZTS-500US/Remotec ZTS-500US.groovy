@@ -473,6 +473,91 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
     
 	sendEvent([name: map.name, value: map.value, displayed:true, unit: map.unit, isStateChange:true])
 
+		// Update thermostatSetpoint based on mode and operatingstate
+	def tos = getDataValue("thermostatOperatingState")
+	def tm = getDataValue("thermostatMode")
+	def lrm = getDataValue("lastRunningMode")
+	def csp = getDataValue("coolingSetpoint")
+	def hsp = getDataValue("heatingSetpoint")
+
+	if (lrm == null) {
+		if (tm == "cool") {
+			updateDataValue("lastRunningMode", "cool")
+			lrm = "cool"
+		} else {
+			if (tm == "heat") {
+				updateDataValue("lastRunningMode", "heat")
+				lrm = "heat"
+			} else {
+				if (tm == "auto") {
+					updateDataValue("lastRunningMode", "heat")
+					lrm = "heat"
+				}
+			}	
+		}
+	}
+	
+	def map2 = [:]
+	map2.value = cmd.scaledValue
+	map2.unit = getTemperatureScale()
+	map2.displayed = true
+	map2.name = "thermostatSetpoint"
+	
+	if ((tos == "idle") && tm == "auto") {
+		if (lrm == "cool") {
+			if (map.name == "coolingSetpoint") {
+				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
+				updateDataValue("thermostatSetpoint", map.value.toString())
+				map2.value = map.value
+				
+			} else { 
+				if (logEnable) log.debug "thermostatSetpoint being set to " + csp
+				updateDataValue("thermostatSetpoint", csp)
+				map2.value = csp
+			}	
+		}
+		if (getDataValue("lastRunningMode") == "heat") {
+			if (map.name == "heatingSetpoint") {
+				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
+				updateDataValue("thermostatSetpoint", map.value.toString())
+				map2.value = map.value
+			} else { 
+				if (logEnable) log.debug "thermostatSetpoint being set to " + hsp
+				updateDataValue("thermostatSetpoint", hsp)
+				map2.value = hsp
+			}	
+		}
+	}
+	
+	if (tm == "cool") {		
+			if (map.name == "coolingSetpoint") {
+				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
+				updateDataValue("thermostatSetpoint", map.value.toString())
+				map2.value = map.value
+			} else { 
+				if (logEnable) log.debug "thermostatSetpoint being set to " + csp
+				updateDataValue("thermostatSetpoint", csp)
+				map2.value = csp
+			}	
+	}
+
+	if (tm == "heat") {		
+			if (map.name == "heatingSetpoint") {
+				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
+				updateDataValue("thermostatSetpoint", map.value.toString())
+				map2.value = map.value
+			} else { 
+				if (logEnable) log.debug "thermostatSetpoint being set to " + hsp
+				updateDataValue("thermostatSetpoint", hsp)
+				map2.value = hsp
+			}	
+	}
+
+	sendEvent([name: map2.name, value: map2.value, displayed:true, unit: map2.unit, isStateChange:false])
+
+	if (logEnable) log.debug "thermostatSetpoint is " + getDataValue("thermostatSetpoint")
+	
+	
 	if (logEnable) log.debug "ThermostatSetPointReport...END"
 	return map
 	
@@ -540,6 +625,24 @@ def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeReport cmd)
 			map.value = "auto"
 			break
 	}
+	
+	// Sync lastRunningMode and thermostatSetpoint if the mode is changed
+	if (getDataValue("lastRunningMode") != map.value) {
+		if (map.value == "cool") {
+			updateDataValue("lastRunningMode", "cool")
+			def csp = getDataValue("coolingSetpoint")
+			updateDataValue("thermostatSetpoint", csp.toString())
+			sendEvent([name: "thermostatSetpoint", value: csp, displayed:true, unit: getTemperatureScale(), isStateChange:true])
+		} else {
+			if (map.value == "heat") {
+				updateDataValue("lastRunningMode", "heat")
+				def hsp = getDataValue("heatingSetpoint")
+				updateDataValue("thermostatSetpoint", hsp.toString())
+				sendEvent([name: "thermostatSetpoint", value: hsp, displayed:true, unit: getTemperatureScale(), isStateChange:true])
+			}
+		}											  
+	}
+	
 	sendEvent(map)
 	if (logEnable) log.debug "ThermostatModeReport...END"
 }
