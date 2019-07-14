@@ -21,6 +21,7 @@
  *  Version 1.4 - 06/09/2019     Added BatteryReport
  *  Version 1.4.1 - 06/22/2019   BatteryReport bug fixes
  *  Version 1.5 - 07/09/2019     Added thermostatSetpoint, lastRunningMode, allowing for Hubitat Google Home integration support 
+ *  Version 1.6 - 07/14/2019     Attempt #3 on BatteryReport
  */
 metadata {
 	definition (name: "Remotec ZTS-500", namespace: "Botched1", author: "Jason Bottjen") {
@@ -774,20 +775,18 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev3.ThermostatFanModeRepor
 }
 
 def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
-	if (logEnable) log.debug "BatteryReport...START"
-	if (logEnable) log.debug "cmd: " + cmd
-	def map = [:]
-	map.name = "battery"
-	map.unit = "%"
-	map.value = cmd.batteryLevel
-	map.descriptionText = "${device.displayName} battery level is $map.value"
-	map.isStateChange = true
-	
-	state.lastbatt = now()
-
-	sendEvent(map)
-
-	if (logEnable) log.debug "BatteryReport...END"
+    if (logEnable) log.debug "In BatteryReport"
+    //def result = []
+    del map = [:]
+    map = [ name: "battery", unit: "%" ]
+    if (cmd.batteryLevel == 0xFF) {
+        map.value = 1
+        map.descriptionText = "${device.displayName} battery is low"
+    } else {
+        map.value = cmd.batteryLevel
+    }
+    sendEvent(map)
+    return map
 }
 
 def updateState(String name, String value) {
