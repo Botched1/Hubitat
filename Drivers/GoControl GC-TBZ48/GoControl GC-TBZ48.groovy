@@ -17,6 +17,7 @@
  *  Version 1.0 - 02/24/2019     Initial Version
  *  Version 1.1 - 02/27/2019     Removed unused code leftover from other drivers. Added param 23 to config to ensure reporting from thermostat works correctly.
  *  Version 1.2 - 04/03/2019     Added thermostatSetpoint, lastRunningMode, allowing for Hubitat Google Home integration support
+ *  Version 1.3 - 07/14/2019     Added BatteryReport
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
@@ -868,6 +869,22 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 	if (logEnable) log.debug "Zwave event received: $cmd"
 	if (logEnable) log.debug "BasicReport...END"
 }
+
+def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
+    if (logEnable) log.debug "In BatteryReport"
+    //def result = []
+    del map = [:]
+    map = [ name: "battery", unit: "%" ]
+    if (cmd.batteryLevel == 0xFF) {
+        map.value = 1
+        map.descriptionText = "${device.displayName} battery is low"
+    } else {
+        map.value = cmd.batteryLevel
+    }
+    sendEvent(map)
+    return map
+}
+
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
 	log.warn "Unexpected zwave command $cmd"
