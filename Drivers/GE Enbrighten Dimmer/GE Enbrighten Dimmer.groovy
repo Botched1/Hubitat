@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Enbrighten%20Dimmer/GE%20Enbrighten%20Dimmer.groovy
  *
  *  GE Enbrighten Z-Wave Plus Dimmer
  *
