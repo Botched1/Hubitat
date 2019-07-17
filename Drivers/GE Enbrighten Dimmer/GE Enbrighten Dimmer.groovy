@@ -4,13 +4,13 @@
  *  GE Enbrighten Z-Wave Plus Dimmer
  *
  *  1.0.0 (07/16/2019) - Initial Version
+ *  1.1.0 (07/17/2019) - Removed DoubleTap from BasicSet, added DoubleTap UP/DOWN and TripleTap UP/DOWN as standard buttons 1-4
  */
 
 metadata {
 	definition (name: "GE Enbrighten Z-Wave Plus Dimmer", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Actuator"
 		capability "PushableButton"
-		capability "DoubleTapableButton"
 		capability "Configuration"
 		capability "Refresh"
 		capability "Sensor"
@@ -86,27 +86,14 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
     if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
-	def result = []
-	
-	if (cmd.value == 255) {
-		if (logEnable) log.debug "Double Tap Up Triggered"
-		if (logDesc) log.info "$device.displayName had Doubletap up (button 1) [physical]"
-		result << sendEvent([name: "doubleTapped", value: 1, descriptionText: "$device.displayName had Doubletap up (button 1) [physical]", type: "physical", isStateChange: true])
-    }
-	else if (cmd.value == 0) {
-		if (logEnable) log.debug "Double Tap Down Triggered"
-		if (logDesc) log.info "$device.displayName had Doubletap down (button 2) [physical]"
-		result << sendEvent([name: "doubleTapped", value: 2, descriptionText: "$device.displayName had Doubletap down (button 2) [physical]", type: "physical", isStateChange: true])
-    }
-
-    return result
+	if (logEnable) log.debug "This report does nothing in this driver, and can be ignored..."	
 }
 
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
 	if (logEnable) log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
     if (cmd.groupingIdentifier == 3) {
     	if (cmd.nodeId.contains(zwaveHubNodeId)) {
-        	sendEvent(name: "numberOfButtons", value: 2, displayed: false)
+        	sendEvent(name: "numberOfButtons", value: 4, displayed: false)
         }
         else {
         	sendEvent(name: "numberOfButtons", value: 0, displayed: false)
@@ -199,6 +186,35 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd
 def zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cmd) {
 	if (logEnable) log.debug "CentralSceneNotification V1 Called."
 	if (logEnable) log.debug "This does nothing in this driver, and can be ignored..."
+    
+    def result = []
+    
+    // Double Tap Up
+    if ((cmd.keyAttributes == 3) && (cmd.sceneNumber == 1)) {
+		if (logEnable) log.debug "Double Tap Up Triggered"
+		if (logDesc) log.info "$device.displayName had Doubletap up (button 1) [physical]"
+		result << sendEvent([name: "pushed", value: 1, descriptionText: "$device.displayName had Doubletap up (button 1) [physical]", type: "physical", isStateChange: true])
+    }
+    // Double Tap Down
+    if ((cmd.keyAttributes == 3) && (cmd.sceneNumber == 2)) {
+		if (logEnable) log.debug "Double Tap Down Triggered"
+		if (logDesc) log.info "$device.displayName had Doubletap down (button 2) [physical]"
+		result << sendEvent([name: "pushed", value: 2, descriptionText: "$device.displayName had Doubletap down (button 2) [physical]", type: "physical", isStateChange: true])
+    }
+    // Triple Tap Up
+    if ((cmd.keyAttributes == 4) && (cmd.sceneNumber == 1)) {
+		if (logEnable) log.debug "Triple Tap Up Triggered"
+		if (logDesc) log.info "$device.displayName had Tripletap up (button 3) [physical]"
+		result << sendEvent([name: "pushed", value: 3, descriptionText: "$device.displayName had Tripletap up (button 3) [physical]", type: "physical", isStateChange: true])
+    }
+    // Triple Tap Down
+    if ((cmd.keyAttributes == 4) && (cmd.sceneNumber == 2)) {
+		if (logEnable) log.debug "Triple Tap Down Triggered"
+		if (logDesc) log.info "$device.displayName had Tripletap down (button 4) [physical]"
+		result << sendEvent([name: "pushed", value: 4, descriptionText: "$device.displayName had Tripletap down (button 4) [physical]", type: "physical", isStateChange: true])
+    }
+
+    return result
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
@@ -335,7 +351,7 @@ def configure() {
 	state.bin = -1
 	if (state.level == "") {state.level = 99}
 	def cmds = []
-	sendEvent(name: "numberOfButtons", value: 2, displayed: false)
+	sendEvent(name: "numberOfButtons", value: 4, displayed: false)
     cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
 	cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
 	cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
