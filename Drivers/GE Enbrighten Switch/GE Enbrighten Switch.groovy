@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Enbrighten%20Switch/GE%20Enbrighten%20Switch.groovy
  *
  *  GE Enbrighten Z-Wave Plus Switch
  *
