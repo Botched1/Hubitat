@@ -21,6 +21,7 @@
  *  1.8.0 (03/03/2019) - Added in descriptiveText loggging
  *  1.9.0 (05/05/2019) - Added physical/digital types to switch events, streamlined code dramatically
  *  2.0.0 (06/15/2019) - Added numberOfButtons event
+ *  2.1.0 (08/28/2019) - Changed ON and OFF commands back to using basicSet instead of multilevelset
  */
 
 metadata {
@@ -290,13 +291,17 @@ def on() {
 	state.bin = -1
 	if (logEnable) log.debug "state.level is $state.level"
 	if (state.level == 0 || state.level == "") {state.level=99}
-	setLevel(state.level, 0)
+	//setLevel(state.level, 0)
+	sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on [digital]", type: "digital", isStateChange: true)
+   	result = zwave.basicV1.basicSet(value: 0xFF).format()
 }
 
 def off() {
 	if (logEnable) log.debug "Turn device OFF"
 	state.bin = -1
-	setLevel(0, 0)
+	//setLevel(0, 0)
+	sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off [digital]", type: "digital", isStateChange: true)
+    	result = zwave.basicV1.basicSet(value: 0x00).format()
 }
 
 def setLevel(value) {
