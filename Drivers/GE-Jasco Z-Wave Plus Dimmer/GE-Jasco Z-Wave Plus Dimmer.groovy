@@ -23,6 +23,7 @@
  *  2.0.0 (06/15/2019) - Added numberOfButtons event
  *  2.1.0 (08/28/2019) - Changed ON and OFF commands back to using basicSet instead of multilevelset
  *  2.2.0 (10/15/2019) - Fixed ON/OFF digital and physical reporting
+ *  2.3.0 (10/25/2019) - Fixed setLevel=0 to turn off device as expected, resolved regression introduced in 2.1.0. 
  */
 
 metadata {
@@ -316,12 +317,15 @@ def setLevel(value, duration) {
 	state.bin = -1
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	
-	if (value) {state.level = value}
-	if (!value) {delay += 2000}
-
-	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $delay"
-	delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format(),
+	if (value) {
+		state.level = value
+		if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $delay"
+		delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format(),
 				   zwave.switchMultilevelV1.switchMultilevelGet().format()], delay)
+	} else {
+		//if (!value) {delay += 2000}
+		off()
+	}
 }
 
 def refresh() {
