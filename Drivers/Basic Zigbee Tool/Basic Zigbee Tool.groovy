@@ -13,20 +13,20 @@ metadata {
     
 
 def parse(String description) {
-    logDebug "Parse description $description"
+    log.debug "Parse description $description"
     def descMap = zigbee.parseDescriptionAsMap(description)
-    logDebug "Desc Map: $descMap"
+    log.debug "Desc Map: $descMap"
 	  def map = [:]
     def result = null
 	  if (map) {
 		  result = createEvent(map)
 	  }
-  	logDebug "Parse returned $map"
+  	log.debug "Parse returned $map"
 	  return result
 }
 
 def test() {
-    logDebug "test"
+    log.debug "test"
     def cmds = []
     
     cmds += zigbee.readAttribute(0x001, 0x0020) //Read Battery Voltage
