@@ -28,7 +28,7 @@ metadata {
 		capability "Configuration"
 		capability "Refresh"
 		capability "Relative Humidity Measurement"
-        capability "Sensor"
+		capability "Sensor"
 		capability "Temperature Measurement"
 		capability "Thermostat"
 		capability "Thermostat Fan Mode"
