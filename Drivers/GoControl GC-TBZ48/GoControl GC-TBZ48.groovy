@@ -19,6 +19,7 @@
  *  Version 1.2 - 04/03/2019     Added thermostatSetpoint, lastRunningMode, allowing for Hubitat Google Home integration support
  *  Version 1.3 - 07/14/2019     Added BatteryReport
  *  Version 1.3.1 - 07/15/2019   Fixed typo in BatteryReport code
+ *  Version 1.4 - 12/04/2019     Added Try/Catch around parse in attempt to catch intermittent errors
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
@@ -91,13 +92,14 @@ metadata {
 def parse(String description) {
 	if (logEnable) log.debug "Parse...START"
 	if (logEnable) log.debug "Parsing '${description}'"
-	def map = createEvent(zwaveEvent(zwave.parse(description, [0x20:1, 0x2B: 1, 0x2C: 1, 0x31:1, 0x40:1, 0x42:1, 0x43:2, 0x44:1, 0x45:1, 0x59:1, 0x5A:1, 0x5E:1, 0x70:1, 0x72:1, 0x73:1, 0x7A:2, 0x80: 1, 0x81: 1, 0x85:2, 0x86:2, 0x8F:1])))
-    if (logEnable) log.debug "In parse, map is $map"
-	// If the OperatingState updated, force a fan state refresh. For some reason when the fan is in AUTO this thermostat does not update the fan state.
-	//if (map?.name == "thermostatOperatingState") {
-		//if (logEnable) log.debug "Calling fan state update"
-		//runIn(5,UpdateFanState)
-	//}
+	try {
+		def map = createEvent(zwaveEvent(zwave.parse(description, [0x20:1, 0x2B: 1, 0x2C: 1, 0x31:1, 0x40:1, 0x42:1, 0x43:2, 0x44:1, 0x45:1, 0x59:1, 0x5A:1, 0x5E:1, 0x70:1, 0x72:1, 0x73:1, 0x7A:2, 0x80: 1, 0x81: 1, 0x85:2, 0x86:2, 0x8F:1])))
+		if (logEnable) log.debug "In parse, map is $map"
+	}
+	catch (e) {
+		//if (logEnable) log.debug "In parse, error in zwave.parse"
+		log.debug "In parse, error in zwave.parse. Description = '${description}'. Error = '${e}'."
+	}
 	return null
 }
 
