@@ -21,6 +21,7 @@
  *  2.0.1 (03/18/2019) - Fixed issue with parameters not saving correctly / not updating on device
  *  2.1.0 (05/05/2019) - Added physical/digital types to switch events
  *  2.2.0 (06/15/2019) - Added numberOfButtons event
+ *  2.3.0 (12/07/2019) - Tweaks to Association Setting
  */
 
 metadata {
@@ -145,21 +146,21 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
-	if (logEnable) log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
+    if (logEnable) log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
     if (cmd.groupingIdentifier == 3) {
     	if (cmd.nodeId.contains(zwaveHubNodeId)) {
         	sendEvent(name: "numberOfButtons", value: 2, displayed: false)
         }
         else {
         	sendEvent(name: "numberOfButtons", value: 0, displayed: false)
-			zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
-			zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+		zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
+		zwave.associationV2.associationGet(groupingIdentifier: 3).format()
         }
     }
 }
 
 def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
-	if (logEnable) log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
+    if (logEnable) log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
     def config = cmd.scaledConfigurationValue.toInteger()
     def result = []
 	def name = ""
@@ -267,17 +268,18 @@ def off() {
 }
 
 def refresh() {
-	log.info "refresh() is called"
+    log.info "refresh() is called"
 	
-	def cmds = []
-	cmds << zwave.switchBinaryV1.switchBinaryGet().format()
+    def cmds = []
+    cmds << zwave.switchBinaryV1.switchBinaryGet().format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
+    cmds << zwave.associationV2.associationGet(groupingIdentifier: 2).format()
     cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
-	if (getDataValue("MSR") == null) {
-		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
-	}
-	delayBetween(cmds,1000)
+    if (getDataValue("MSR") == null) {
+        cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
+    }
+    delayBetween(cmds,1000)
 }
 
 def installed() {
@@ -295,10 +297,10 @@ def updated() {
     if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
     state.lastUpdated = now()
 
-	def cmds = []
-    cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
-	cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
-	cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
+    def cmds = []
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+    cmds << zwave.associationV2.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
 
 	//associations
 	def nodes = []
@@ -308,7 +310,7 @@ def updated() {
        	cmds << zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format()
        	cmds << zwave.associationV2.associationGet(groupingIdentifier: 2).format()
        	state.currentGroup2 = settings.requestedGroup2
-    }
+	}
    	if (settings.requestedGroup3 != state.currentGroup3) {
        	nodes = parseAssocGroupList(settings.requestedGroup3, 3)
        	cmds << zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: []).format()
@@ -332,7 +334,7 @@ def updated() {
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
 	
 	//
-    delayBetween(cmds, 500)
+    delayBetween(cmds, 1000)
 }
 
 def configure() {
@@ -341,10 +343,10 @@ def configure() {
 	def cmds = []
         sendEvent(name: "numberOfButtons", value: 2)
 	
-	cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
-		cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
-		cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
-        delayBetween(cmds, 500)
+	cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+	cmds << zwave.associationV2.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
+	cmds << zwave.associationV2.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
+        delayBetween(cmds, 1000)
 }
 
 private parseAssocGroupList(list, group) {
