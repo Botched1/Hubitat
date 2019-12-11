@@ -44,10 +44,10 @@ def parse(String description) {
 	  def hexValue = descMap.value
 	  def attrId = descMap.attrId
 	
-	  switch (cluster){
+	switch (cluster){
         case "0001" :   //battery
             if (attrId == "0020") {
-		            getBatteryResult(hexValue)
+	        getBatteryResult(hexValue)
             }
             break
         case "0402" :	//temp
@@ -56,15 +56,42 @@ def parse(String description) {
             } else {
                 getTemperatureResult(hexValue)
             }
-			  break
-		    case "0405" :	//humidity
-			      getHumidityResult(hexValue)
-			  break
-		    default :
-			      log.warn "skipped cluster: ${cluster}, descMap:${descMap}"
-			  break
-	  }
-	  return
+	    break
+        case "0405" :	//humidity
+	    getHumidityResult(hexValue)
+	    break
+	
+	case "8021":
+            log.debug "Bind response"
+
+            if (cluster.data.size() == 0) {
+                log.error "Bind result not present."
+            }
+            else {
+                def bindResult = cluster.data[0]
+
+                if (bindResult == 0x00) {
+                    log.debug "Bind: Success."
+                }
+                else if (bindResult == 0x82) {
+                    log.debug "Bind: Invalid endpoint."
+                }
+                else if (bindResult == 0x84) {
+                    log.debug "Bind: Not supported."
+                }
+                else if (bindResult == 0x8C) {
+                    log.debug "Bind: Bind table full."
+                }
+                else {
+                    log.debug "Bind: '${cluster.data}'."
+                }
+            }
+	    break
+	default :
+	    log.warn "skipped cluster: ${cluster}, descMap:${descMap}"
+	    break
+	}
+	return
 }
 
 //event methods
