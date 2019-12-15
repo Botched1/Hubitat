@@ -5,7 +5,8 @@
  *
  *  1.0.0 (07/16/2019) - Initial Version
  *  1.1.0 (07/17/2019) - Removed doubletap from BasicSet, added DoubleTap UP/DOWN and TripleTap UP/DOWN as standard buttons 1-4
- *  1.2.0 (12/15/2019) - Made event modifications to work around the platform changes Hubitat introduced in 2.1.7, which broke this driver 
+ *  1.2.0 (12/15/2019) - <retracted>
+ *  1.3.0 (12/15/2019) - Fixed event generation when dimmer is in SWITCH mode, removed some unnecessary Get commands to reduce zwave traffic
  */
 
 metadata {
@@ -44,12 +45,9 @@ def parse(String description) {
 		def cmd = zwave.parse(description)
 
 		if (logEnable) log.debug "cmd: $cmd"
-		
-        def continueEvent=examinePayload(description)
-        if (logEnable) log.debug "continueEvent is $continueEvent"
-        
-		if (cmd && continueEvent) {
-			result = zwaveEvent(cmd)
+
+        if (cmd) {
+            result = zwaveEvent(cmd)
         }
 	}
     if (!result) { if (logEnable) log.debug "Parse returned ${result} for $description" }
@@ -110,6 +108,7 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	if (logEnable) log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
+    /*
     def config = cmd.scaledConfigurationValue.toInteger()
     def result = []
 	def name = ""
@@ -125,6 +124,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
     }
 	result << sendEvent([name: name, value: value, displayed: false])
 	return result
+    */
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
@@ -170,15 +170,11 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 		if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
 
 		// Set switch status
-		//if (device.currentValue("switch") != "off") {
-			sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on [$newType]", type: "$newType") //, isStateChange: true)
-			if (logDesc) log.info "$device.displayName was turned on [$newType]"
-		//}
+        if (logDesc) log.info "$device.displayName was turned on [$newType]"
+		sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on [$newType]", type: "$newType")
 	} else {
-		//if (device.currentValue("switch") != "on") {
-			sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off [$newType]", type: "$newType")//, isStateChange: true)
-			if (logDesc) log.info "$device.displayName was turned off [$newType]"
-		//}
+		sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off [$newType]", type: "$newType")
+		if (logDesc) log.info "$device.displayName was turned off [$newType]"
 	}
 }
 
@@ -189,7 +185,6 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd
 
 def zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cmd) {
 	if (logEnable) log.debug "CentralSceneNotification V1 Called."
-	if (logEnable) log.debug "This does nothing in this driver, and can be ignored..."
     
     def result = []
     
@@ -217,6 +212,33 @@ def zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cm
 		if (logDesc) log.info "$device.displayName had Tripletap down (button 4) [physical]"
 		result << sendEvent([name: "pushed", value: 4, descriptionText: "$device.displayName had Tripletap down (button 4) [physical]", type: "physical", isStateChange: true])
     }
+    /* Not needed, handled in Level report
+    // Physical ON
+    if ((cmd.keyAttributes == 0) && (cmd.sceneNumber == 1)) {
+		if (logEnable) log.debug "Physical ON Triggered"
+		if (logDesc) log.info "$device.displayName turned on [physical]"
+        result << sendEvent([name: "switch", value: "on", descriptionText: "$device.displayName was turned on [physical]", type: "physical"])
+    }
+    // Physical OFF
+    if ((cmd.keyAttributes == 0) && (cmd.sceneNumber == 2)) {
+		if (logEnable) log.debug "Physical OFF Triggered"
+		if (logDesc) log.info "$device.displayName turned off [physical]"
+        result << sendEvent([name: "switch", value: "off", descriptionText: "$device.displayName was turned off [physical]", type: "physical"])
+    }
+    */
+    
+    /* Doesn't seem to be needed. In my testing the level always seemed to be reported correctly
+    // Physical Dimmer Raised
+    if ((cmd.keyAttributes == 1) && (cmd.sceneNumber == 1)) {
+		if (logEnable) log.debug "Physical Dimmmer Raise Triggered"
+        zwave.switchMultilevelV2.switchMultilevelGet().format()
+    }
+    // Physical Dimmer Lowered
+    if ((cmd.keyAttributes == 1) && (cmd.sceneNumber == 2)) {
+		if (logEnable) log.debug "Physical Dimmmer Lower Triggered"
+        zwave.switchMultilevelV2.switchMultilevelGet().format()
+    }
+    */
 
     return result
 }
@@ -230,7 +252,7 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def on() {
 	if (logEnable) log.debug "Turn device ON"
-	state.bin = -1
+	//state.bin = -1
 	if (logEnable) log.debug "state.level is $state.level"
 	if (state.level == 0 || state.level == "") {state.level=99}
 	setLevel(state.level, 0)
@@ -238,7 +260,7 @@ def on() {
 
 def off() {
 	if (logEnable) log.debug "Turn device OFF"
-	state.bin = -1
+	//state.bin = -1
 	setLevel(0, 0)
 }
 
@@ -249,16 +271,15 @@ def setLevel(value) {
 
 def setLevel(value, duration) {
 	if (logEnable) log.debug "setLevel($value, $duration)"
-	def delay = (duration * 1000 + 1000).toInteger()
-	state.bin = -1
+	def result = []
+    state.bin = -1
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	
 	if (value) {state.level = value}
-	if (!value) {delay += 2000}
 
-	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $delay"
-	delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format(),
-				   zwave.switchMultilevelV2.switchMultilevelGet().format()], delay)
+	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration"
+    result << zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format()
+    return result
 }
 
 def setDefaultDimmerLevel(value) {
@@ -274,6 +295,7 @@ def refresh() {
 	
 	def cmds = []
 	cmds << zwave.switchMultilevelV1.switchMultilevelGet().format()
+    /* Commented this out, as it didn't seem necessary to read back all of the config parameters
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 6).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
@@ -281,7 +303,8 @@ def refresh() {
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 31).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 32).format()
 	cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
-	delayBetween(cmds,500)
+	*/
+    delayBetween(cmds,500)
 }
 
 def installed() {
@@ -365,21 +388,4 @@ def configure() {
 def logsOff(){
     log.warn "debug logging disabled..."
     device.updateSetting("logEnable",[value:"false",type:"bool"])
-}
-
-def examinePayload(description) {
-    // This whole section was unnecessary prior to Hubitat 2.1.7... Changes made in that platform release messed up messaging, so I had to use this as a workaround
-    if (logEnable) log.debug "In examinePayload"
-    def payloadNum = description.indexOf('payload:')
-    def ismultiNum = description.indexOf('isMulticast:')
-    def newString = description.substring(payloadNum+8,ismultiNum-2)
-    newString=newString.trim()
-    def spaces = newString.count(' ')
-    if (logEnable) log.debug "payloadNum: $payloadNum, ismultiNum: $ismultiNum, spaces: $spaces"
-    
-    if (spaces>0) {
-        return true
-    } else {
-        return false
-    }
 }
