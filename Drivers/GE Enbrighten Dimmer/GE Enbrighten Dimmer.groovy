@@ -4,7 +4,8 @@
  *  GE Enbrighten Z-Wave Plus Dimmer
  *
  *  1.0.0 (07/16/2019) - Initial Version
- *  1.1.0 (07/17/2019) - Removed DoubleTap from BasicSet, added DoubleTap UP/DOWN and TripleTap UP/DOWN as standard buttons 1-4
+ *  1.1.0 (07/17/2019) - Removed doubletap from BasicSet, added DoubleTap UP/DOWN and TripleTap UP/DOWN as standard buttons 1-4
+ *  1.2.0 (12/15/2019) - Made event modifications to work around the platform changes Hubitat introduced in 2.1.7, which broke this driver 
  */
 
 metadata {
@@ -44,7 +45,10 @@ def parse(String description) {
 
 		if (logEnable) log.debug "cmd: $cmd"
 		
-		if (cmd) {
+        def continueEvent=examinePayload(description)
+        if (logEnable) log.debug "continueEvent is $continueEvent"
+        
+		if (cmd && continueEvent) {
 			result = zwaveEvent(cmd)
         }
 	}
@@ -166,15 +170,15 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 		if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
 
 		// Set switch status
-		if (device.currentValue("switch") == "off") {
-			sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on [$newType]", type: "$newType", isStateChange: true)
+		//if (device.currentValue("switch") != "off") {
+			sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on [$newType]", type: "$newType") //, isStateChange: true)
 			if (logDesc) log.info "$device.displayName was turned on [$newType]"
-		}
+		//}
 	} else {
-		if (device.currentValue("switch") == "on") {
-			sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off [$newType]", type: "$newType", isStateChange: true)
+		//if (device.currentValue("switch") != "on") {
+			sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off [$newType]", type: "$newType")//, isStateChange: true)
 			if (logDesc) log.info "$device.displayName was turned off [$newType]"
-		}
+		//}
 	}
 }
 
@@ -361,4 +365,21 @@ def configure() {
 def logsOff(){
     log.warn "debug logging disabled..."
     device.updateSetting("logEnable",[value:"false",type:"bool"])
+}
+
+def examinePayload(description) {
+    // This whole section was unnecessary prior to Hubitat 2.1.7... Changes made in that platform release messed up messaging, so I had to use this as a workaround
+    if (logEnable) log.debug "In examinePayload"
+    def payloadNum = description.indexOf('payload:')
+    def ismultiNum = description.indexOf('isMulticast:')
+    def newString = description.substring(payloadNum+8,ismultiNum-2)
+    newString=newString.trim()
+    def spaces = newString.count(' ')
+    if (logEnable) log.debug "payloadNum: $payloadNum, ismultiNum: $ismultiNum, spaces: $spaces"
+    
+    if (spaces>0) {
+        return true
+    } else {
+        return false
+    }
 }
