@@ -121,7 +121,7 @@ def setHeatingSetpoint(double degrees) {
 	
     if (state.scale == null)
     {
-        state.scale = locationScale
+        state.scale = 1
     }
     
 	if (logEnable) log.debug "stateScale is $state.scale"
@@ -148,7 +148,7 @@ def setCoolingSetpoint(double degrees) {
 	
     if (state.scale == null)
     {
-        state.scale = locationScale
+        state.scale = 1
     }
     
 	if (logEnable) log.debug "stateScale is $state.scale"
