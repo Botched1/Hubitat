@@ -20,6 +20,7 @@
  *  Version 1.3 - 07/14/2019     Added BatteryReport
  *  Version 1.3.1 - 07/15/2019   Fixed typo in BatteryReport code
  *  Version 1.4 - 12/04/2019     Added Try/Catch around parse in attempt to catch intermittent errors
+ *  Version 1.5 - 12/19/2019     Fixed an initial initialization error where scale was unknown until the first thermostat report was received from the device
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
@@ -118,6 +119,11 @@ def setHeatingSetpoint(double degrees) {
         degrees2 = degrees2.round(p)
 	}
 	
+    if (state.scale == null)
+    {
+        state.scale = locationScale
+    }
+    
 	if (logEnable) log.debug "stateScale is $state.scale"
     if (logEnable) log.debug "locationScale is $locationScale"
 	if (logEnable) log.debug "precision is $p"
@@ -140,6 +146,11 @@ def setCoolingSetpoint(double degrees) {
 		degrees2 = degrees2.round(p)
 	}
 	
+    if (state.scale == null)
+    {
+        state.scale = locationScale
+    }
+    
 	if (logEnable) log.debug "stateScale is $state.scale"
     if (logEnable) log.debug "locationScale is $locationScale"
 	if (logEnable) log.debug "precision is $p"
