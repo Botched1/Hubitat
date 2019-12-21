@@ -21,6 +21,7 @@
  *  Version 1.3.1 - 07/15/2019   Fixed typo in BatteryReport code
  *  Version 1.4 - 12/04/2019     Added Try/Catch around parse in attempt to catch intermittent errors
  *  Version 1.5 - 12/19/2019     Fixed an initial initialization error where scale was unknown until the first thermostat report was received from the device
+ *  Version 1.5.1 - 12/21/2019   Tweaked supportedFanMode code, removing fanCirculate as a valid mode from the state variable.
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
@@ -799,11 +800,10 @@ def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeSupportedRe
 def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeSupportedReport cmd) {
 	if (logEnable) log.debug "ThermostatFanModeSupportedReport...START"
 	if (logEnable) log.debug "cmd: " + cmd
-	def supportedFanModes = "fanAuto fanOn fanCirculate "
+	def supportedFanModes = ""
 	
 	/* NOTE - Not currently implemented in the zwave stack as of Hubitat 2.0.6
 
-	def supportedFanModes = ""
 	if (cmd.auto) { supportedFanModes += "auto " }
 	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
 	if (cmd.autoHigh) { supportedFanModes += "autoHigh " }
@@ -820,7 +820,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeSuppo
 	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
 	if (cmd.medium) { supportedFanModes += "medium " }
 	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
-	*/
+	
 
 	if (supportedFanModes) {
 		state.supportedFanModes = supportedFanModes
@@ -828,7 +828,13 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeSuppo
 		supportedFanModes = "auto on "
 		state.supportedFanModes = supportedFanModes
 	}
-	if (logEnable) log.debug "ThermostatFanModeSupportedReport...END"
+    */
+	
+    // Since report not supported, just force it for now. If ever supported, uncomment the above block and remove this:
+    supportedFanModes = "auto on "
+	state.supportedFanModes = supportedFanModes
+    
+    if (logEnable) log.debug "ThermostatFanModeSupportedReport...END"
 }
 
 def zwaveEvent(hubitat.zwave.commands.thermostatfanstatev1.ThermostatFanStateReport cmd) {
