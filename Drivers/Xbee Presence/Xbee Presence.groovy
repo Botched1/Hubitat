@@ -106,13 +106,14 @@ private handleBatteryEvent(cluster) {
     if (currentPercentage && (Integer.parseInt(currentPercentage, 10) == value)) {
         return
     }
-    descriptionText = "${linkText} battery is ${value}"
+    descriptionText = "${linkText} battery is ${value}%"
     def eventMap = [
                 name: 'battery',
                 value: value,
                 unit: "%",
                 descriptionText: descriptionText,
-                translatable: true
+                translatable: true,
+                type: "digital"
             ]
     if (logEnable) log.debug "Creating battery event for voltage=${battery_mV/1000}V: ${linkText} ${eventMap.name} is ${eventMap.value}%"
     sendEvent(eventMap)
@@ -142,7 +143,8 @@ private handlePresenceEvent(present) {
         value: present ? "present" : "not present",
         linkText: linkText,
         descriptionText: descriptionText,
-        translatable: true
+        translatable: true,
+        type: "digital"
     ]
     if (logEnable) log.debug "Creating presence event: ${device.displayName} ${eventMap.name} is ${eventMap.value}"
     sendEvent(eventMap)
