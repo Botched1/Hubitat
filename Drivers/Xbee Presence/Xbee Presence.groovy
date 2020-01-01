@@ -110,6 +110,7 @@ private handleBatteryEvent(cluster) {
     def eventMap = [
                 name: 'battery',
                 value: value,
+                unit: "%",
                 descriptionText: descriptionText,
                 translatable: true
             ]
