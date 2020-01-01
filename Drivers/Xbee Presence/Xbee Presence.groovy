@@ -106,7 +106,7 @@ private handleBatteryEvent(cluster) {
     if (currentPercentage && (Integer.parseInt(currentPercentage, 10) == value)) {
         return
     }
-    descriptionText = '{{ linkText }} battery was {{ value }}'
+    descriptionText = "${linkText} battery is ${value}"
     def eventMap = [
                 name: 'battery',
                 value: value,
@@ -133,9 +133,9 @@ private handlePresenceEvent(present) {
     def linkText = getLinkText(device)
     def descriptionText
     if ( present )
-        descriptionText = "{{ linkText }} has arrived"
+        descriptionText = "${linkText} has arrived"
     else
-        descriptionText = "{{ linkText }} has left"
+        descriptionText = "${linkText} has left"
     def eventMap = [
         name: "presence",
         value: present ? "present" : "not present",
