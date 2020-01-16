@@ -22,7 +22,7 @@
  *  Version 1.4 - 12/04/2019     Added Try/Catch around parse in attempt to catch intermittent errors
  *  Version 1.5 - 12/19/2019     Fixed an initial initialization error where scale was unknown until the first thermostat report was received from the device
  *  Version 1.5.1 - 12/21/2019   Tweaked supportedFanMode code, removing fanCirculate as a valid mode from the state variable.
- *  Version 1.6.0 - 01/16/2020   Added Mechanical and SCP report values to state variables
+ *  Version 1.6.0a - 01/16/2020   Added Mechanical and SCP report values to state variables
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
@@ -551,8 +551,9 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 		    updateDataValue("mechanicalStatus", "reserved")
 		    break
 		default:
-		    updateDataValue("mechanicalStatus", config.toInteger())
+		    updateDataValue("mechanicalStatus", config.toString())
 		    break
+	    }
 	}
 		
 	if (cmd.parameterNumber == 22) {
@@ -582,8 +583,9 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 		    updateDataValue("scpStatus", "STATE_MRT")
 		    break
 		default:
-		    updateDataValue("scpStatus", config.toInteger())
+		    updateDataValue("scpStatus", config.toString())
 		    break
+	    }
 	}
 	
 	
