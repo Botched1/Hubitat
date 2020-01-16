@@ -22,7 +22,11 @@
  *  Version 1.4 - 12/04/2019     Added Try/Catch around parse in attempt to catch intermittent errors
  *  Version 1.5 - 12/19/2019     Fixed an initial initialization error where scale was unknown until the first thermostat report was received from the device
  *  Version 1.5.1 - 12/21/2019   Tweaked supportedFanMode code, removing fanCirculate as a valid mode from the state variable.
- *  Version 1.6.1 - 01/16/2020   Added fanstateget when changing fan modes. Thanks @ryan780.
+ *  Version 1.6.0b - 01/16/2020   Added Mechanical and SCP report values to state variables
+ *  Version 1.7.0 - 01/16/2020   Added thermostatOperatingState to idle when SCP report=0 to fix some out of sync issues with
+ *                               that variable. Added in mechanical status and scp status state variables, when parameters
+ *                               are saved the driver now sets the thermostat report autosend bits (param 23) to -1 
+ *				 which = send all reports
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
@@ -234,7 +238,7 @@ def fanOn() {
     return delayBetween([
 		zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 1).format(),
 		zwave.thermostatFanModeV1.thermostatFanModeGet().format(),
-		zwave.thermostatFanStateV1.thermostatFanStateGet().format()
+        zwave.thermostatFanStateV1.thermostatFanStateGet().format()
 	], 1000)   
 }
 
@@ -243,7 +247,7 @@ def fanAuto() {
     return delayBetween([
 		zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 0).format(),
 		zwave.thermostatFanModeV1.thermostatFanModeGet().format(),
-		zwave.thermostatFanStateV1.thermostatFanStateGet().format()
+        zwave.thermostatFanStateV1.thermostatFanStateGet().format()
 	], 1000)
 }
 
@@ -277,8 +281,7 @@ def setThermostatFanMode(value) {
 			log.warn "Fan Mode $value unsupported."
 			break
 	}
-	cmds << zwave.thermostatFanModeV1.thermostatFanModeGet().format(),
-	cmds << zwave.thermostatFanStateV1.thermostatFanStateGet().format()
+	cmds << zwave.thermostatFanModeV1.thermostatFanModeGet().format()
 	return delayBetween(cmds, 1000)
 }
 
@@ -380,7 +383,8 @@ def updated() {
 	}
 		
 	def ParamNum = [:], ParamSize = [:]
-
+    //def paramAutoSendEnableBits = -1
+    
 	// Build Parameter Number Map
 	ParamNum['paramSystemType'] = 1
 	ParamNum['paramFanType'] = 2
@@ -402,6 +406,7 @@ def updated() {
 	ParamNum['paramStage1CDeltaOFF'] = 18
 	ParamNum['paramStage2CDeltaON'] = 19
 	ParamNum['paramStage2CDeltaOFF'] = 20
+    //ParamNum['paramAutoSendEnableBits'] = 23
 	ParamNum['paramDisplayLock'] = 24
 	ParamNum['paramBacklightTimer'] = 26
 	ParamNum['paramMaxHeatSP'] = 33
@@ -436,6 +441,7 @@ def updated() {
 	ParamSize['paramStage1HDeltaOFF'] = 1
 	ParamSize['paramStage2HDeltaON'] = 1
 	ParamSize['paramStage2HDeltaOFF'] = 1
+    //ParamSize['paramAutoSendEnableBits'] = 2
 	ParamSize['paramAuxHDeltaON'] = 1
 	ParamSize['paramAuxHDeltaOFF'] = 1
 	ParamSize['paramStage1CDeltaON'] = 1
@@ -493,6 +499,10 @@ def updated() {
 		}	
 	}
 	
+    // Set report bits
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 23, size: 2, scaledConfigurationValue: -1).format()
+    cmds << zwave.configurationV1.configurationGet(parameterNumber: 23).format()
+    
 	if (logEnable) log.debug "cmds: " + cmds
 
 	return delayBetween(cmds, 500)
@@ -525,6 +535,51 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
     	
     }
     
+    if (cmd.parameterNumber == 21) {
+    if (!config) {
+        state.mechanicalStatus = ""
+        return
+    }
+    def mechStatus = ""
+	if ((config & (1L << 0)) != 0) {mechStatus += "MECH_H1,"}
+	if ((config & (1L << 1)) != 0) {mechStatus += "MECH_H2,"}
+	if ((config & (1L << 2)) != 0) {mechStatus += "MECH_H3,"}
+	if ((config & (1L << 3)) != 0) {mechStatus += "MECH_C1,"}
+	if ((config & (1L << 4)) != 0) {mechStatus += "MECH_C2,"}
+	if ((config & (1L << 5)) != 0) {mechStatus += "PHANTOM_F,"}
+	if ((config & (1L << 6)) != 0) {mechStatus += "MECH_F,"}
+	if ((config & (1L << 7)) != 0) {mechStatus += "MANUAL_F,"}
+	if ((config & (1L << 8)) != 0) {mechStatus += "reserved,"}
+	mechStatus = mechStatus[0..-2]
+	state.mechanicalStatus = mechStatus
+    if (logEnable) log.debug "mechanicalStatus = $mechStatus"
+    }
+
+    if (cmd.parameterNumber == 22) {
+    if (!config) {
+        state.scpStatus = ""
+        def mapCR = [:]
+        mapCR.name = "thermostatOperatingState" 
+        mapCR.value = "idle"
+	    updateDataValue("thermostatOperatingState", mapCR.value)
+        sendEvent(mapCR)
+        return
+    }
+	def scp = ""
+	if ((config & (1L << 0)) != 0) {scp += "STATE_HEAT,"}
+	if ((config & (1L << 1)) != 0) {scp += "STATE_COOL,"}
+	if ((config & (1L << 2)) != 0) {scp += "STATE_2ND,"}
+	if ((config & (1L << 3)) != 0) {scp += "STATE_3RD,"}
+	if ((config & (1L << 4)) != 0) {scp += "STATE_FAN,"}
+	if ((config & (1L << 5)) != 0) {scp += "STATE_LAST,"}
+	if ((config & (1L << 6)) != 0) {scp += "STATE_MOT,"}
+	if ((config & (1L << 7)) != 0) {scp += "STATE_MRT,"}
+	scp = scp[0..-2]
+	state.scpStatus = scp
+    if (logEnable) log.debug "scpStatus = $scp"
+    
+    }
+	
     if (logEnable) log.debug "Parameter: ${cmd.parameterNumber} value is: ${config}"
 }
 
