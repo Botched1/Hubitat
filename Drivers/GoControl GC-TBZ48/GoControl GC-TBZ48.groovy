@@ -558,31 +558,31 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 	if (cmd.parameterNumber == 22) {
             switch (config.toInteger()) {
 	        case 1:
-                    updateDataValue("mechanicalStatus", "STATE_HEAT")
+                    updateDataValue("scpStatus", "STATE_HEAT")
 		    break
 		case 2:
-                    updateDataValue("mechanicalStatus", "STATE_COOL")
+                    updateDataValue("scpStatus", "STATE_COOL")
 		    break
                 case 4:
-		    updateDataValue("mechanicalStatus", "STATE_2ND")
+		    updateDataValue("scpStatus", "STATE_2ND")
 		    break
 		case 8:
-		    updateDataValue("mechanicalStatus", "MSTATE_3RD")
+		    updateDataValue("scpStatus", "MSTATE_3RD")
 		    break
 		case 16:
-		    updateDataValue("mechanicalStatus", "STATE_FAN")
+		    updateDataValue("scpStatus", "STATE_FAN")
 		    break
 		case 32:
-		    updateDataValue("mechanicalStatus", "STATE_LAST")
+		    updateDataValue("scpStatus", "STATE_LAST")
 		    break
 		case 64:
-		    updateDataValue("mechanicalStatus", "STATE_MOT")
+		    updateDataValue("scpStatus", "STATE_MOT")
 		    break
 		case 128:
-		    updateDataValue("mechanicalStatus", "STATE_MRT")
+		    updateDataValue("scpStatus", "STATE_MRT")
 		    break
 		default:
-		    updateDataValue("mechanicalStatus", config.toInteger())
+		    updateDataValue("scpStatus", config.toInteger())
 		    break
 	}
 	
