@@ -22,7 +22,7 @@
  *  Version 1.4 - 12/04/2019     Added Try/Catch around parse in attempt to catch intermittent errors
  *  Version 1.5 - 12/19/2019     Fixed an initial initialization error where scale was unknown until the first thermostat report was received from the device
  *  Version 1.5.1 - 12/21/2019   Tweaked supportedFanMode code, removing fanCirculate as a valid mode from the state variable.
- *  Version 1.6.0a - 01/16/2020   Added Mechanical and SCP report values to state variables
+ *  Version 1.6.0b - 01/16/2020   Added Mechanical and SCP report values to state variables
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
@@ -504,90 +504,52 @@ def logsOff() {
 // Handle updates from thermostat
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
-	if (logEnable) log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} sent parameterNumber:${cmd.parameterNumber}, size:${cmd.size}, value:${cmd.scaledConfigurationValue}"
+    if (logEnable) log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} sent parameterNumber:${cmd.parameterNumber}, size:${cmd.size}, value:${cmd.scaledConfigurationValue}"
     def config = cmd.scaledConfigurationValue
-	def CalValue
+    def CalValue
     if (cmd.parameterNumber == 48) {
-		if (logEnable) log.debug "cmd.scaledConfigurationValue: " + config
-		
-		if (config.toInteger() > 7) {
-			CalValue = config.toInteger() - 256 // == 255 ? "-1" : config == 254 ? "-2" : config == 253 ? "-3" : config == 252 ? "-4" : config == 251 ? "-5" : config == 250 ? "-6" : config == 249 ? "-7" : config == 248 ? "-8" : config == 247 ? "-9" : config == 246 ? "-10" : "unknown"
-			if (logEnable) log.debug "CalValue: " + CalValue
-			sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
-		} else {
-			CalValue = config
-			if (logEnable) log.debug "CalValue: " + CalValue
-			sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
-		}
+        if (logEnable) log.debug "cmd.scaledConfigurationValue: " + config
+	
+	if (config.toInteger() > 7) {
+	    CalValue = config.toInteger() - 256 // == 255 ? "-1" : config == 254 ? "-2" : config == 253 ? "-3" : config == 252 ? "-4" : config == 251 ? "-5" : config == 250 ? "-6" : config == 249 ? "-7" : config == 248 ? "-8" : config == 247 ? "-9" : config == 246 ? "-10" : "unknown"
+	    if (logEnable) log.debug "CalValue: " + CalValue
+	    sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
+	} else {
+		CalValue = config
+		if (logEnable) log.debug "CalValue: " + CalValue
+		sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
+	}
     	
     }
-	if (cmd.parameterNumber == 21) {
-            switch (config.toInteger()) {
-	        case 1:
-                    updateDataValue("mechanicalStatus", "MECH_H1")
-		    break
-		case 2:
-                    updateDataValue("mechanicalStatus", "MECH_H2")
-		    break
-                case 4:
-		    updateDataValue("mechanicalStatus", "MECH_H3")
-		    break
-		case 8:
-		    updateDataValue("mechanicalStatus", "MECH_C1")
-		    break
-		case 16:
-		    updateDataValue("mechanicalStatus", "MECH_C2")
-		    break
-		case 32:
-		    updateDataValue("mechanicalStatus", "PHANTOM_F")
-		    break
-		case 64:
-		    updateDataValue("mechanicalStatus", "MECH_F")
-		    break
-		case 128:
-		    updateDataValue("mechanicalStatus", "MANUAL_F")
-		    break
-		case 256:
-		    updateDataValue("mechanicalStatus", "reserved")
-		    break
-		default:
-		    updateDataValue("mechanicalStatus", config.toString())
-		    break
-	    }
-	}
-		
-	if (cmd.parameterNumber == 22) {
-            switch (config.toInteger()) {
-	        case 1:
-                    updateDataValue("scpStatus", "STATE_HEAT")
-		    break
-		case 2:
-                    updateDataValue("scpStatus", "STATE_COOL")
-		    break
-                case 4:
-		    updateDataValue("scpStatus", "STATE_2ND")
-		    break
-		case 8:
-		    updateDataValue("scpStatus", "MSTATE_3RD")
-		    break
-		case 16:
-		    updateDataValue("scpStatus", "STATE_FAN")
-		    break
-		case 32:
-		    updateDataValue("scpStatus", "STATE_LAST")
-		    break
-		case 64:
-		    updateDataValue("scpStatus", "STATE_MOT")
-		    break
-		case 128:
-		    updateDataValue("scpStatus", "STATE_MRT")
-		    break
-		default:
-		    updateDataValue("scpStatus", config.toString())
-		    break
-	    }
-	}
-	
+    
+    if (cmd.parameterNumber == 21) {
+	def mechStatus = ""
+	if ((config & (1L << 1)) != 0) {mechStatus += "MECH_H1,"}
+	if ((config & (1L << 2)) != 0) {mechStatus += "MECH_H2,"}
+	if ((config & (1L << 3)) != 0) {mechStatus += "MECH_H3,"}
+	if ((config & (1L << 4)) != 0) {mechStatus += "MECH_C1,"}
+	if ((config & (1L << 5)) != 0) {mechStatus += "MECH_C2,"}
+	if ((config & (1L << 6)) != 0) {mechStatus += "PHANTOM_F,"}
+	if ((config & (1L << 7)) != 0) {mechStatus += "MECH_F,"}
+	if ((config & (1L << 8)) != 0) {mechStatus += "MANUAL_F,"}
+	if ((config & (1L << 9)) != 0) {mechStatus += "reserved,"}
+	mechStatus = mechStatus[0..-1]
+	updateDataValue("mechanicalStatus", mechStatus)
+    }
+
+    if (cmd.parameterNumber == 22) {
+	def scp = ""
+	if ((config & (1L << 1)) != 0) {scp += "STATE_HEAT,"}
+	if ((config & (1L << 2)) != 0) {scp += "STATE_COOL,"}
+	if ((config & (1L << 3)) != 0) {scp += "STATE_2ND,"}
+	if ((config & (1L << 4)) != 0) {scp += "STATE_3RD,"}
+	if ((config & (1L << 5)) != 0) {scp += "STATE_FAN,"}
+	if ((config & (1L << 6)) != 0) {scp += "STATE_LAST,"}
+	if ((config & (1L << 7)) != 0) {scp += "STATE_MOT,"}
+	if ((config & (1L << 8)) != 0) {scp += "STATE_MRT,"}
+	scp = scp[0..-1]
+	updateDataValue("scpStatus", scp)
+    }
 	
     if (logEnable) log.debug "Parameter: ${cmd.parameterNumber} value is: ${config}"
 }
