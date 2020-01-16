@@ -22,6 +22,7 @@
  *  Version 1.4 - 12/04/2019     Added Try/Catch around parse in attempt to catch intermittent errors
  *  Version 1.5 - 12/19/2019     Fixed an initial initialization error where scale was unknown until the first thermostat report was received from the device
  *  Version 1.5.1 - 12/21/2019   Tweaked supportedFanMode code, removing fanCirculate as a valid mode from the state variable.
+ *  Version 1.6.0 - 01/16/2020   Added Mechanical and SCP report values to state variables
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
@@ -519,8 +520,74 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 			sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
 		}
     	
+    }
+	if (cmd.parameterNumber == 21) {
+            switch (config.toInteger()) {
+	        case 1:
+                    updateDataValue("mechanicalStatus", "MECH_H1")
+		    break
+		case 2:
+                    updateDataValue("mechanicalStatus", "MECH_H2")
+		    break
+                case 4:
+		    updateDataValue("mechanicalStatus", "MECH_H3")
+		    break
+		case 8:
+		    updateDataValue("mechanicalStatus", "MECH_C1")
+		    break
+		case 16:
+		    updateDataValue("mechanicalStatus", "MECH_C2")
+		    break
+		case 32:
+		    updateDataValue("mechanicalStatus", "PHANTOM_F")
+		    break
+		case 64:
+		    updateDataValue("mechanicalStatus", "MECH_F")
+		    break
+		case 128:
+		    updateDataValue("mechanicalStatus", "MANUAL_F")
+		    break
+		case 256:
+		    updateDataValue("mechanicalStatus", "reserved")
+		    break
+		default:
+		    updateDataValue("mechanicalStatus", config.toInteger())
+		    break
 	}
-	if (logEnable) log.debug "Parameter: ${cmd.parameterNumber} value is: ${config}"
+		
+	if (cmd.parameterNumber == 22) {
+            switch (config.toInteger()) {
+	        case 1:
+                    updateDataValue("mechanicalStatus", "STATE_HEAT")
+		    break
+		case 2:
+                    updateDataValue("mechanicalStatus", "STATE_COOL")
+		    break
+                case 4:
+		    updateDataValue("mechanicalStatus", "STATE_2ND")
+		    break
+		case 8:
+		    updateDataValue("mechanicalStatus", "MSTATE_3RD")
+		    break
+		case 16:
+		    updateDataValue("mechanicalStatus", "STATE_FAN")
+		    break
+		case 32:
+		    updateDataValue("mechanicalStatus", "STATE_LAST")
+		    break
+		case 64:
+		    updateDataValue("mechanicalStatus", "STATE_MOT")
+		    break
+		case 128:
+		    updateDataValue("mechanicalStatus", "STATE_MRT")
+		    break
+		default:
+		    updateDataValue("mechanicalStatus", config.toInteger())
+		    break
+	}
+	
+	
+    if (logEnable) log.debug "Parameter: ${cmd.parameterNumber} value is: ${config}"
 }
 
 def zwaveEvent(hubitat.zwave.commands.sensormultilevelv1.SensorMultilevelReport cmd) {
