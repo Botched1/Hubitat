@@ -26,7 +26,8 @@
  *  Version 1.7.0 - 01/16/2020   Added thermostatOperatingState to idle when SCP report=0 to fix some out of sync issues with
  *                               that variable. Added in mechanical status and scp status state variables, when parameters
  *                               are saved the driver now sets the thermostat report autosend bits (param 23) to -1 
- *				 which = send all reports
+ *				                 which = send all reports
+ *  Version 1.7.1 - 01/16/2020   Removed setting report bits in the parameter save, it was already in the CONFIGURE section. Oops. :) 
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
@@ -315,11 +316,11 @@ def configure() {
 	if (logEnable) log.debug "Executing 'configure'"
 	if (logEnable) log.debug "zwaveHubNodeId: " + zwaveHubNodeId
 	if (logEnable) log.debug "....done executing 'configure'"
-
+    
 	return delayBetween([
 		zwave.thermostatModeV1.thermostatModeSupportedGet().format(),
 		zwave.thermostatFanModeV1.thermostatFanModeSupportedGet().format(),
-		zwave.configurationV1.configurationSet(parameterNumber: 23, size: 2, configurationValue: [0xFF,0xFF]).format(),
+		zwave.configurationV1.configurationSet(parameterNumber: 23, size: 2, scaledConfigurationValue: -1).format(),
 		zwave.configurationV1.configurationGet(parameterNumber: 23).format(),
 		zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:[zwaveHubNodeId]).format()
 	], 1000)
@@ -498,11 +499,7 @@ def updated() {
 			}
 		}	
 	}
-	
-    // Set report bits
-    cmds << zwave.configurationV1.configurationSet(parameterNumber: 23, size: 2, scaledConfigurationValue: -1).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 23).format()
-    
+	    
 	if (logEnable) log.debug "cmds: " + cmds
 
 	return delayBetween(cmds, 500)
