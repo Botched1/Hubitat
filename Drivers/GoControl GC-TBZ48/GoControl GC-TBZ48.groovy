@@ -233,7 +233,8 @@ def fanOn() {
 	if (logEnable) log.debug "Switching fan to on mode..."
     return delayBetween([
 		zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 1).format(),
-		zwave.thermostatFanModeV1.thermostatFanModeGet().format()
+		zwave.thermostatFanModeV1.thermostatFanModeGet().format(),
+		zwave.thermostatFanStateV1.thermostatFanStateGet().format()
 	], 1000)   
 }
 
@@ -241,7 +242,8 @@ def fanAuto() {
 	if (logEnable) log.debug "Switching fan to auto mode..."
     return delayBetween([
 		zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 0).format(),
-		zwave.thermostatFanModeV1.thermostatFanModeGet().format()
+		zwave.thermostatFanModeV1.thermostatFanModeGet().format(),
+		zwave.thermostatFanStateV1.thermostatFanStateGet().format()
 	], 1000)
 }
 
@@ -276,6 +278,7 @@ def setThermostatFanMode(value) {
 			break
 	}
 	cmds << zwave.thermostatFanModeV1.thermostatFanModeGet().format()
+	cmds << zwave.thermostatFanStateV1.thermostatFanStateGet().format()
 	return delayBetween(cmds, 1000)
 }
 
