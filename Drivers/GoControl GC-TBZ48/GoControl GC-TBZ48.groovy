@@ -28,11 +28,13 @@
  *                               are saved the driver now sets the thermostat report autosend bits (param 23) to -1 
  *				                 which = send all reports
  *  Version 1.7.1 - 01/16/2020   Removed setting report bits in the parameter save, it was already in the CONFIGURE section. Oops. :) 
+ *  Version 1.8.0 - 01/27/2020   Added Battery Capability
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
 		
 		capability "Actuator"
+		capability "Battery"
 		capability "Configuration"
 		capability "Refresh"
 		capability "Relative Humidity Measurement"
@@ -958,6 +960,7 @@ def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
     } else {
         map.value = cmd.batteryLevel
     }
+    updateDataValue("battery", map.value)
     sendEvent(map)
     return map
 }
