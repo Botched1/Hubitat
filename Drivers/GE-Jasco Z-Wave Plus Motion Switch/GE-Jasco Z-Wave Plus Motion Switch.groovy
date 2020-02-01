@@ -15,43 +15,43 @@
 
 metadata {
 	definition (name: "GE Z-Wave Plus Motion Switch", namespace: "Botched1", author: "Jason Bottjen") {
-		capability "Actuator"
-		capability "Motion Sensor"
-		capability "PushableButton"
-		capability "Configuration"
-		capability "Refresh"
-		capability "Sensor"
-		capability "Switch"		
-		capability "Light"
-		command "Occupancy"
+	capability "Actuator"
+	capability "Motion Sensor"
+	capability "PushableButton"
+	capability "Configuration"
+	capability "Refresh"
+	capability "Sensor"
+	capability "Switch"		
+	capability "Light"
+	command "Occupancy"
         command "Vacancy"
         command "Manual"        
 	}
 
  preferences {
-	 input "paramLightTimer", "enum", title: "Light Timeout", description: "Length of time after no motion for the light to shut off in Occupancy/Vacancy modes", options: ["0" : "5 seconds", "1" : "1 minute", "5" : "5 minutes (default)", "15" : "15 minutes", "30" : "30 minutes", "255" : "disabled"], required: false, displayDuringSetup: true
-	 input "paramOperationMode", "enum", title: "Operating Mode", description: "Occupancy: Automatically turn on and off the light with motion\nVacancy: Manually turn on, automatically turn off light with no motion.", options: ["1" : "Manual", "2" : "Vacancy", "3" : "Occupancy (default)"], required: false, displayDuringSetup: true
-	 input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
-	 input "paramMotionEnabled", "enum", title: "Motion Sensor", description: "Enable/Disable Motion Sensor.",options: ["0" : "Disable","1" : "Enable (default)"], required: false
-	 input "paramMotionSensitivity", "enum", title: "Motion Sensitivity", options: ["1" : "High", "2" : "Medium (default)", "3" : "Low"], required: false, displayDuringSetup: true
-	 input "paramLightSense", "enum", title: "Light Sensing", description: "If enabled, Occupancy mode will only turn light on if it is dark", options: ["0" : "Disabled","1" : "Enabled (default)"], required: false, displayDuringSetup: true
-	 input "paramMotionResetTimer", "enum", title: "Motion Detection Reset Time", options: ["0" : "Disabled", "1" : "10 sec", "2" : "20 sec (default)", "3" : "30 sec", "4" : "45 sec", "110" : "27 mins"], required: false
+    input "paramLightTimer", "enum", title: "Light Timeout", description: "Length of time after no motion for the light to shut off in Occupancy/Vacancy modes", options: ["0" : "5 seconds", "1" : "1 minute", "5" : "5 minutes (default)", "15" : "15 minutes", "30" : "30 minutes", "255" : "disabled"], required: false, displayDuringSetup: true
+    input "paramOperationMode", "enum", title: "Operating Mode", description: "Occupancy: Automatically turn on and off the light with motion\nVacancy: Manually turn on, automatically turn off light with no motion.", options: ["1" : "Manual", "2" : "Vacancy", "3" : "Occupancy (default)"], required: false, displayDuringSetup: true
+    input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
+    input "paramMotionEnabled", "enum", title: "Motion Sensor", description: "Enable/Disable Motion Sensor.",options: ["0" : "Disable","1" : "Enable (default)"], required: false
+    input "paramMotionSensitivity", "enum", title: "Motion Sensitivity", options: ["1" : "High", "2" : "Medium (default)", "3" : "Low"], required: false, displayDuringSetup: true
+    input "paramLightSense", "enum", title: "Light Sensing", description: "If enabled, Occupancy mode will only turn light on if it is dark", options: ["0" : "Disabled","1" : "Enabled (default)"], required: false, displayDuringSetup: true
+    input "paramMotionResetTimer", "enum", title: "Motion Detection Reset Time", options: ["0" : "Disabled", "1" : "10 sec", "2" : "20 sec (default)", "3" : "30 sec", "4" : "45 sec", "110" : "27 mins"], required: false
 	 //
-   	 input (
+    input (
             	name: "requestedGroup2",
             	title: "Association Group 2 Members (Max of 5):",
             	type: "text",
             	required: false
         	)
 
-     input (
+    input (
             	name: "requestedGroup3",
             	title: "Association Group 3 Members (Max of 4):",
             	type: "text",
             	required: false
         	)
-	 input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
-     input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true		
+    input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+    input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true		
     }
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
