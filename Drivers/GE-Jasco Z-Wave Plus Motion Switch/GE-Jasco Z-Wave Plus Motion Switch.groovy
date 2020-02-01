@@ -11,47 +11,50 @@
  *  1.1.0 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
  *  1.1.1 (03/03/2019) - Cleaned up some errant wanring messages that should have been debug.
  *  2.0.0 (02/01/2020) - Added occupancy/vacancy/manual commands, added association settings to preferences
+ *  2.1.0 (02/01/2020) - Added setLightTimeout and DebugLogging commands, added description logging, added state variables for operating mode and light timeout
 */
 
 metadata {
 	definition (name: "GE Z-Wave Plus Motion Switch", namespace: "Botched1", author: "Jason Bottjen") {
-	capability "Actuator"
-	capability "Motion Sensor"
-	capability "PushableButton"
-	capability "Configuration"
-	capability "Refresh"
-	capability "Sensor"
-	capability "Switch"		
-	capability "Light"
-	command "Occupancy"
+		capability "Actuator"
+		capability "Motion Sensor"
+		capability "PushableButton"
+		capability "Configuration"
+		capability "Refresh"
+		capability "Sensor"
+		capability "Switch"		
+		capability "Light"
+		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
+		command "Occupancy"
         command "Vacancy"
         command "Manual"        
+		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]                
 	}
 
  preferences {
-    input "paramLightTimer", "enum", title: "Light Timeout", description: "Length of time after no motion for the light to shut off in Occupancy/Vacancy modes", options: ["0" : "5 seconds", "1" : "1 minute", "5" : "5 minutes (default)", "15" : "15 minutes", "30" : "30 minutes", "255" : "disabled"], required: false, displayDuringSetup: true
-    input "paramOperationMode", "enum", title: "Operating Mode", description: "Occupancy: Automatically turn on and off the light with motion\nVacancy: Manually turn on, automatically turn off light with no motion.", options: ["1" : "Manual", "2" : "Vacancy", "3" : "Occupancy (default)"], required: false, displayDuringSetup: true
-    input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
-    input "paramMotionEnabled", "enum", title: "Motion Sensor", description: "Enable/Disable Motion Sensor.",options: ["0" : "Disable","1" : "Enable (default)"], required: false
-    input "paramMotionSensitivity", "enum", title: "Motion Sensitivity", options: ["1" : "High", "2" : "Medium (default)", "3" : "Low"], required: false, displayDuringSetup: true
-    input "paramLightSense", "enum", title: "Light Sensing", description: "If enabled, Occupancy mode will only turn light on if it is dark", options: ["0" : "Disabled","1" : "Enabled (default)"], required: false, displayDuringSetup: true
-    input "paramMotionResetTimer", "enum", title: "Motion Detection Reset Time", options: ["0" : "Disabled", "1" : "10 sec", "2" : "20 sec (default)", "3" : "30 sec", "4" : "45 sec", "110" : "27 mins"], required: false
+	 //input "paramLightTimer", "enum", title: "Light Timeout", description: "Length of time after no motion for the light to shut off in Occupancy/Vacancy modes", options: ["0" : "5 seconds", "1" : "1 minute", "5" : "5 minutes (default)", "15" : "15 minutes", "30" : "30 minutes", "255" : "disabled"], required: false, displayDuringSetup: true
+	 //input "paramOperationMode", "enum", title: "Operating Mode", description: "Occupancy: Automatically turn on and off the light with motion\nVacancy: Manually turn on, automatically turn off light with no motion.", options: ["1" : "Manual", "2" : "Vacancy", "3" : "Occupancy (default)"], required: false, displayDuringSetup: true
+	 input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
+	 input "paramMotionEnabled", "enum", title: "Motion Sensor", description: "Enable/Disable Motion Sensor.",options: ["0" : "Disable","1" : "Enable (default)"], required: false
+	 input "paramMotionSensitivity", "enum", title: "Motion Sensitivity", options: ["1" : "High", "2" : "Medium (default)", "3" : "Low"], required: false, displayDuringSetup: true
+	 input "paramLightSense", "enum", title: "Light Sensing", description: "If enabled, Occupancy mode will only turn light on if it is dark", options: ["0" : "Disabled","1" : "Enabled (default)"], required: false, displayDuringSetup: true
+	 input "paramMotionResetTimer", "enum", title: "Motion Detection Reset Time", options: ["0" : "Disabled", "1" : "10 sec", "2" : "20 sec (default)", "3" : "30 sec", "4" : "45 sec", "110" : "27 mins"], required: false
 	 //
-    input (
+   	 input (
             	name: "requestedGroup2",
             	title: "Association Group 2 Members (Max of 5):",
             	type: "text",
             	required: false
         	)
 
-    input (
+     input (
             	name: "requestedGroup3",
             	title: "Association Group 3 Members (Max of 4):",
             	type: "text",
             	required: false
         	)
-    input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
-    input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true		
+	 input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+     input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true	
     }
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -137,10 +140,19 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
         case 1:
             name = "Light Timeout"
             value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == 255 ? "disabled" : "error"
+            if (value == 0) {state.lightTimeout = "5 seconds"}
+            else if (value == 1) {state.lightTimeout = "1 minute"}
+            else if (value == 5) {state.lightTimeout = "5 minutes (default)"}
+            else if (value == 15) {state.lightTimeout = "15 minutes"}
+            else if (value == 30) {state.lightTimeout = "30 minutes"}
+            else if (value == 255) {state.lightTimeout = "disabled"}
             break
         case 3:
             name = "Operating Mode"
             value = reportValue == 1 ? "Manual" : reportValue == 2 ? "Vacancy" : reportValue == 3 ? "Occupancy (default)": "error"
+            if (value == 1) {state.operatingMode = "Manual"} 
+            else if (value == 2) {state.operatingMode = "Vacancy"} 
+            else if (value == 3) {state.operatingMode = "Occupancy (default)"}
             break
         case 5:
             name = "Invert Buttons"
@@ -177,9 +189,11 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	
 	if (cmd.value == 255) {
 		desc = "Switch turned ON"
+        if (logDesc) log.info "$device.displayName was turned on"
 	}
 	else if (cmd.value == 0) {
-		desc = "Switch turned OFF"	
+		desc = "Switch turned OFF"
+        if (logDesc) log.info "$device.displayName was turned off"
 	}
 	createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", isStateChange: true])
 }
@@ -217,9 +231,11 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd)
 	def result = []
 	if (cmd.notificationType == 0x07) {
 		if ((cmd.event == 0x00)) { 
-			result << createEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped", isStateChange: true)
+			if (logDesc) log.info "$device.displayName motion has stopped"
+            result << createEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped", isStateChange: true)
 		} else if (cmd.event == 0x08) {
-			result << createEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion", isStateChange: true)
+			if (logDesc) log.info "$device.displayName detected motion"
+            result << createEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion", isStateChange: true)
 		} 
 	} 
 	result
@@ -241,6 +257,42 @@ def off() {
 		zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format(),
 		zwave.switchBinaryV1.switchBinaryGet().format()
 	],500)
+}
+
+def setLightTimeout(value) {
+    if (logEnable) log.debug "Setting light timeout value: ${value}"
+    def cmds = []        
+    // "5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"
+    switch (value) {
+        case "5 seconds":
+            state.lightTimeout = "5 seconds"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 0 , parameterNumber: 1, size: 1).format()
+            break
+        case "1 minute":
+            state.lightTimeout = "1 minute"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 1 , parameterNumber: 1, size: 1).format()
+            break
+        case "5 minutes (default)":
+            state.lightTimeout = "5 minutes (default)"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 5 , parameterNumber: 1, size: 1).format()
+            break
+        case "15 minutes":
+            state.lightTimeout = "15 minutes"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 15 , parameterNumber: 1, size: 1).format()
+            break
+        case "30 minutes":
+            state.lightTimeout = "30 minutes"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 30 , parameterNumber: 1, size: 1).format()
+            break
+        case "disabled":
+            state.lightTimeout = "disabled"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 255 , parameterNumber: 1, size: 1).format()
+            break
+        default:
+            return
+    }
+  	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
+    delayBetween(cmds, 500)
 }
 
 def Occupancy() {
@@ -300,19 +352,19 @@ def updated() {
 	def cmds = []
 
 	// Set Light Timer param
-	if (paramLightTimer==null) {
-		paramLightTimer = 5
-	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightTimer.toInteger(), parameterNumber: 1, size: 1).format()
-	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
+	//if (paramLightTimer==null) {
+	//	paramLightTimer = 5
+	//}
+	//cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightTimer.toInteger(), parameterNumber: 1, size: 1).format()
+	//cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
 	
 	
 	// Set Operation Mode param
-	if (paramOperationMode==null) {
-		paramOperationMode = 3
-	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramOperationMode.toInteger(), parameterNumber: 3, size: 1).format()
-	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+	//if (paramOperationMode==null) {
+	//	paramOperationMode = 3
+	//}
+	//cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramOperationMode.toInteger(), parameterNumber: 3, size: 1).format()
+	//cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
 	
 	// Set Inverted param
 	if (paramInverted==null) {
@@ -414,6 +466,16 @@ private parseAssocGroupList(list, group) {
     }
     
     return nodes
+}
+
+def DebugLogging(value) {
+	if (value=="OFF") {logsoff}
+    if (value=="ON") {
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(1800,logsOff)
+	}
+	
 }
 
 def logsOff(){
