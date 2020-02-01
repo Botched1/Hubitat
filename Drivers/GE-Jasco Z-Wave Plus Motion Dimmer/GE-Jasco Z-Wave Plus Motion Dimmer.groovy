@@ -14,6 +14,7 @@
  *  2.0.0 (02/01/2020) - Added occupancy/vacancy/manual commands, added association settings to preferences
  *  2.0.1 (02/01/2020) - Tweak to allow for 100 as a default dimmer value
  *  2.1.0 (02/01/2020) - Added setLightTimeout and DebugLogging commands, added description logging, added state variables for default dimmer level/operating mode/and light timeout
+ *  2.1.1 (02/01/2020) - Added digital/physical typoe indicators on the events
 */
 
 metadata {
@@ -239,7 +240,7 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 		desc = "Switch turned OFF"
         if (logDesc) log.info "$device.displayName was turned off"
 	}
-	createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", isStateChange: true])
+	createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: "physical", isStateChange: true])
 }
 
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
@@ -275,10 +276,10 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd)
 	if (cmd.notificationType == 0x07) {
 		if ((cmd.event == 0x00)) {
             if (logDesc) log.info "$device.displayName motion has stopped"
-			result << createEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped", isStateChange: true)
+			result << createEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped", type: "physical", isStateChange: true)
 		} else if (cmd.event == 0x08) {
             if (logDesc) log.info "$device.displayName detected motion"
-			result << createEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion", isStateChange: true)
+			result << createEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion", type: "physical", isStateChange: true)
 		} 
 	} 
 	result
@@ -289,12 +290,12 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 		sendEvent(name: "level", value: cmd.value, unit: "%", descriptionText: "$device.displayName is " + cmd.value + "%")
         if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
 		if (device.currentValue("switch") == "off") {
-            sendEvent(name: "switch", value: "on", isStateChange: true)
+            sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "physical", isStateChange: true)
             if (logDesc) log.info "$device.displayName was turned on"
         }
 	} else {
 		if (device.currentValue("switch") == "on") {
-            sendEvent(name: "switch", value: "off", isStateChange: true)
+            sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "physical", isStateChange: true)
             if (logDesc) log.info "$device.displayName was turned off"
         }
 	}
@@ -310,7 +311,7 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd
 def on() {
 	if (logEnable) log.debug "Turn device ON"
 	def cmds = []
-    sendEvent(name: "switch", value: "on", isStateChange: true)
+    sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "digital", isStateChange: true)
 	cmds << zwave.basicV1.basicSet(value: 0xFF).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	delayBetween(cmds, 3000)
@@ -319,7 +320,7 @@ def on() {
 def off() {
 	if (logEnable) log.debug "Turn device OFF"
 	def cmds = []
-	sendEvent(name: "switch", value: "off", isStateChange: true)
+	sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "digital", isStateChange: true)
     cmds << zwave.basicV1.basicSet(value: 0x00).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	delayBetween(cmds, 3000)}
@@ -334,13 +335,16 @@ def setLevel(value) {
 	if (logEnable) log.debug "SetLevel (value) - currval: $currval"
 	
 	if (level > 0 && currval == "off") {
-		sendEvent(name: "switch", value: "on")
+		if (logDesc) log.info "$device.displayName was turned on"
+        sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "digital")
 	} else if (level == 0 && currval == "on") {
-		sendEvent(name: "switch", value: "off")
+		if (logDesc) log.info "$device.displayName was turned off"
+        sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "digital")
 		delay += 2000
 	}
-	sendEvent(name: "level", value: level, unit: "%")
-	if (settings.paramZSteps) {
+	//sendEvent(name: "level", value: level, unit: "%")
+	sendEvent(name: "level", value: level, unit: "%", descriptionText: "$device.displayName is " + level + "%", type: "digital")
+    if (settings.paramZSteps) {
 		zsteps = settings.paramZSteps
 	} else {
 		zsteps = 1
@@ -365,12 +369,13 @@ def setLevel(value, duration) {
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	state.level = value
 	if (value > 0 && currval == "off") {
-		sendEvent(name: "switch", value: "on")
+		sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "digital")
 	} else if (value == 0 && currval == "on") {
-		sendEvent(name: "switch", value: "off")
+		sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "digital")
 		delay += 2000
 	}
-	sendEvent(name: "level", value: value, unit: "%")
+	//sendEvent(name: "level", value: value, unit: "%", descriptionText: "$device.displayName is $value%")
+    sendEvent(name: "level", value: value, unit: "%", descriptionText: "$device.displayName is " + value + "%", type: "digital")
     
 	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $getStatusDelay"
 	delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format(),
