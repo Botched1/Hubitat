@@ -14,7 +14,7 @@
  *  2.0.0 (02/01/2020) - Added occupancy/vacancy/manual commands, added association settings to preferences
  *  2.0.1 (02/01/2020) - Tweak to allow for 100 as a default dimmer value
  *  2.1.0 (02/01/2020) - Added setLightTimeout and DebugLogging commands, added description logging, added state variables for default dimmer level/operating mode/and light timeout
- *  2.1.1 (02/01/2020) - Added digital/physical typoe indicators on the events
+ *  2.1.1 (02/01/2020) - Added digital/physical type indicators on the events
 */
 
 metadata {
