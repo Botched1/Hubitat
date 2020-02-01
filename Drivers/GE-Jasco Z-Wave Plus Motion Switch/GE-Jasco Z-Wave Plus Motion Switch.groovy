@@ -296,7 +296,8 @@ def setLightTimeout(value) {
 }
 
 def Occupancy() {
-	def cmds = []
+	state.operatingMode = "Occupancy (default)"
+    def cmds = []
     cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
     delayBetween(cmds, 500)
@@ -304,14 +305,16 @@ def Occupancy() {
 
 
 def Vacancy() {
-	def cmds = []
+	state.operatingMode = "Vacancy"
+    def cmds = []
     cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
     delayBetween(cmds, 500)
 }
 
 def Manual() {
-	def cmds = []
+	state.operatingMode = "Manual"
+    def cmds = []
     cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
     delayBetween(cmds, 500)
