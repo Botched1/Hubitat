@@ -12,6 +12,7 @@
  *  1.1.1 (03/03/2019) - Cleaned up some errant wanring messages that should have been debug.
  *  2.0.0 (02/01/2020) - Added occupancy/vacancy/manual commands, added association settings to preferences
  *  2.1.0 (02/01/2020) - Added setLightTimeout and DebugLogging commands, added description logging, added state variables for operating mode and light timeout
+ *  2.1.1 (02/01/2020) - Added digital/physical indication to event types
 */
 
 metadata {
@@ -188,14 +189,30 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	def desc
 	
 	if (cmd.value == 255) {
-		desc = "Switch turned ON"
+		desc = "Switch turned on"
         if (logDesc) log.info "$device.displayName was turned on"
 	}
 	else if (cmd.value == 0) {
-		desc = "Switch turned OFF"
+		desc = "Switch turned off"
         if (logDesc) log.info "$device.displayName was turned off"
 	}
-	createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", isStateChange: true])
+    
+    def newType
+	
+	// check state.bin variable to see if event is digital or physical
+	if (state.bin == -1)
+	{
+		newType = "digital"
+	}
+	else
+	{
+		newType = "physical"
+	}
+    
+    // Reset state.bin variable
+	state.bin = 0
+    
+	createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: "$newType", isStateChange: true])
 }
 
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
@@ -232,10 +249,10 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd)
 	if (cmd.notificationType == 0x07) {
 		if ((cmd.event == 0x00)) { 
 			if (logDesc) log.info "$device.displayName motion has stopped"
-            result << createEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped", isStateChange: true)
+            result << createEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped", type: "physical", isStateChange: true)
 		} else if (cmd.event == 0x08) {
 			if (logDesc) log.info "$device.displayName detected motion"
-            result << createEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion", isStateChange: true)
+            result << createEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion", type: "physical", isStateChange: true)
 		} 
 	} 
 	result
@@ -245,7 +262,8 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def on() {
 	if (logEnable) log.debug "Turn device ON"
-	delayBetween([
+	state.bin = -1
+    delayBetween([
 		zwave.switchBinaryV1.switchBinarySet(switchValue: 0xFF).format(),
 		zwave.switchBinaryV1.switchBinaryGet().format()
 	],500)
@@ -253,7 +271,8 @@ def on() {
 
 def off() {
 	if (logEnable) log.debug "Turn device OFF"
-	delayBetween([
+	state.bin = -1
+    delayBetween([
 		zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format(),
 		zwave.switchBinaryV1.switchBinaryGet().format()
 	],500)
