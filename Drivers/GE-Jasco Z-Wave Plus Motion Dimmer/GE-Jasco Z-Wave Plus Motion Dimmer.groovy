@@ -287,7 +287,7 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd)
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
 	if (logEnable) log.debug "SwitchMultilevelReport"
 	if (cmd.value) {
-		sendEvent(name: "level", value: cmd.value, unit: "%", descriptionText: "$device.displayName is " + cmd.value + "%")
+		sendEvent(name: "level", value: cmd.value, unit: "%", descriptionText: "$device.displayName is " + cmd.value + "%", type: "physical")
         if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
 		if (device.currentValue("switch") == "off") {
             sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "physical", isStateChange: true)
