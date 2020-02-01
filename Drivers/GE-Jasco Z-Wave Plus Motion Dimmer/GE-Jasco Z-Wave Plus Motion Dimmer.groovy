@@ -12,6 +12,7 @@
  *  1.1.0 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
  *  1.1.1 (03/03/2019) - Cleaned up some warning logging that should have been converted to debug.
  *  2.0.0 (02/01/2020) - Added occupancy/vacancy/manual commands, added association settings to preferences
+ *  2.0.1 (02/01/2020) - Tweak to allow for 100 as a default dimmer value
 */
 
 metadata {
@@ -48,7 +49,7 @@ metadata {
 	 input "paramPDuration", "number", title: "Physical Dimming Duration (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
      //
      input "paramSwitchMode", "enum", title: "Switch Mode Enable (physical switch buttons only do ON/OFF - no dimming)", multiple: false, options: ["0" : "Disable (default)", "1" : "Enable"], required: false, displayDuringSetup: true
-	 input "paramDefaultDimmerLevel", "number", title: "Default Dimmer Level (0=Last Dimmer Level)", multiple: false, defaultValue: "0", range: "0..99", required: false, displayDuringSetup: true	 
+	 input "paramDefaultDimmerLevel", "number", title: "Default Dimmer Level (0=Last Dimmer Level)", multiple: false, defaultValue: "0", range: "0..100", required: false, displayDuringSetup: true	 
 	 input "paramDimUpRate", "enum", title: "Speed to Dim up the light to the default level", multiple: false, options: ["0" : "Quickly (Default)", "1" : "Slowly"], required: false, displayDuringSetup: true
 	 //	 
    	 input (
@@ -355,6 +356,7 @@ def setLevel(value, duration) {
 def setDefaultDimmerLevel(value) {
 
 	if (logEnable) log.debug "Setting default dimmer level: ${value}"
+    value = Math.max(Math.min(value.toInteger(), 99), 0)
     def cmds = []
     cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
   	cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
