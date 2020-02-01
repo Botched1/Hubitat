@@ -10,7 +10,7 @@
  *  1.0.1 (03/03/2019) - Fixed small association setting bug.
  *  1.1.0 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
  *  1.1.1 (03/03/2019) - Cleaned up some errant wanring messages that should have been debug.
- *  1.2.0 (03/18/2019) - Fixed parameters not saving correctly / not actually changing values on device
+ *  2.0.0 (02/01/2020) - Added occupancy/vacancy/manual commands, added association settings to preferences
 */
 
 metadata {
@@ -23,20 +23,35 @@ metadata {
 		capability "Sensor"
 		capability "Switch"		
 		capability "Light"
+		command "Occupancy"
+        command "Vacancy"
+        command "Manual"        
 	}
 
  preferences {
-     input (type: "paragraph", element: "paragraph", title: "Switch General Settings", description: "")
 	 input "paramLightTimer", "enum", title: "Light Timeout", description: "Length of time after no motion for the light to shut off in Occupancy/Vacancy modes", options: ["0" : "5 seconds", "1" : "1 minute", "5" : "5 minutes (default)", "15" : "15 minutes", "30" : "30 minutes", "255" : "disabled"], required: false, displayDuringSetup: true
 	 input "paramOperationMode", "enum", title: "Operating Mode", description: "Occupancy: Automatically turn on and off the light with motion\nVacancy: Manually turn on, automatically turn off light with no motion.", options: ["1" : "Manual", "2" : "Vacancy", "3" : "Occupancy (default)"], required: false, displayDuringSetup: true
 	 input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
 	 input "paramMotionEnabled", "enum", title: "Motion Sensor", description: "Enable/Disable Motion Sensor.",options: ["0" : "Disable","1" : "Enable (default)"], required: false
-	 input "paramMotionSensitivity", "enum", title: "Motion Sensitivity", description: "Motion Sensitivity", options: ["1" : "High", "2" : "Medium (default)", "3" : "Low"], required: false, displayDuringSetup: true
+	 input "paramMotionSensitivity", "enum", title: "Motion Sensitivity", options: ["1" : "High", "2" : "Medium (default)", "3" : "Low"], required: false, displayDuringSetup: true
 	 input "paramLightSense", "enum", title: "Light Sensing", description: "If enabled, Occupancy mode will only turn light on if it is dark", options: ["0" : "Disabled","1" : "Enabled (default)"], required: false, displayDuringSetup: true
 	 input "paramMotionResetTimer", "enum", title: "Motion Detection Reset Time", options: ["0" : "Disabled", "1" : "10 sec", "2" : "20 sec (default)", "3" : "30 sec", "4" : "45 sec", "110" : "27 mins"], required: false
 	 //
-	 input ( type: "paragraph", element: "paragraph", title: "", description: "Logging")
-	 input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true		
+   	 input (
+            	name: "requestedGroup2",
+            	title: "Association Group 2 Members (Max of 5):",
+            	type: "text",
+            	required: false
+        	)
+
+     input (
+            	name: "requestedGroup3",
+            	title: "Association Group 3 Members (Max of 4):",
+            	type: "text",
+            	required: false
+        	)
+	 input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+     input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true		
     }
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -105,8 +120,8 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
         }
         else {
         	sendEvent(name: "numberOfButtons", value: 0, displayed: false)
-			zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
-			zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+			delayBetween([zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format(),
+			zwave.associationV2.associationGet(groupingIdentifier: 3).format()],500)
         }
     }
 }
@@ -228,6 +243,28 @@ def off() {
 	],500)
 }
 
+def Occupancy() {
+	def cmds = []
+    cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+    delayBetween(cmds, 500)
+}
+
+
+def Vacancy() {
+	def cmds = []
+    cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+    delayBetween(cmds, 500)
+}
+
+def Manual() {
+	def cmds = []
+    cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+    delayBetween(cmds, 500)
+}
+
 def refresh() {
 	log.info "refresh() is called"
 	
@@ -261,9 +298,6 @@ def updated() {
     state.lastUpdated = now()
 
 	def cmds = []
-    cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
-	cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
-	cmds << zwave.associationV1.associationRemove(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
 
 	// Set Light Timer param
 	if (paramLightTimer==null) {
@@ -315,18 +349,71 @@ def updated() {
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionResetTimer.toInteger(), parameterNumber: 15, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 15).format()
 
-	//
+    // Association groups
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+    cmds << zwave.associationV2.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
+	// Add endpoints to groups 2 and 3
+	def nodes = []
+	if (settings.requestedGroup2 != state.currentGroup2) {
+        nodes = parseAssocGroupList(settings.requestedGroup2, 2)
+        cmds << zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: []).format()
+        cmds << zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format()
+        cmds << zwave.associationV2.associationGet(groupingIdentifier: 2).format()
+        state.currentGroup2 = settings.requestedGroup2
+    }
+    if (settings.requestedGroup3 != state.currentGroup3) {
+        nodes = parseAssocGroupList(settings.requestedGroup3, 3)
+        cmds << zwave.associationV2.associationSetRemove(groupingIdentifier: 3, nodeId: []).format()
+        cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes).format()
+        cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+        state.currentGroup3 = settings.requestedGroup3
+    }    
 	if (logEnable) log.debug "cmds: $cmds"
 	delayBetween(cmds, 500)
 }
 
 def configure() {
-        log.info "configure() called"
-		def cmds = []
-        cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
-		cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
-		cmds << zwave.associationV1.associationRemove(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
-        delayBetween(cmds, 500)
+    log.info "configure() called"
+    def cmds = []
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+	cmds << zwave.associationV2.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
+    delayBetween(cmds, 500)
+}
+
+private parseAssocGroupList(list, group) {
+    def nodes = group == 2 ? [] : [zwaveHubNodeId]
+    if (list) {
+        def nodeList = list.split(',')
+        def max = group == 2 ? 5 : 4
+        def count = 0
+
+        nodeList.each { node ->
+            node = node.trim()
+            if ( count >= max) {
+                log.warn "Association Group ${group}: Number of members is greater than ${max}! The following member was discarded: ${node}"
+            }
+            else if (node.matches("\\p{XDigit}+")) {
+                def nodeId = Integer.parseInt(node,16)
+                if (nodeId == zwaveHubNodeId) {
+                	log.warn "Association Group ${group}: Adding the hub as an association is not allowed (it would break double-tap)."
+                }
+                else if ( (nodeId > 0) & (nodeId < 256) ) {
+                    nodes << nodeId
+                    count++
+                }
+                else {
+                    log.warn "Association Group ${group}: Invalid member: ${node}"
+                }
+            }
+            else {
+                log.warn "Association Group ${group}: Invalid member: ${node}"
+            }
+        }
+    }
+    
+    return nodes
 }
 
 def logsOff(){
