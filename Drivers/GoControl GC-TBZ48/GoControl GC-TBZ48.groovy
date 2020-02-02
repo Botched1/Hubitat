@@ -29,6 +29,7 @@
  *				                 which = send all reports
  *  Version 1.7.1 - 01/16/2020   Removed setting report bits in the parameter save, it was already in the CONFIGURE section. Oops. :) 
  *  Version 1.8.0 - 01/27/2020   Added Battery Capability
+ *  bcopeland     - 02/01/2020   Added filter capability and clock syncronization and security ecnapsulation 
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
@@ -42,10 +43,12 @@ metadata {
 		capability "Temperature Measurement"
 		capability "Thermostat"
 		capability "Thermostat Fan Mode"
+		capability "FilterStatus"
        
 		command "SensorCal", [[name:"calibration",type:"ENUM", description:"Number of degrees to add/subtract from thermostat sensor", constraints:["0", "-7", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6", "7"]]]
 		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]
-
+		command "SyncClock"
+		command "filterReset"
 		
 		attribute "thermostatFanState", "string"
 		attribute "currentSensorCal", "number"
@@ -81,11 +84,11 @@ metadata {
 			input "paramSetback", "enum", title: "Presence status, used for allowing temperature setpoints to relax when away", multiple: false, defaultValue: "0-Occupied", options: ["0-Occupied","2-Unoccupied"], required: false, displayDuringSetup: true			
 			input "paramUnOccupiedHSP", "number", title: "Heating setpoint when unoccupied (degrees)", multiple: false, defaultValue: "62", range: "30..109", required: false, displayDuringSetup: true			
 			input "paramUnOccupiedCSP", "number", title: "Cooling setpoint when unoccupied (degrees)", multiple: false, defaultValue: "80", range: "33..112", required: false, displayDuringSetup: true						
-			input "paramSensorCal", "number", title: "Temperature Sensor Calibration/Offset (degrees)", multiple: false, defaultValue: "0", range: "-7..7", required: false, displayDuringSetup: true						
-			input "paramFilterTimer", "number", title: "Filter Timer (hours)", multiple: false, defaultValue: "0", range: "0..4000", required: false, displayDuringSetup: true									
-			input "paramFilterTimerMax", "number", title: "Filter Timer Max (hours)", multiple: false, defaultValue: "300", range: "0..4000", required: false, displayDuringSetup: true												
-			input "paramHeatTimer", "number", title: "Heat Timer (hours)", multiple: false, defaultValue: "0", range: "0..4000", required: false, displayDuringSetup: true												
-			input "paramCoolTimer", "number", title: "Cool Timer (hours)", multiple: false, defaultValue: "0", range: "0..4000", required: false, displayDuringSetup: true												
+			input "paramSensorCal", "number", title: "Temperature Sensor Calibration/Offset (degrees)", multiple: false, defaultValue: 0, range: "-7..7", required: false, displayDuringSetup: true						
+			//input "paramFilterTimer", "number", title: "Filter Timer (hours)", multiple: false, defaultValue: "0", range: "0..4000", required: false, displayDuringSetup: true
+			input "paramFilterTimerMax", "number", title: "Filter Timer Max (hours)", multiple: false, defaultValue: 300, range: "0..4000", required: false, displayDuringSetup: true
+			//input "paramHeatTimer", "number", title: "Heat Timer (hours)", multiple: false, defaultValue: "0", range: "0..4000", required: false, displayDuringSetup: true												
+			//input "paramCoolTimer", "number", title: "Cool Timer (hours)", multiple: false, defaultValue: "0", range: "0..4000", required: false, displayDuringSetup: true												
 			input "paramFanPurgeHeat", "number", title: "Fan purge after heat cycle (seconds)", multiple: false, defaultValue: "0", range: "0..90", required: false, displayDuringSetup: true												
 			input "paramFanPurgeCool", "number", title: "Fan purge after cool cycle (seconds)", multiple: false, defaultValue: "0", range: "0..90", required: false, displayDuringSetup: true															
 			input "paramTempSendDeltaTemp", "number", title: "Temperature Delta before Autosending Data to Hub (degrees)", multiple: false, defaultValue: "2", range: "1..5", required: false, displayDuringSetup: true																		
@@ -171,9 +174,9 @@ def setCoolingSetpoint(double degrees) {
 
 def off() {
 	if (logEnable) log.debug "Switching to off mode..."
-    return delayBetween([
-		zwave.thermostatModeV1.thermostatModeSet(mode: 0).format(),
-        zwave.thermostatModeV1.thermostatModeGet().format()
+    commands([
+		zwave.thermostatModeV1.thermostatModeSet(mode: 0),
+        zwave.thermostatModeV1.thermostatModeGet()
 	], 1000)
 }
 
@@ -184,25 +187,25 @@ def on() {
 
 def heat() {
 	if (logEnable) log.debug "Switching to heat mode..."
-	return delayBetween([
-		zwave.thermostatModeV1.thermostatModeSet(mode: 1).format(),
-		zwave.thermostatModeV1.thermostatModeGet().format()
+	commands([
+		zwave.thermostatModeV1.thermostatModeSet(mode: 1),
+		zwave.thermostatModeV1.thermostatModeGet()
 	], 1000)   
 }
 
 def emergencyHeat() {
 	if (logEnable) log.debug "Switching to emergency heat mode..."
-    return delayBetween([
-		zwave.thermostatModeV1.thermostatModeSet(mode: 4).format(),
-		zwave.thermostatModeV1.thermostatModeGet().format()
+    commands([
+		zwave.thermostatModeV1.thermostatModeSet(mode: 4),
+		zwave.thermostatModeV1.thermostatModeGet()
 	], 1000)
 }
 
 def cool() {
 	if (logEnable) log.debug "Switching to cool mode..."
-    return delayBetween([
-		zwave.thermostatModeV1.thermostatModeSet(mode: 2).format(),
-		zwave.thermostatModeV1.thermostatModeGet().format()
+    comands([
+		zwave.thermostatModeV1.thermostatModeSet(mode: 2),
+		zwave.thermostatModeV1.thermostatModeGet()
 	], 1000)
 }
 
@@ -213,44 +216,44 @@ def setThermostatMode(value) {
 	switch (value) {
 		case "auto":
 		    if (logEnable) log.debug "Switching to auto mode..."
-			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 3).format()
+			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 3)
 			break
 		case "off":
 			if (logEnable) log.debug "Switching to off mode..."
-			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 0).format()
+			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 0)
 			break
 		case "heat":
 			if (logEnable) log.debug "Switching to heat mode..."
-			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 1).format()
+			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 1)
 			break
 		case "cool":
 			if (logEnable) log.debug "Switching to cool mode..."
-			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 2).format()
+			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 2)
 			break
 		case "emergency heat":
 			if (logEnable) log.debug "Switching to emergency heat mode..."
-			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 4).format()
+			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 4)
 			break
 	}
-	cmds << zwave.thermostatModeV1.thermostatModeGet().format()
-	return delayBetween(cmds, 1000)
+	cmds << zwave.thermostatModeV1.thermostatModeGet()
+	commands(cmds, 1000)
 }
 
 def fanOn() {
 	if (logEnable) log.debug "Switching fan to on mode..."
-    return delayBetween([
-		zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 1).format(),
-		zwave.thermostatFanModeV1.thermostatFanModeGet().format(),
-        zwave.thermostatFanStateV1.thermostatFanStateGet().format()
+    commands([
+		zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 1),
+		zwave.thermostatFanModeV1.thermostatFanModeGet(),
+        zwave.thermostatFanStateV1.thermostatFanStateGet()
 	], 1000)   
 }
 
 def fanAuto() {
 	if (logEnable) log.debug "Switching fan to auto mode..."
-    return delayBetween([
-		zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 0).format(),
-		zwave.thermostatFanModeV1.thermostatFanModeGet().format(),
-        zwave.thermostatFanStateV1.thermostatFanStateGet().format()
+    commands([
+		zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 0),
+		zwave.thermostatFanModeV1.thermostatFanModeGet(),
+        zwave.thermostatFanStateV1.thermostatFanStateGet()
 	], 1000)
 }
 
@@ -274,25 +277,25 @@ def setThermostatFanMode(value) {
 	switch (value) {
 		case "on":
 			if (logEnable) log.debug "Switching fan to ON mode..."
-			cmds << zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 1).format()
+			cmds << zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 1)
 			break
 		case "auto":
 			if (logEnable) log.debug "Switching fan to AUTO mode..."
-			cmds << zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 0).format()
+			cmds << zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 0)
 			break
 		default:
 			log.warn "Fan Mode $value unsupported."
 			break
 	}
-	cmds << zwave.thermostatFanModeV1.thermostatFanModeGet().format()
-	return delayBetween(cmds, 1000)
+	cmds << zwave.thermostatFanModeV1.thermostatFanModeGet()
+	commands(cmds, 1000)
 }
 
 def auto() {
 	if (logEnable) log.debug "Switching to auto mode..."
-    return delayBetween([
-		zwave.thermostatModeV1.thermostatModeSet(mode: 3).format(),
-		zwave.thermostatModeV1.thermostatModeGet().format()
+    commands([
+		zwave.thermostatModeV1.thermostatModeSet(mode: 3),
+		zwave.thermostatModeV1.thermostatModeGet()
 	], 1000)
 }
 
@@ -301,16 +304,40 @@ def setSchedule() {
 	log.warn "setSchedule does not do anything with this driver."
 }
 
+def filterReset() {
+	commands([
+		zwave.configurationV1.configurationSet(parameterNumber: 52, size: 2, scaledConfigurationValue: 0),
+		zwave.configurationV1.configurationGet(parameterNumber: 52)
+	], 1000)
+}
+
+def coolTimerReset() {
+	commands([
+		zwave.configurationV1.configurationSet(parameterNumber: 55, size: 2, scaledConfigurationValue: 0),
+		zwave.configurationV1.configurationGet(parameterNumber: 55)
+	], 1000)
+}
+
+def heatTimerReset() {
+	commands([
+		zwave.configurationV1.configurationSet(parameterNumber: 54, size: 2, scaledConfigurationValue: 0),
+		zwave.configurationV1.configurationGet(parameterNumber: 54)
+	], 1000)
+}
+
 def refresh() {
 	if (logEnable) log.debug "Executing 'refresh'"
 	if (logEnable) log.debug "....done executing refresh"
-	return delayBetween([
-		zwave.thermostatModeV1.thermostatModeGet().format(),
-		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet().format(),
-		zwave.thermostatFanModeV1.thermostatFanModeGet().format(),
-		zwave.thermostatFanStateV1.thermostatFanStateGet().format(),
-		zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: 1).format(),
-		zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: 2).format()
+	commands([
+		zwave.thermostatModeV1.thermostatModeGet(),
+		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet(),
+		zwave.thermostatFanModeV1.thermostatFanModeGet(),
+		zwave.thermostatFanStateV1.thermostatFanStateGet(),
+		zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: 1),
+		zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: 2),
+		zwave.configurationV1.configurationGet(parameterNumber: 52),
+		zwave.configurationV1.configurationGet(parameterNumber: 54),
+		zwave.configurationV1.configurationGet(parameterNumber: 55)
 	], 1000)   
 }
 
@@ -318,13 +345,16 @@ def configure() {
 	if (logEnable) log.debug "Executing 'configure'"
 	if (logEnable) log.debug "zwaveHubNodeId: " + zwaveHubNodeId
 	if (logEnable) log.debug "....done executing 'configure'"
-    
-	return delayBetween([
-		zwave.thermostatModeV1.thermostatModeSupportedGet().format(),
-		zwave.thermostatFanModeV1.thermostatFanModeSupportedGet().format(),
-		zwave.configurationV1.configurationSet(parameterNumber: 23, size: 2, scaledConfigurationValue: -1).format(),
-		zwave.configurationV1.configurationGet(parameterNumber: 23).format(),
-		zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:[zwaveHubNodeId]).format()
+	device.removeSetting("paramFilterTimer")
+	device.removeSetting("paramCoolTimer") 
+	device.removeSetting("paramHeatTimer") 
+	
+	commands([
+		zwave.thermostatModeV1.thermostatModeSupportedGet(),
+		zwave.thermostatFanModeV1.thermostatFanModeSupportedGet(),
+		zwave.configurationV1.configurationSet(parameterNumber: 23, size: 2, scaledConfigurationValue: -1),
+		zwave.configurationV1.configurationGet(parameterNumber: 23),
+		zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:[zwaveHubNodeId])
 	], 1000)
 }
 
@@ -344,6 +374,15 @@ def ParamToInteger(value) {
 	return newParam
 }
 
+def SyncClock() {
+	Calendar currentDate = Calendar.getInstance()
+	def cmds = [
+		zwave.clockV1.clockSet(hour: currentDate.get(Calendar.HOUR_OF_DAY), minute: currentDate.get(Calendar.MINUTE), weekday: currentDate.get(Calendar.DAY_OF_WEEK))
+	]
+	if (logEnable) log.debug cmd
+	commands(cmds, 400)
+}
+
 def SensorCal(value) {
 	value = value.toInteger()
 	if (logEnable) log.debug "SensorCal value: " + value
@@ -359,9 +398,9 @@ def SensorCal(value) {
 
 	if (logEnable) log.debug "SetCalValue: " + SetCalValue
 	
-	return delayBetween([
-		zwave.configurationV1.configurationSet(scaledConfigurationValue: SetCalValue, parameterNumber: 48, size: 1).format(),
-		zwave.configurationV1.configurationGet(parameterNumber: 48).format()
+	commands([
+		zwave.configurationV1.configurationSet(scaledConfigurationValue: SetCalValue, parameterNumber: 48, size: 1),
+		zwave.configurationV1.configurationGet(parameterNumber: 48)
 		], 500)
 }
 
@@ -478,7 +517,7 @@ def updated() {
 			newNumber = ParamNum[it.key]
 			newSize = ParamSize[it.key]
 			newValue = ParamToInteger(it.value)
-
+			if (logEnable) log.debug "key: ${it.key}, parameterNumber: ${newNumber}, value: ${it.value}, newvalue: ${newValue}"
 			if (newNumber == 48) {
 				long SetCalValue
 				if (newValue < 0) {
@@ -490,21 +529,21 @@ def updated() {
 				}
 			}
 			
-			if (newSize==2 && newValue<=255) {
-				if (logEnable) log.debug "zwave.configurationV1.configurationSet(parameterNumber: $newNumber, size: $newSize, configurationValue: [0, $newValue]).format(),"
-				cmds << zwave.configurationV1.configurationSet(parameterNumber: newNumber, size: newSize, configurationValue: [0, newValue]).format()
-				cmds << zwave.configurationV1.configurationGet(parameterNumber: newNumber).format()
-			} else {
-				if (logEnable) log.debug "zwave.configurationV1.configurationSet(parameterNumber: $newNumber, size: $newSize, scaledConfigurationValue: $newValue).format(),"
-				cmds << zwave.configurationV1.configurationSet(parameterNumber: newNumber, size: newSize, scaledConfigurationValue: newValue).format()
-				cmds << zwave.configurationV1.configurationGet(parameterNumber: newNumber).format()
-			}
+			//if (newSize==2 && newValue<=255) {
+				//if (logEnable) log.debug "zwave.configurationV1.configurationSet(parameterNumber: $newNumber, size: $newSize, configurationValue: [0, $newValue]).format(),"
+				//cmds << zwave.configurationV1.configurationSet(parameterNumber: newNumber, size: newSize, configurationValue: [0, newValue])
+				//cmds << zwave.configurationV1.configurationGet(parameterNumber: newNumber)
+			//} else {
+		 //if (logEnable) log.debug "zwave.configurationV1.configurationSet(parameterNumber: $newNumber, size: $newSize, scaledConfigurationValue: $newValue).format(),"
+				cmds << zwave.configurationV1.configurationSet(parameterNumber: newNumber, size: newSize, scaledConfigurationValue: newValue)
+				cmds << zwave.configurationV1.configurationGet(parameterNumber: newNumber)
+			//}
 		}	
 	}
 	    
 	if (logEnable) log.debug "cmds: " + cmds
-
-	return delayBetween(cmds, 500)
+	commands(cmds, 500)
+	//return delayBetween(cmds, 500)
 }
 
 def logsOff() {
@@ -522,18 +561,40 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
     if (cmd.parameterNumber == 48) {
         if (logEnable) log.debug "cmd.scaledConfigurationValue: " + config
 	
-	if (config.toInteger() > 7) {
-	    CalValue = config.toInteger() - 256 // == 255 ? "-1" : config == 254 ? "-2" : config == 253 ? "-3" : config == 252 ? "-4" : config == 251 ? "-5" : config == 250 ? "-6" : config == 249 ? "-7" : config == 248 ? "-8" : config == 247 ? "-9" : config == 246 ? "-10" : "unknown"
-	    if (logEnable) log.debug "CalValue: " + CalValue
-	    sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
-	} else {
-		CalValue = config
-		if (logEnable) log.debug "CalValue: " + CalValue
-		sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
-	}
+		if (config.toInteger() > 7) {
+	    	CalValue = config.toInteger() - 256 // == 255 ? "-1" : config == 254 ? "-2" : config == 253 ? "-3" : config == 252 ? "-4" : config == 251 ? "-5" : config == 250 ? "-6" : config == 249 ? "-7" : config == 248 ? "-8" : config == 247 ? "-9" : config == 246 ? "-10" : "unknown"
+	    	if (logEnable) log.debug "CalValue: " + CalValue
+	    	sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
+		} else {
+			CalValue = config
+			if (logEnable) log.debug "CalValue: " + CalValue
+			sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
+		}
     	
     }
-    
+	if (cmd.parameterNumber == 53) { 
+		state.filterTimerMax = cmd.scaledConfigurationValue
+		updateSetting("paramFilterTimerMax", cmd.scaledConfigurationValue)
+	}
+	if (cmd.parameterNumber == 52) {
+		state.filterTimer = cmd.scaledConfigurationValue
+		if (cmd.scaledConfigurationValue >= state.filterTimerMax) {
+			if (state.filterStatus != "replace") {
+				sendEvent([name:"filterStatus", value: "replace", displayed: true, isStatusChange:true])
+			}	
+		} else {
+			if (state.filterStatus != "normal") { 
+				sendEvent([name: "filterStatus", value: "normal", displayed: true, isStateChange:true])
+			}
+		}
+	}
+	if (cmd.parameterNumber == 54) { 
+		state.heatTimer = cmd.scaledConfigurationValue
+	}
+	if (cmd.parameterNumber == 55) {
+		state.coolTimer = cmd.scaledConfigurationValue
+	}
+
     if (cmd.parameterNumber == 21) {
     if (!config) {
         state.mechanicalStatus = ""
@@ -800,6 +861,10 @@ def zwaveEvent(hubitat.zwave.commands.thermostatmodev1.ThermostatModeReport cmd)
 	
 	updateDataValue("thermostatMode", map.value)
 	sendEvent(map)
+	commands([
+		zwave.configurationV1.configurationGet(parameterNumber: 53),
+		zwave.configurationV1.configurationGet(parameterNumber: 54)
+	], 400)
 	if (logEnable) log.debug "ThermostatModeReport...END"
 	return map
 }
@@ -916,6 +981,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanstatev1.ThermostatFanStateRep
 	}
 	updateDataValue("thermostatFanState", map.value)
     if (logEnable) log.debug "In ThermostatFanStateReport map is $map"
+	commands([zwave.configurationV1.configurationGet(parameterNumber: 52)])
     if (logEnable) log.debug "ThermostatFanStateReport...END"
 	return map
 }
@@ -925,13 +991,13 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeRepor
 	def map = [:]
 	switch (cmd.fanMode) {
 		case hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport.FAN_MODE_AUTO_LOW:
-			map.value = "fanAuto"
+			map.value = "Auto"
             break
 		case hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport.FAN_MODE_LOW:
-			map.value = "fanOn"
+			map.value = "On"
             break
 		case hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport.FAN_MODE_CIRCULATION:
-			map.value = "fanCirculate"
+			map.value = "Circulate"
             break
 	}
 	map.name = "thermostatFanMode"
@@ -969,3 +1035,16 @@ def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
 def zwaveEvent(hubitat.zwave.Command cmd) {
 	log.warn "Unexpected zwave command $cmd"
 }
+
+private command(hubitat.zwave.Command cmd) {
+	if (getDataValue("zwaveSecurePairingComplete") == "true") {
+		return zwave.securityV1.securityMessageEncapsulation().encapsulate(cmd).format()
+    } else {
+		return cmd.format()
+    }	
+}
+
+private commands(commands, delay=200) {
+	delayBetween(commands.collect{ command(it) }, delay)
+}
+
