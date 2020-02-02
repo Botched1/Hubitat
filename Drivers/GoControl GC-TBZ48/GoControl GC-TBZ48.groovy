@@ -32,7 +32,7 @@
  *  bcopeland     - 02/01/2020   Added filter capability and clock syncronization and security ecnapsulation 
  */
 metadata {
-	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "djdizzyd", author: "Jason Bottjen") {
+	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
 		
 		capability "Actuator"
 		capability "Battery"
