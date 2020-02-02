@@ -11,6 +11,10 @@
  *  1.0.0 (03/03/2019) - Initial verson.
  *  1.1.0 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
  *  1.1.1 (03/03/2019) - Cleaned up some warning logging that should have been converted to debug.
+ *  2.0.0 (02/01/2020) - Added occupancy/vacancy/manual commands, added association settings to preferences
+ *  2.0.1 (02/01/2020) - Tweak to allow for 100 as a default dimmer value
+ *  2.1.0 (02/01/2020) - Added setLightTimeout and DebugLogging commands, added description logging, added state variables for default dimmer level/operating mode/and light timeout
+ *  2.1.1 (02/01/2020) - Added digital/physical type indicators on the events
 */
 
 metadata {
@@ -26,30 +30,46 @@ metadata {
 		capability "Light"
 		
 		command "setDefaultDimmerLevel", [[name:"Default Dimmer Level",type:"NUMBER", description:"Default Dimmer Level Used when Turning ON. (0=Last Dimmer Value)", range: "0..99"]]
-
+		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
+        command "Occupancy"
+        command "Vacancy"
+        command "Manual"
+		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]        
 	}
 
  preferences {
-	 input (type: "paragraph", element: "paragraph", title: "Dimmer General Settings", description: "")
-	 input "paramLightTimer", "enum", title: "Light Timeout", description: "Length of time after no motion for the light to shut off in Occupancy/Vacancy modes", options: ["0" : "5 seconds", "1" : "1 minute", "5" : "5 minutes (default)", "15" : "15 minutes", "30" : "30 minutes", "255" : "disabled"], required: false, displayDuringSetup: true
-	 input "paramOperationMode", "enum", title: "Operating Mode", description: "Occupancy: Automatically turn on and off the light with motion\nVacancy: Manually turn on, automatically turn off light with no motion.", options: ["1" : "Manual", "2" : "Vacancy", "3" : "Occupancy (default)"], required: false, displayDuringSetup: true
+	 //input "paramLightTimer", "enum", title: "Light Timeout", description: "Length of time after no motion for the light to shut off in Occupancy/Vacancy modes", options: ["0" : "5 seconds", "1" : "1 minute", "5" : "5 minutes (default)", "15" : "15 minutes", "30" : "30 minutes", "255" : "disabled"], required: false, displayDuringSetup: true
+	 //input "paramOperationMode", "enum", title: "Operating Mode", description: "Occupancy: Automatically turn on and off the light with motion\nVacancy: Manually turn on, automatically turn off light with no motion.", options: ["1" : "Manual", "2" : "Vacancy", "3" : "Occupancy (default)"], required: false, displayDuringSetup: true
 	 input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
 	 input "paramMotionEnabled", "enum", title: "Motion Sensor", description: "Enable/Disable Motion Sensor.", options: ["0" : "Disable","1" : "Enable (default)"], required: false
-	 input "paramMotionSensitivity", "enum", title: "Motion Sensitivity", description: "Motion Sensitivity", options: ["1" : "High", "2" : "Medium (default)", "3" : "Low"], required: false, displayDuringSetup: true
+	 input "paramMotionSensitivity", "enum", title: "Motion Sensitivity", options: ["1" : "High", "2" : "Medium (default)", "3" : "Low"], required: false, displayDuringSetup: true
 	 input "paramLightSense", "enum", title: "Light Sensing", description: "If enabled, Occupancy mode will only turn light on if it is dark", options: ["0" : "Disabled","1" : "Enabled (default)"], required: false, displayDuringSetup: true
 	 input "paramMotionResetTimer", "enum", title: "Motion Detection Reset Time", options: ["0" : "Disabled", "1" : "10 sec", "2" : "20 sec (default)", "3" : "30 sec", "4" : "45 sec", "110" : "27 mins"], required: false
 	 //
-	 input (type: "paragraph", element: "paragraph", title: "Dimmer Timing Settings. Total dimming time = steps*duration", description: "")
 	 input "paramZSteps", "number", title: "Z-Wave Dimming Steps", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
      input "paramZDuration", "number", title: "Z-Wave Dimming Duration (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
 	 input "paramPSteps", "number", title: "Physical Dimming Steps", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
 	 input "paramPDuration", "number", title: "Physical Dimming Duration (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
-	 input "paramSwitchMode", "enum", title: "Switch Mode Enable (physical switch buttons only do ON/OFF - no dimming)", multiple: false, options: ["0" : "Disable (default)", "1" : "Enable"], required: false, displayDuringSetup: true
-	 input "paramDefaultDimmerLevel", "number", title: "Default Dimmer Level (0=Last Dimmer Level)", multiple: false, defaultValue: "0", range: "0..99", required: false, displayDuringSetup: true	 
+     //
+     input "paramSwitchMode", "enum", title: "Switch Mode Enable", description: "Physical switch buttons only do ON/OFF - no dimming", multiple: false, options: ["0" : "Disable (default)", "1" : "Enable"], required: false, displayDuringSetup: true
+	 // input "paramDefaultDimmerLevel", "number", title: "Default Dimmer Level (0=Last Dimmer Level)", multiple: false, defaultValue: "0", range: "0..100", required: false, displayDuringSetup: true	 
 	 input "paramDimUpRate", "enum", title: "Speed to Dim up the light to the default level", multiple: false, options: ["0" : "Quickly (Default)", "1" : "Slowly"], required: false, displayDuringSetup: true
 	 //	 
-	 input ( type: "paragraph", element: "paragraph", title: "Logging", description: "")
+   	 input (
+            	name: "requestedGroup2",
+            	title: "Association Group 2 Members (Max of 5):",
+            	type: "text",
+            	required: false
+        	)
+
+     input (
+            	name: "requestedGroup3",
+            	title: "Association Group 3 Members (Max of 4):",
+            	type: "text",
+            	required: false
+        	)
 	 input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+     input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true	
    }
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -120,8 +140,8 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
         }
         else {
         	sendEvent(name: "numberOfButtons", value: 0, displayed: false)
-			zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
-			zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+			delayBetween([zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format(),
+			zwave.associationV2.associationGet(groupingIdentifier: 3).format()],500)
         }
     }
 }
@@ -137,10 +157,19 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
         case 1:
             name = "Light Timeout"
             value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == 255 ? "disabled" : "error"
+            if (value == 0) {state.lightTimeout = "5 seconds"}
+            else if (value == 1) {state.lightTimeout = "1 minute"}
+            else if (value == 5) {state.lightTimeout = "5 minutes (default)"}
+            else if (value == 15) {state.lightTimeout = "15 minutes"}
+            else if (value == 30) {state.lightTimeout = "30 minutes"}
+            else if (value == 255) {state.lightTimeout = "disabled"}
             break
         case 3:
             name = "Operating Mode"
             value = reportValue == 1 ? "Manual" : reportValue == 2 ? "Vacancy" : reportValue == 3 ? "Occupancy (default)": "error"
+            if (value == 1) {state.operatingMode = "Manual"} 
+            else if (value == 2) {state.operatingMode = "Vacancy"} 
+            else if (value == 3) {state.operatingMode = "Occupancy (default)"}
             break
         case 5:
             name = "Invert Buttons"
@@ -183,8 +212,9 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
             value = reportValue == 0 ? "Disabled (default)" : reportValue == 1 ? "Enabled" : "error"
             break
         case 17:
-            name = "Switch Mode Dimmer Level"
+            name = "Default Dimmer Level"
             value = reportValue
+            state.defaultDimmerLevel = value
             break
         case 18:
             name = "Dimming Rate"
@@ -204,11 +234,13 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	
 	if (cmd.value == 255) {
 		desc = "Switch turned ON"
+        if (logDesc) log.info "$device.displayName was turned on"
 	}
 	else if (cmd.value == 0) {
-		desc = "Switch turned OFF"	
+		desc = "Switch turned OFF"
+        if (logDesc) log.info "$device.displayName was turned off"
 	}
-	createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", isStateChange: true])
+	createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: "physical", isStateChange: true])
 }
 
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
@@ -242,10 +274,12 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd)
 	if (logEnable) log.debug "---NOTIFICATION REPORT V3--- ${device.displayName} sent ${cmd}"
 	def result = []
 	if (cmd.notificationType == 0x07) {
-		if ((cmd.event == 0x00)) { 
-			result << createEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped", isStateChange: true)
+		if ((cmd.event == 0x00)) {
+            if (logDesc) log.info "$device.displayName motion has stopped"
+			result << createEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped", type: "physical", isStateChange: true)
 		} else if (cmd.event == 0x08) {
-			result << createEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion", isStateChange: true)
+            if (logDesc) log.info "$device.displayName detected motion"
+			result << createEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion", type: "physical", isStateChange: true)
 		} 
 	} 
 	result
@@ -253,12 +287,18 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd)
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
 	if (logEnable) log.debug "SwitchMultilevelReport"
 	if (cmd.value) {
-		sendEvent(name: "level", value: cmd.value, unit: "%")
-		if (device.currentValue("switch") == "off") {sendEvent(name: "switch", value: "on", isStateChange: true)}
+		sendEvent(name: "level", value: cmd.value, unit: "%", descriptionText: "$device.displayName is " + cmd.value + "%", type: "physical")
+        if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
+		if (device.currentValue("switch") == "off") {
+            sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "physical", isStateChange: true)
+            if (logDesc) log.info "$device.displayName was turned on"
+        }
 	} else {
-		if (device.currentValue("switch") == "on") {sendEvent(name: "switch", value: "off", isStateChange: true)}
+		if (device.currentValue("switch") == "on") {
+            sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "physical", isStateChange: true)
+            if (logDesc) log.info "$device.displayName was turned off"
+        }
 	}
-	
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd) {
@@ -271,7 +311,7 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd
 def on() {
 	if (logEnable) log.debug "Turn device ON"
 	def cmds = []
-    sendEvent(name: "switch", value: "on", isStateChange: true)
+    sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "digital", isStateChange: true)
 	cmds << zwave.basicV1.basicSet(value: 0xFF).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	delayBetween(cmds, 3000)
@@ -280,7 +320,7 @@ def on() {
 def off() {
 	if (logEnable) log.debug "Turn device OFF"
 	def cmds = []
-	sendEvent(name: "switch", value: "off", isStateChange: true)
+	sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "digital", isStateChange: true)
     cmds << zwave.basicV1.basicSet(value: 0x00).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	delayBetween(cmds, 3000)}
@@ -295,13 +335,16 @@ def setLevel(value) {
 	if (logEnable) log.debug "SetLevel (value) - currval: $currval"
 	
 	if (level > 0 && currval == "off") {
-		sendEvent(name: "switch", value: "on")
+		if (logDesc) log.info "$device.displayName was turned on"
+        sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "digital")
 	} else if (level == 0 && currval == "on") {
-		sendEvent(name: "switch", value: "off")
+		if (logDesc) log.info "$device.displayName was turned off"
+        sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "digital")
 		delay += 2000
 	}
-	sendEvent(name: "level", value: level, unit: "%")
-	if (settings.paramZSteps) {
+	//sendEvent(name: "level", value: level, unit: "%")
+	sendEvent(name: "level", value: level, unit: "%", descriptionText: "$device.displayName is " + level + "%", type: "digital")
+    if (settings.paramZSteps) {
 		zsteps = settings.paramZSteps
 	} else {
 		zsteps = 1
@@ -326,23 +369,87 @@ def setLevel(value, duration) {
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	state.level = value
 	if (value > 0 && currval == "off") {
-		sendEvent(name: "switch", value: "on")
+		sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "digital")
 	} else if (value == 0 && currval == "on") {
-		sendEvent(name: "switch", value: "off")
+		sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "digital")
 		delay += 2000
 	}
-	sendEvent(name: "level", value: value, unit: "%")
+	//sendEvent(name: "level", value: value, unit: "%", descriptionText: "$device.displayName is $value%")
+    sendEvent(name: "level", value: value, unit: "%", descriptionText: "$device.displayName is " + value + "%", type: "digital")
+    
 	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $getStatusDelay"
 	delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format(),
 				   zwave.switchMultilevelV1.switchMultilevelGet().format()], getStatusDelay)
 }
 
 def setDefaultDimmerLevel(value) {
-
 	if (logEnable) log.debug "Setting default dimmer level: ${value}"
+    value = Math.max(Math.min(value.toInteger(), 99), 0)
+    state.defaultDimmerLevel = value
     def cmds = []
-    cmds << zwave.configurationV1.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
-  	cmds << zwave.configurationV1.configurationGet(parameterNumber: 17).format()
+    cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
+  	cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
+    delayBetween(cmds, 500)
+}
+
+def setLightTimeout(value) {
+    if (logEnable) log.debug "Setting light timeout value: ${value}"
+    def cmds = []        
+    // "5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"
+    switch (value) {
+        case "5 seconds":
+            state.lightTimeout = "5 seconds"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 0 , parameterNumber: 1, size: 1).format()
+            break
+        case "1 minute":
+            state.lightTimeout = "1 minute"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 1 , parameterNumber: 1, size: 1).format()
+            break
+        case "5 minutes (default)":
+            state.lightTimeout = "5 minutes (default)"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 5 , parameterNumber: 1, size: 1).format()
+            break
+        case "15 minutes":
+            state.lightTimeout = "15 minutes"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 15 , parameterNumber: 1, size: 1).format()
+            break
+        case "30 minutes":
+            state.lightTimeout = "30 minutes"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 30 , parameterNumber: 1, size: 1).format()
+            break
+        case "disabled":
+            state.lightTimeout = "disabled"
+            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 255 , parameterNumber: 1, size: 1).format()
+            break
+        default:
+            return
+    }
+  	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
+    delayBetween(cmds, 500)
+}
+
+def Occupancy() {
+	state.operatingMode = "Occupancy (default)"
+    def cmds = []
+    cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+    delayBetween(cmds, 500)
+}
+
+
+def Vacancy() {
+	state.operatingMode = "Vacancy"
+    def cmds = []
+    cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+    delayBetween(cmds, 500)
+}
+
+def Manual() {
+	state.operatingMode = "Manual"
+    def cmds = []
+    cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
     delayBetween(cmds, 500)
 }
 
@@ -387,23 +494,20 @@ def updated() {
     state.lastUpdated = now()
 
 	def cmds = []
-    cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
-	cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
-	cmds << zwave.associationV1.associationRemove(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
 
 	// Set Light Timer param
-	if (paramLightTimer==null) {
-		paramLightTimer = 5
-	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightTimer.toInteger(), parameterNumber: 1, size: 1).format()
-	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
+	//if (paramLightTimer==null) {
+	//	paramLightTimer = 5
+	//}
+	//cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLightTimer.toInteger(), parameterNumber: 1, size: 1).format()
+	//cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
 	
 	// Set Operation Mode param
-	if (paramOperationMode==null) {
-		paramOperationMode = 3
-	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramOperationMode.toInteger(), parameterNumber: 3, size: 1).format()
-	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+	//if (paramOperationMode==null) {
+	//	paramOperationMode = 3
+	//}
+	//cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramOperationMode.toInteger(), parameterNumber: 3, size: 1).format()
+	//cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
 	
 	// Set Inverted param
 	if (paramInverted==null) {
@@ -432,7 +536,7 @@ def updated() {
 	}
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramZDuration.toInteger(), parameterNumber: 8, size: 2).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 8).format()
-	
+    
 	// Set P Steps
 	if (paramPSteps==null) {
 		paramPSteps = 1
@@ -476,11 +580,11 @@ def updated() {
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
 
 	// Set Default Dimmer Level
-	if (paramDefaultDimmerLevel==null) {
-		paramDefaultDimmerLevel = 0
-	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramDefaultDimmerLevel.toInteger(), parameterNumber: 17, size: 1).format()
-	cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
+	//if (paramDefaultDimmerLevel==null) {
+	//	paramDefaultDimmerLevel = 0
+	//}
+	//cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramDefaultDimmerLevel.toInteger(), parameterNumber: 17, size: 1).format()
+	//cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
 
 	// Set Dim Up Rate
 	if (paramDimUpRate==null) {
@@ -489,17 +593,82 @@ def updated() {
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramDimUpRate.toInteger(), parameterNumber: 18, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 18).format()
 
+    // Association groups
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+    cmds << zwave.associationV2.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
+	// Add endpoints to groups 2 and 3
+	def nodes = []
+	if (settings.requestedGroup2 != state.currentGroup2) {
+        nodes = parseAssocGroupList(settings.requestedGroup2, 2)
+        cmds << zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: []).format()
+        cmds << zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format()
+        cmds << zwave.associationV2.associationGet(groupingIdentifier: 2).format()
+        state.currentGroup2 = settings.requestedGroup2
+    }
+    if (settings.requestedGroup3 != state.currentGroup3) {
+        nodes = parseAssocGroupList(settings.requestedGroup3, 3)
+        cmds << zwave.associationV2.associationSetRemove(groupingIdentifier: 3, nodeId: []).format()
+        cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes).format()
+        cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+        state.currentGroup3 = settings.requestedGroup3
+    }    
+    
 	//
     delayBetween(cmds, 500)
 }
 
 def configure() {
-        log.info "configure triggered"
-		def cmds = []
-        cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
-		cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
-		cmds << zwave.associationV1.associationRemove(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
-        delayBetween(cmds, 500)
+    log.info "configure triggered"
+	def cmds = []
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+	cmds << zwave.associationV2.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
+    delayBetween(cmds, 500)
+}
+
+private parseAssocGroupList(list, group) {
+    def nodes = group == 2 ? [] : [zwaveHubNodeId]
+    if (list) {
+        def nodeList = list.split(',')
+        def max = group == 2 ? 5 : 4
+        def count = 0
+
+        nodeList.each { node ->
+            node = node.trim()
+            if ( count >= max) {
+                log.warn "Association Group ${group}: Number of members is greater than ${max}! The following member was discarded: ${node}"
+            }
+            else if (node.matches("\\p{XDigit}+")) {
+                def nodeId = Integer.parseInt(node,16)
+                if (nodeId == zwaveHubNodeId) {
+                	log.warn "Association Group ${group}: Adding the hub as an association is not allowed (it would break double-tap)."
+                }
+                else if ( (nodeId > 0) & (nodeId < 256) ) {
+                    nodes << nodeId
+                    count++
+                }
+                else {
+                    log.warn "Association Group ${group}: Invalid member: ${node}"
+                }
+            }
+            else {
+                log.warn "Association Group ${group}: Invalid member: ${node}"
+            }
+        }
+    }
+    
+    return nodes
+}
+
+def DebugLogging(value) {
+	if (value=="OFF") {logsoff}
+    if (value=="ON") {
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(1800,logsOff)
+	}
+	
 }
 
 def logsOff(){

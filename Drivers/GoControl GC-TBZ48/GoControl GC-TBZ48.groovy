@@ -594,6 +594,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 	if (cmd.parameterNumber == 55) {
 		state.coolTimer = cmd.scaledConfigurationValue
 	}
+
     if (cmd.parameterNumber == 21) {
     if (!config) {
         state.mechanicalStatus = ""
