@@ -337,6 +337,7 @@ def refresh() {
 		zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: 2),
 		zwave.configurationV1.configurationGet(parameterNumber: 52),
 		zwave.configurationV1.configurationGet(parameterNumber: 54),
+		zwave.configurationV1.configurationGet(parameterNumber: 53),
 		zwave.configurationV1.configurationGet(parameterNumber: 55)
 	], 1000)   
 }
@@ -574,7 +575,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
     }
 	if (cmd.parameterNumber == 53) { 
 		state.filterTimerMax = cmd.scaledConfigurationValue
-		updateSetting("paramFilterTimerMax", cmd.scaledConfigurationValue)
+		device.updateSetting("paramFilterTimerMax", cmd.scaledConfigurationValue)
 	}
 	if (cmd.parameterNumber == 52) {
 		state.filterTimer = cmd.scaledConfigurationValue
