@@ -30,6 +30,7 @@
  *  Version 1.7.1 - 01/16/2020   Removed setting report bits in the parameter save, it was already in the CONFIGURE section. Oops. :) 
  *  Version 1.8.0 - 01/27/2020   Added Battery Capability
  *  bcopeland     - 02/01/2020   Added filter capability and clock syncronization and security ecnapsulation 
+ *  bcopeland     - 02/03/2020   fFixed filterMax code error 
  */
 metadata {
 	definition (name: "Enhanced GoControl GC-TBZ48", namespace: "Botched1", author: "Jason Bottjen") {
