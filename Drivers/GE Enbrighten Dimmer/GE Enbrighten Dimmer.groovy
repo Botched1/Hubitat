@@ -8,7 +8,7 @@
  *  1.2.0 (12/15/2019) - <retracted>
  *  1.3.0 (12/15/2019) - Fixed event generation when dimmer is in SWITCH mode, removed some unnecessary Get commands to reduce zwave traffic
  *  1.4.0 (02/07/2020) - Added pushed, held, and released capability. Required renumbering the buttons. Now 1/2=Up/Down, 3/4=Double Up/Down, 5/6=Triple Up/Down
- *  1.4.1 (02/07/2020) - Added doubleTapped events and added doubleTap capability. Now users can use button 3/4 for doube tap or the systrem "doubleTapped" events.
+ *  1.4.1 (02/07/2020) - Added doubleTapped events and added doubleTap capability. Now users can use button 3/4 for double tap or the system "doubleTapped" events.
 */
 
 metadata {
