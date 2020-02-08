@@ -8,11 +8,13 @@
  *  1.2.0 (12/15/2019) - <retracted>
  *  1.3.0 (12/15/2019) - Fixed event generation when dimmer is in SWITCH mode, removed some unnecessary Get commands to reduce zwave traffic
  *  1.4.0 (02/07/2020) - Added pushed, held, and released capability. Required renumbering the buttons. Now 1/2=Up/Down, 3/4=Double Up/Down, 5/6=Triple Up/Down
- */
+ *  1.4.1 (02/07/2020) - Added doubleTapped events and added doubleTap capability. Now users can use button 3/4 for doube tap or the systrem "doubleTapped" events.
+*/
 
 metadata {
 	definition (name: "GE Enbrighten Z-Wave Plus Dimmer", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Actuator"
+        capability "DoubleTapableButton"
         capability "HoldableButton"
 		capability "PushableButton"
         capability "ReleasableButton"
@@ -232,12 +234,14 @@ def zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cm
 		if (logEnable) log.debug "Double Tap Up Triggered"
 		if (logDesc) log.info "$device.displayName had Doubletap up (button 3) [physical]"
 		result << sendEvent([name: "pushed", value: 3, descriptionText: "$device.displayName had Doubletap up (button 3) [physical]", type: "physical", isStateChange: true])
+        result << sendEvent([name: "doubleTapped", value: 1, descriptionText: "$device.displayName had Doubletap up (doubleTapped 1) [physical]", type: "physical", isStateChange: true])
     }
     // Double Tap Down
     if ((cmd.keyAttributes == 3) && (cmd.sceneNumber == 2)) {
 		if (logEnable) log.debug "Double Tap Down Triggered"
 		if (logDesc) log.info "$device.displayName had Doubletap down (button 4) [physical]"
 		result << sendEvent([name: "pushed", value: 4, descriptionText: "$device.displayName had Doubletap down (button 4) [physical]", type: "physical", isStateChange: true])
+        result << sendEvent([name: "doubleTapped", value: 2, descriptionText: "$device.displayName had Doubletap down (doubleTapped 2) [physical]", type: "physical", isStateChange: true])
     }
     // Triple Tap Up
     if ((cmd.keyAttributes == 4) && (cmd.sceneNumber == 1)) {
