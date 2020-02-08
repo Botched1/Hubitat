@@ -5,12 +5,15 @@
  *
  *  1.0.0 (07/16/2019) - Initial Version
  *  1.1.0 (07/17/2019) - Removed DoubleTap from BasicSet, added DoubleTap UP/DOWN and TripleTap UP/DOWN as standard buttons 1-4
+ *  1.2.0 (02/07/2020) - Added pushed, held, and released capability. Required renumbering the buttons. Now 1/2=Up/Down, 3/4=Double Up/Down, 5/6=Triple Up/Down
  */
 
 metadata {
 	definition (name: "GE Enbrighten Z-Wave Plus Switch", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Actuator"
+        capability "HoldableButton"
 		capability "PushableButton"
+        capability "ReleasableButton"
 		capability "Configuration"
 		capability "Refresh"
 		capability "Sensor"
@@ -85,7 +88,7 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
 	if (logEnable) log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
     if (cmd.groupingIdentifier == 3) {
     	if (cmd.nodeId.contains(zwaveHubNodeId)) {
-        	sendEvent(name: "numberOfButtons", value: 4, displayed: false)
+        	sendEvent(name: "numberOfButtons", value: 6, displayed: false)
         }
         else {
         	sendEvent(name: "numberOfButtons", value: 0, displayed: false)
@@ -168,29 +171,65 @@ def zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cm
     
     def result = []
     
+    // Single Tap Up
+    if ((cmd.keyAttributes == 0) && (cmd.sceneNumber == 1)) {
+		if (logEnable) log.debug "Physical ON Triggered"
+		if (logDesc) log.info "$device.displayName turned on [physical]"
+        result << sendEvent([name: "pushed", value: 1, descriptionText: "$device.displayName had Up Pushed (button 1) [physical]", type: "physical", isStateChange: true])
+    }
+    // Single Tap Down
+    if ((cmd.keyAttributes == 0) && (cmd.sceneNumber == 2)) {
+		if (logEnable) log.debug "Physical OFF Triggered"
+		if (logDesc) log.info "$device.displayName turned off [physical]"
+        result << sendEvent([name: "pushed", value: 2, descriptionText: "$device.displayName had Down Pushed (button 2) [physical]", type: "physical", isStateChange: true])
+    }
+    // Released Up
+    if ((cmd.keyAttributes == 1) && (cmd.sceneNumber == 1)) {
+		if (logEnable) log.debug "Up Released Triggered"
+        if (logDesc) log.info "$device.displayName had Up Released (button 1) [physical]"
+        result << sendEvent([name: "released", value: 1, descriptionText: "$device.displayName had Up Released (button 1) [physical]", type: "physical", isStateChange: true])
+    }
+    // Released Down
+    if ((cmd.keyAttributes == 1) && (cmd.sceneNumber == 2)) {
+		if (logEnable) log.debug "Down Released Triggered"
+        if (logDesc) log.info "$device.displayName had Down Released (button 2) [physical]"
+        result << sendEvent([name: "released", value: 2, descriptionText: "$device.displayName had Down Released (button 2) [physical]", type: "physical", isStateChange: true])
+    }
+    // Held Up
+    if ((cmd.keyAttributes == 2) && (cmd.sceneNumber == 1)) {
+		if (logEnable) log.debug "Up Held Triggered"
+		if (logDesc) log.info "$device.displayName had Up Held (button 1) [physical]"
+		result << sendEvent([name: "held", value: 1, descriptionText: "$device.displayName had Up held (button 1) [physical]", type: "physical", isStateChange: true])
+    }
+    // Held Down
+    if ((cmd.keyAttributes == 2) && (cmd.sceneNumber == 2)) {
+		if (logEnable) log.debug "Down Held Triggered"
+		if (logDesc) log.info "$device.displayName had Down Held (button 2) [physical]"
+		result << sendEvent([name: "held", value: 2, descriptionText: "$device.displayName had Up held (button 2) [physical]", type: "physical", isStateChange: true])
+    }        
     // Double Tap Up
     if ((cmd.keyAttributes == 3) && (cmd.sceneNumber == 1)) {
 		if (logEnable) log.debug "Double Tap Up Triggered"
-		if (logDesc) log.info "$device.displayName had Doubletap up (button 1) [physical]"
-		result << sendEvent([name: "pushed", value: 1, descriptionText: "$device.displayName had Doubletap up (button 1) [physical]", type: "physical", isStateChange: true])
+		if (logDesc) log.info "$device.displayName had Doubletap up (button 3) [physical]"
+		result << sendEvent([name: "pushed", value: 3, descriptionText: "$device.displayName had Doubletap up (button 3) [physical]", type: "physical", isStateChange: true])
     }
     // Double Tap Down
     if ((cmd.keyAttributes == 3) && (cmd.sceneNumber == 2)) {
 		if (logEnable) log.debug "Double Tap Down Triggered"
-		if (logDesc) log.info "$device.displayName had Doubletap down (button 2) [physical]"
-		result << sendEvent([name: "pushed", value: 2, descriptionText: "$device.displayName had Doubletap down (button 2) [physical]", type: "physical", isStateChange: true])
+		if (logDesc) log.info "$device.displayName had Doubletap down (button 4) [physical]"
+		result << sendEvent([name: "pushed", value: 4, descriptionText: "$device.displayName had Doubletap down (button 4) [physical]", type: "physical", isStateChange: true])
     }
     // Triple Tap Up
     if ((cmd.keyAttributes == 4) && (cmd.sceneNumber == 1)) {
 		if (logEnable) log.debug "Triple Tap Up Triggered"
-		if (logDesc) log.info "$device.displayName had Tripletap up (button 3) [physical]"
-		result << sendEvent([name: "pushed", value: 3, descriptionText: "$device.displayName had Tripletap up (button 3) [physical]", type: "physical", isStateChange: true])
+		if (logDesc) log.info "$device.displayName had Tripletap up (button 5) [physical]"
+		result << sendEvent([name: "pushed", value: 5, descriptionText: "$device.displayName had Tripletap up (button 5) [physical]", type: "physical", isStateChange: true])
     }
     // Triple Tap Down
     if ((cmd.keyAttributes == 4) && (cmd.sceneNumber == 2)) {
 		if (logEnable) log.debug "Triple Tap Down Triggered"
-		if (logDesc) log.info "$device.displayName had Tripletap down (button 4) [physical]"
-		result << sendEvent([name: "pushed", value: 4, descriptionText: "$device.displayName had Tripletap down (button 4) [physical]", type: "physical", isStateChange: true])
+		if (logDesc) log.info "$device.displayName had Tripletap down (button 6) [physical]"
+		result << sendEvent([name: "pushed", value: 6, descriptionText: "$device.displayName had Tripletap down (button 6) [physical]", type: "physical", isStateChange: true])
     }
 
     return result
@@ -269,7 +308,7 @@ def configure() {
     log.info "configure triggered"
 	state.bin = -1
 	def cmds = []
-	sendEvent(name: "numberOfButtons", value: 4, displayed: false)
+	sendEvent(name: "numberOfButtons", value: 6, displayed: false)
     cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
 	cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
 	cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
