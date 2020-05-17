@@ -25,6 +25,7 @@
  *  2.2.0 (10/15/2019) - Fixed ON/OFF digital and physical reporting
  *  2.3.0 (10/25/2019) - Fixed setLevel=0 to turn off device as expected, resolved regression introduced in 2.1.0. 
  *  2.4.0 (12/07/2019) - Tweaks to Association code
+ *  2.5.0 (05/17/2020) - Updated text of steps/duration
  */
 
 metadata {
@@ -65,13 +66,13 @@ metadata {
 	        input (
             type: "paragraph",
             element: "paragraph",
-            title: "Dimmer Timing Settings. Total dimming time = steps*duration",
+            title: "Dimmer Timing Settings. Total dimming time in seconds = 0.1*duration/step size",
             description: ""
         )
 	 
-	    input "paramZSteps", "number", title: "Z-Wave Dimming Steps", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
+	    input "paramZSteps", "number", title: "Z-Wave Dimming % Per Step", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
 		input "paramZDuration", "number", title: "Z-Wave Dimming Duration (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
-	    input "paramPSteps", "number", title: "Physical Dimming Steps", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
+	    input "paramPSteps", "number", title: "Physical Dimming % Per Step", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
 		input "paramPDuration", "number", title: "Physical Dimming Duration (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
 	 
         input (
