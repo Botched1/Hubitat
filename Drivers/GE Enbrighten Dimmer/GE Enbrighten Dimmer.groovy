@@ -9,6 +9,7 @@
  *  1.3.0 (12/15/2019) - Fixed event generation when dimmer is in SWITCH mode, removed some unnecessary Get commands to reduce zwave traffic
  *  1.4.0 (02/07/2020) - Added pushed, held, and released capability. Required renumbering the buttons. Now 1/2=Up/Down, 3/4=Double Up/Down, 5/6=Triple Up/Down
  *  1.4.1 (02/07/2020) - Added doubleTapped events and added doubleTap capability. Now users can use button 3/4 for double tap or the system "doubleTapped" events.
+ *  1.5.0 (05/17/2020) - Added associations and inverted paddle options
 */
 
 metadata {
@@ -30,11 +31,14 @@ metadata {
 
  preferences {
         input name: "paramLED", type: "enum", title: "LED Indicator Behavior", multiple: false, options: ["0" : "LED ON When Switch OFF (default)", "1" : "LED ON When Switch ON", "2" : "LED Always OFF", "3" : "LED Always ON"], required: false, displayDuringSetup: true
+        input name: "paramInverted", type: "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
         input name: "paramUpDownRate", type: "enum", title: "Adjust the speed at which the ramps to a specific value", multiple: false, options: ["0" : "Fast (default)", "1" : "Slow"], required: false, displayDuringSetup: true
         input name: "paramSwitchMode", type: "enum", title: "Turn your dimmer into an On/Off switch", multiple: false, options: ["0" : "OFF (default)", "1" : "ON"], required: false, displayDuringSetup: true
         //input name: "paramMinDim", type: "number", title: "Minimum Dim Threshold", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
         //input name: "paramMaxDim", type: "number", title: "Maximum Dim Threshold", multiple: false, defaultValue: "99", range: "0..99", required: false, displayDuringSetup: true     
         input name: "paramDefaultDim", type: "number", title: "Default ON % (Default=0=Last %)", multiple: false, defaultValue: "0", range: "0..99", required: false, displayDuringSetup: true     
+        input name: "requestedGroup2", type: "text", title: "Association Group 2 Members (Max of 5):", required: false
+        input name: "requestedGroup3", type: "text", title: "Association Group 3 Members (Max of 4):", required: false
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false	
 	    input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true	
     }
@@ -338,16 +342,35 @@ def updated() {
 
 	def cmds = []
     
-    cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
-	cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
-	cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
+	// Associations    
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
 
+	def nodes = []
+	nodes = parseAssocGroupList(settings.requestedGroup2, 2)
+    cmds << zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: []).format()
+    cmds << zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format()
+    cmds << zwave.associationV2.associationGet(groupingIdentifier: 2).format()
+    state.currentGroup2 = settings.requestedGroup2
+	
+   	nodes = parseAssocGroupList(settings.requestedGroup3, 3)
+    cmds << zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: []).format()
+    cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes).format()
+    cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+    state.currentGroup3 = settings.requestedGroup3
+	
 	// Set LED param
 	if (paramLED==null) {
 		paramLED = 0
 	}	
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLED.toInteger(), parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+
+	// Set Inverted param
+	if (paramInverted==null) {
+		paramInverted = 0
+	}
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted.toInteger(), parameterNumber: 4, size: 1).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
 	
 	// Set Ramp Rate
 	if (paramUpDownRate==null) {
@@ -394,11 +417,60 @@ def configure() {
 	state.bin = -1
 	if (state.level == "") {state.level = 99}
 	def cmds = []
-	sendEvent(name: "numberOfButtons", value: 6, displayed: false)
-    cmds << zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
-	cmds << zwave.associationV1.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
-	cmds << zwave.associationV1.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
+	// sendEvent(name: "numberOfButtons", value: 6, displayed: false)
+
+	// Associations    
+    cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+
+	def nodes = []
+	nodes = parseAssocGroupList(settings.requestedGroup2, 2)
+    cmds << zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: []).format()
+    cmds << zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format()
+    cmds << zwave.associationV2.associationGet(groupingIdentifier: 2).format()
+    state.currentGroup2 = settings.requestedGroup2
+	
+   	nodes = parseAssocGroupList(settings.requestedGroup3, 3)
+    cmds << zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: []).format()
+    cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes).format()
+    cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+    state.currentGroup3 = settings.requestedGroup3
+
     delayBetween(cmds, 500)
+}
+
+private parseAssocGroupList(list, group) {
+    def nodes = group == 2 ? [] : [zwaveHubNodeId]
+    if (list) {
+        def nodeList = list.split(',')
+        def max = group == 2 ? 5 : 4
+        def count = 0
+
+        nodeList.each { node ->
+            node = node.trim()
+            if ( count >= max) {
+                log.warn "Association Group ${group}: Too many members. Greater than ${max}! This one was discarded: ${node}"
+            }
+            else if (node.matches("\\p{XDigit}+")) {
+                def nodeId = Integer.parseInt(node,16)
+                if (nodeId == zwaveHubNodeId) {
+                	log.warn "Association Group ${group}: Adding the hub ID as an association is not allowed."
+                }
+                else 
+				if ( (nodeId > 0) & (nodeId < 256) ) {
+                    nodes << nodeId
+                    count++
+                }
+                else {
+                    log.warn "Association Group ${group}: Invalid member: ${node}"
+                }
+            }
+            else {
+                log.warn "Association Group ${group}: Invalid member: ${node}"
+            }
+        }
+    }
+	if (logEnable) log.debug "Nodes is $nodes"
+    return nodes
 }
 
 def logsOff(){
