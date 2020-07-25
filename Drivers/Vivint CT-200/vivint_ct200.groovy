@@ -18,7 +18,6 @@
  */
 metadata {
 	definition (name: "Vivint CT-200", namespace: "Botched1", author: "Jason Bottjen") {
-		
 		capability "Actuator"
 		capability "Battery"
 		capability "Configuration"
@@ -30,53 +29,33 @@ metadata {
 		capability "Thermostat Fan Mode"
 		   
 		command "SensorCal", [[name:"calibration",type:"ENUM", description:"Number of degrees to add/subtract from thermostat sensor", constraints:["0", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6"]]]
+		command "FanTimer", [[name:"calibration",type:"ENUM", description:"Manually run fan for specified # of minutes", constraints:["0", "15", "30", "60"]]]
 		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]
+		
 		
 		attribute "thermostatFanState", "string"
 		attribute "currentSensorCal", "number"
 	}
-		preferences {
-			input "paramSystemType", "enum", title: "HVAC System Type", multiple: false, defaultValue: "0-Standard", options: ["0-Standard","1-Heat Pump"], required: false, displayDuringSetup: true
-			input "paramFanType", "enum", title: "Air Handler Fan Type", multiple: false, defaultValue: "0-Gas [no fan signal w/heat]", options: ["0-Gas [no fan signal w/heat]","1-Electric [fan signal w/heat]"], required: false, displayDuringSetup: true
-			input "paramCOType", "enum", title: "Change Over Type", multiple: false, defaultValue: "0-CO w/cool", options: ["0-CO w/cool","1-CO w/heat"], required: false, displayDuringSetup: true
-			input "param2StageHeatEnable", "enum", title: "2nd Stage Heat Enable", multiple: false, defaultValue: "0-Disabled", options: ["0-Disabled","1-Enabled"], required: false, displayDuringSetup: true
-			input "paramAuxHeatEnable", "enum", title: "Auxiliary Heat Enable", multiple: false, defaultValue: "1-Enabled", options: ["0-Disabled","1-Enabled"], required: false, displayDuringSetup: true
-			input "param2StageCoolEnable", "enum", title: "2nd Stage Cool Enable", multiple: false, defaultValue: "0-Disabled", options: ["0-Disabled","1-Enabled"], required: false, displayDuringSetup: true			
-			input "paramTemperatureUnits", "enum", title: "Temperature Units", multiple: false, defaultValue: "1-Fahrenheit", options: ["0-Centigrade","1-Fahrenheit"], required: false, displayDuringSetup: true						
-			input "paramMOT", "number", title: "Minimum Off Time (minutes)", multiple: false, defaultValue: "5",  range: "5..9", required: false, displayDuringSetup: true						
-			input "paramMRT", "number", title: "Minimum Run Time (minutes)", multiple: false, defaultValue: "3",  range: "3..9", required: false, displayDuringSetup: true
-			input "paramSPMinDelta", "number", title: "Minimum Delta Between Heat and Cool Setpoint (degrees)", multiple: false, defaultValue: "3",  range: "3..15", required: false, displayDuringSetup: true						
-			input "paramStage1HDeltaON", "number", title: "Delta from setpoint that stage 1 heating turns ON (degrees)", multiple: false, defaultValue: "1",  range: "1..6", required: false, displayDuringSetup: true						
-			input "paramStage1HDeltaOFF", "number", title: "Delta from setpoint that stage 1 heating turns OFF (degrees)", multiple: false, defaultValue: "0",  range: "0..5", required: false, displayDuringSetup: true									
-			input "paramStage2HDeltaON", "number", title: "Delta from setpoint that stage 2 heating turns ON (degrees)", multiple: false, defaultValue: "2",  range: "2..7", required: false, displayDuringSetup: true						
-			input "paramStage2HDeltaOFF", "number", title: "Delta from setpoint that stage 2 heating turns OFF (degrees)", multiple: false, defaultValue: "0",  range: "0..6", required: false, displayDuringSetup: true									
-			input "paramAuxHDeltaON", "number", title: "Delta from setpoint that Aux heating turns ON (degrees)", multiple: false, defaultValue: "3",  range: "3..8", required: false, displayDuringSetup: true						
-			input "paramAuxHDeltaOFF", "number", title: "Delta from setpoint that Aux heating turns OFF (degrees)", multiple: false, defaultValue: "0",  range: "0..7", required: false, displayDuringSetup: true									
-			input "paramStage1CDeltaON", "number", title: "Delta from setpoint that stage 1 cooling turns ON (degrees)", multiple: false, defaultValue: "1",  range: "1..6", required: false, displayDuringSetup: true						
-			input "paramStage1CDeltaOFF", "number", title: "Delta from setpoint that stage 1 cooling turns OFF (degrees)", multiple: false, defaultValue: "0",  range: "0..5", required: false, displayDuringSetup: true									
-			input "paramStage2CDeltaON", "number", title: "Delta from setpoint that stage 2 cooling turns ON (degrees)", multiple: false, defaultValue: "2",  range: "2..7", required: false, displayDuringSetup: true						
-			input "paramStage2CDeltaOFF", "number", title: "Delta from setpoint that stage 2 cooling turns OFF (degrees)", multiple: false, defaultValue: "0",  range: "0..6", required: false, displayDuringSetup: true									
-            // Autosend Enable Bits 0-65536
-			input "paramDisplayLock", "enum", title: "Display Lock", multiple: false, defaultValue: "0-Unlocked", options: ["0-Unlocked","1-Locked"], required: false, displayDuringSetup: true
-			input "paramBacklightTimer", "number", title: "Display Backlight Turn OFF Timer (seconds)", multiple: false, defaultValue: "20",  range: "10..30", required: false, displayDuringSetup: true									
-			input "paramMaxHeatSP", "number", title: "Maximum Heat Setpoint (degrees)", multiple: false, defaultValue: "90",  range: "30..109", required: false, displayDuringSetup: true									
-			input "paramMinCoolSP", "number", title: "Minimum Cool Setpoint (degrees)", multiple: false, defaultValue: "60",  range: "33..112", required: false, displayDuringSetup: true									
-			input "paramScheduleEnable", "enum", title: "Enables or disables the use of schedules", multiple: false, defaultValue: "0-Disabled", options: ["0-Disabled","1-Enabled"], required: false, displayDuringSetup: true			
-			input "paramRunHold", "enum", title: "Hold/Run. Hold locks the current temperature indefinitely. Run resumes the preprogrammed schedule.", multiple: false, defaultValue: "0-Hold", options: ["0-Hold","1-Run"], required: false, displayDuringSetup: true			
-			input "paramSetback", "enum", title: "Presence status, used for allowing temperature setpoints to relax when away", multiple: false, defaultValue: "0-Occupied", options: ["0-Occupied","2-Unoccupied"], required: false, displayDuringSetup: true			
-			input "paramUnOccupiedHSP", "number", title: "Heating setpoint when unoccupied (degrees)", multiple: false, defaultValue: "62", range: "30..109", required: false, displayDuringSetup: true			
-			input "paramUnOccupiedCSP", "number", title: "Cooling setpoint when unoccupied (degrees)", multiple: false, defaultValue: "80", range: "33..112", required: false, displayDuringSetup: true						
-			input "paramSensorCal", "number", title: "Temperature Sensor Calibration/Offset (degrees)", multiple: false, defaultValue: 0, range: "-7..7", required: false, displayDuringSetup: true						
-			//input "paramFilterTimer", "number", title: "Filter Timer (hours)", multiple: false, defaultValue: "0", range: "0..4000", required: false, displayDuringSetup: true
-			input "paramFilterTimerMax", "number", title: "Filter Timer Max (hours)", multiple: false, defaultValue: 300, range: "0..4000", required: false, displayDuringSetup: true
-			//input "paramHeatTimer", "number", title: "Heat Timer (hours)", multiple: false, defaultValue: "0", range: "0..4000", required: false, displayDuringSetup: true												
-			//input "paramCoolTimer", "number", title: "Cool Timer (hours)", multiple: false, defaultValue: "0", range: "0..4000", required: false, displayDuringSetup: true												
-			input "paramFanPurgeHeat", "number", title: "Fan purge after heat cycle (seconds)", multiple: false, defaultValue: "0", range: "0..90", required: false, displayDuringSetup: true												
-			input "paramFanPurgeCool", "number", title: "Fan purge after cool cycle (seconds)", multiple: false, defaultValue: "0", range: "0..90", required: false, displayDuringSetup: true															
-			input "paramTempSendDeltaTemp", "number", title: "Temperature Delta before Autosending Data to Hub (degrees)", multiple: false, defaultValue: "2", range: "1..5", required: false, displayDuringSetup: true																		
-			input "paramTempSendDeltaTime", "number", title: "Temperature Time Delta before Autosending Data to Hub (minutes, 0=Disabled)", multiple: false, defaultValue: "0", range: "0..120", required: false, displayDuringSetup: true																					
-			input "logEnable", "bool", title: "Enable debug logging", defaultValue: false
-		}
+	preferences {
+		input "paramTempReportThreshold", "number", title: "Temperature Reporting Delta (degrees)", multiple: false, defaultValue: "2", range: "0..4", required: false, displayDuringSetup: true																		
+		//input "paramHVACSettings", "number", title: "HVAC Configuration Settings", multiple: false, defaultValue: "0", required: false, displayDuringSetup: true																		
+		input "paramUtilityLock", "number", title: "Lock Display", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+		//input "paramPowerType", "number", title: "Power by C-Wire or Battery", multiple: false, defaultValue: "0", required: false, displayDuringSetup: true																		
+		input "paramHumidityReportThreshold", "number", title: "Humidity Delta before Autosending Data to Hub (0=disabled 1=3%RH 2=5%RH 3=10%RH)", multiple: false, defaultValue: "2", range: "0..3", required: false, displayDuringSetup: true																		
+		input "paramAuxHeating", "number", title: "Aux / Emergency Heating", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+		input "paramSwingTemp", "number", title: "Swing Temperature", multiple: false, defaultValue: "2", range: "1..8", required: false, displayDuringSetup: true																		
+		//input "paramDiffTemp", "number", title: "Swing Temperature", multiple: false, defaultValue: "2", range: "1..8", required: false, displayDuringSetup: true																		
+		input "paramRecoveryMode", "number", title: "Recovery Mode (1=fast, 2=economy)", multiple: false, defaultValue: "2", range: "1..2", required: false, displayDuringSetup: true																		
+		//input "paramTempReportFilter", "number", title: "Temp3erature Reporting Filter", multiple: false, defaultValue: "2", range: "1..2", required: false, displayDuringSetup: true																		
+		input "paramSimpleUI", "number", title: "Simple UI Mode (0=normal, 1=simple)", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+		input "paramMulticast", "number", title: "Multicast Messaging (0=disabled, 1=enabled)", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+		input "paramDisplaySelect", "number", title: "Display Temperature or Relative Humidity on Display (0=temp, 1=RH)", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+		//input "paramSaveEnergyModeType", "number", title: "Save Energy Mode Type", multiple: false, defaultValue: "2", range: "1..255", required: false, displayDuringSetup: true																		
+		//input "paramFanTimer", "number", title: "Run fan for XX minutes", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+		//input "paramHumidityControlActivation", "number", title: "Passthrough for humidity control", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+		input "paramSensorCal", "number", title: "Temperature Sensor Calibration/Offset (degrees)", multiple: false, defaultValue: 0, range: "-6..6", required: false, displayDuringSetup: true						
+		input "paramDisplayUnits", "number", title: "Display Units (0=F, 1=C)", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+	}
             
 }
 
