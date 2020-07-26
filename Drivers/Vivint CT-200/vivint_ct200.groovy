@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/Vivint%20CT-200/vivint_ct200.groovy
+ *  IMPORT URL: 
  *
  *  Vivint CT200 Thermostat driver for Hubitat
  *
@@ -276,7 +276,8 @@ def setSchedule() {
 def refresh() {
 	if (logEnable) log.debug "Executing 'refresh'"
 	commands([
-		zwave.thermostatModeV2.thermostatModeGet(),
+        zwave.batteryV1.batteryGet(),
+        zwave.thermostatModeV2.thermostatModeGet(),
 		zwave.thermostatOperatingStateV2.thermostatOperatingStateGet(),
 		zwave.thermostatFanModeV1.thermostatFanModeGet(),
 		zwave.thermostatFanStateV1.thermostatFanStateGet(),
