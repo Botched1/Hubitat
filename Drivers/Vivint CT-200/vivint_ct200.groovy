@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Version 1.0 - 07/25/2020     Initial Version
+ *  Version 1.1 - 07/26/2020     Fixed currentSensorCal not recording correctly
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -471,8 +472,12 @@ def logsOff() {
 def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
     if (logEnable) log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} sent parameterNumber:${cmd.parameterNumber}, size:${cmd.size}, value:${cmd.scaledConfigurationValue}"
     def config = cmd.scaledConfigurationValue
-    def CalValue
+    def CalValue = config
 	
+    if (cmd.parameterNumber == 17) { 
+        sendEvent([name:"currentSensorCal", value: cmd.scaledConfigurationValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
+	}
+    
     if (logEnable) log.debug "Parameter: ${cmd.parameterNumber} value is: ${config}"
 }
 
