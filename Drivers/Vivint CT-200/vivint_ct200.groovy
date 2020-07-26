@@ -1,7 +1,7 @@
 /**
  *  IMPORT URL: 
  *
- *  Vivint CT-200 Thermostat driver for Hubitat
+ *  Vivint CT200 Thermostat driver for Hubitat
  *
  *  Copyright 2020 Jason Bottjen
  *
@@ -17,7 +17,7 @@
  *  Version 1.0 - 07/25/2020     Initial Version
  */
 metadata {
-	definition (name: "Vivint CT-200", namespace: "Botched1", author: "Jason Bottjen") {
+	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Actuator"
 		capability "Battery"
 		capability "Configuration"
@@ -28,37 +28,37 @@ metadata {
 		capability "Thermostat"
 		capability "Thermostat Fan Mode"
 		   
-		command "SensorCal", [[name:"calibration",type:"ENUM", description:"Number of degrees to add/subtract from thermostat sensor", constraints:["0", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6"]]]
-		command "FanTimer", [[name:"calibration",type:"ENUM", description:"Manually run fan for specified # of minutes", constraints:["0", "15", "30", "60"]]]
-		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]
-		
+		command "SensorCal", [[name:"Degrees",type:"ENUM", description:"Number of degrees to add/subtract from thermostat sensor", constraints:["0", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6"]]]
+		command "ManualFanTimer", [[name:"Minutes",type:"ENUM", description:"Manually run fan for specified # of minutes", constraints:["0", "15", "30", "60"]]]
+		command "DebugLogging", [[name:"Command",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]
 		
 		attribute "thermostatFanState", "string"
 		attribute "currentSensorCal", "number"
+        
+        fingerprint mfr:"0098", prod:"C801", deviceId:"0022", inClusters:"0x5E,0x86,0x5D,0x85,0x59,0x80,0x7A,0x31,0x81,0x87,0x40,0x42,0x44,0x45,0x43,0x70,0x20,0x8E,0x73,0x5A,0x60,0x72", deviceJoinName: "Vivint CT200 Thermostat"
 	}
 	preferences {
-		input "paramTempReportThreshold", "number", title: "Temperature Reporting Delta (degrees)", multiple: false, defaultValue: "2", range: "0..4", required: false, displayDuringSetup: true																		
+		input "paramTempReportThreshold", "enum", title: "Temperature Delta for Reporting", multiple: false, defaultValue: "2: 1.0 Degree", options: ["0: Disabled", "1: 0.5 Degree", "2: 1.0 Degree", "3: 1.5 Degrees", "4: 2.0 Degrees"], required: false, displayDuringSetup: true																		
 		//input "paramHVACSettings", "number", title: "HVAC Configuration Settings", multiple: false, defaultValue: "0", required: false, displayDuringSetup: true																		
-		input "paramUtilityLock", "number", title: "Lock Display", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+		//input "paramUtilityLock", "number", title: "Lock Display", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
 		//input "paramPowerType", "number", title: "Power by C-Wire or Battery", multiple: false, defaultValue: "0", required: false, displayDuringSetup: true																		
-		input "paramHumidityReportThreshold", "number", title: "Humidity Delta before Autosending Data to Hub (0=disabled 1=3%RH 2=5%RH 3=10%RH)", multiple: false, defaultValue: "2", range: "0..3", required: false, displayDuringSetup: true																		
-		input "paramAuxHeating", "number", title: "Aux / Emergency Heating", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
-		input "paramSwingTemp", "number", title: "Swing Temperature", multiple: false, defaultValue: "2", range: "1..8", required: false, displayDuringSetup: true																		
+		input "paramHumidityReportThreshold", "enum", title: "Humidity Delta for Reporting", multiple: false, defaultValue: "2: 5%", options: ["0: Disabled", "1: 3%", "2: 5%", "3: 10%"], required: false, displayDuringSetup: true																		
+		//input "paramAuxHeating", "number", title: "Aux / Emergency Heating", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+		input "paramSwingTemp", "enum", title: "Swing Temperature (degrees away from setpoint before HVAC turns on)", multiple: false, defaultValue: "4: 2.0 Degrees", options: ["1: 0.5 Degree", "2: 1.0 Degree", "3: 1.5 Degrees", "4: 2.0 Degrees", "5: 2.5 Degrees", "6: 3.0 Degrees", "7: 3.5 Degrees", "8: 4.0 Degrees"], required: false, displayDuringSetup: true																		
 		//input "paramDiffTemp", "number", title: "Swing Temperature", multiple: false, defaultValue: "2", range: "1..8", required: false, displayDuringSetup: true																		
-		input "paramRecoveryMode", "number", title: "Recovery Mode (1=fast, 2=economy)", multiple: false, defaultValue: "2", range: "1..2", required: false, displayDuringSetup: true																		
-		//input "paramTempReportFilter", "number", title: "Temp3erature Reporting Filter", multiple: false, defaultValue: "2", range: "1..2", required: false, displayDuringSetup: true																		
-		input "paramSimpleUI", "number", title: "Simple UI Mode (0=normal, 1=simple)", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
-		input "paramMulticast", "number", title: "Multicast Messaging (0=disabled, 1=enabled)", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
-		input "paramDisplaySelect", "number", title: "Display Temperature or Relative Humidity on Display (0=temp, 1=RH)", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+		input "paramRecoveryMode", "enum", title: "Recovery Mode", multiple: false, defaultValue: "2: Economy", options: ["1: Fast", "2: Economy"], required: false, displayDuringSetup: true																		
+        //input "paramTempReportFilter", "number", title: "Temperature Reporting Filter", multiple: false, defaultValue: "2", range: "1..2", required: false, displayDuringSetup: true																		
+		input "paramUIMode", "enum", title: "UI Mode", multiple: false, defaultValue: "0: Normal", options: ["0: Normal", "1: Simple"], required: false, displayDuringSetup: true																		
+		input "paramMulticast", "enum", title: "Multicast Messaging", multiple: false, defaultValue: "0: Disabled", options: ["0: Disabled", "1: Enabled"], required: false, displayDuringSetup: true																		
+		//input "paramDisplaySelect", "number", title: "Display Temperature or Relative Humidity on Display (0=temp, 1=RH)", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
 		//input "paramSaveEnergyModeType", "number", title: "Save Energy Mode Type", multiple: false, defaultValue: "2", range: "1..255", required: false, displayDuringSetup: true																		
 		//input "paramFanTimer", "number", title: "Run fan for XX minutes", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
 		//input "paramHumidityControlActivation", "number", title: "Passthrough for humidity control", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
-		input "paramSensorCal", "number", title: "Temperature Sensor Calibration/Offset (degrees)", multiple: false, defaultValue: 0, range: "-6..6", required: false, displayDuringSetup: true						
-		input "paramDisplayUnits", "number", title: "Display Units (0=F, 1=C)", multiple: false, defaultValue: "0", range: "0..1", required: false, displayDuringSetup: true																		
+		input "paramSensorCal", "enum", title: "Temperature Sensor Calibration/Offset (degrees)", multiple: false, defaultValue: "0", options: ["0", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6"], required: false, displayDuringSetup: true						
+		input "paramDisplayUnits", "enum", title: "Display Units", multiple: false, defaultValue: "0: F", options: ["0: F", "1: C"], required: false, displayDuringSetup: true																		
 	}
             
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // parse events into attributes
@@ -67,7 +67,7 @@ def parse(String description) {
 	if (logEnable) log.debug "Parse...START"
 	if (logEnable) log.debug "Parsing '${description}'"
 	try {
-		def map = createEvent(zwaveEvent(zwave.parse(description, [0x20:1, 0x2B: 1, 0x2C: 1, 0x31:1, 0x40:1, 0x42:1, 0x43:2, 0x44:1, 0x45:1, 0x59:1, 0x5A:1, 0x5E:1, 0x70:1, 0x72:1, 0x73:1, 0x7A:2, 0x80: 1, 0x81: 1, 0x85:2, 0x86:2, 0x8F:1])))
+		def map = createEvent(zwaveEvent(zwave.parse(description, [0x20:1, 0x31: 6, 0x40:2, 0x42:2, 0x43:2, 0x44:1, 0x45:1, 0x59:1, 0x5A:1, 0x5D:1, 0x5E:2, 0x60:4, 0x70:1, 0x72:2, 0x73:1, 0x7A:3, 0x80: 1, 0x81: 1, 0x85:2, 0x86:2, 0x87:1, 0x8F:3])))
 		if (logEnable) log.debug "In parse, map is $map"
 	}
 	catch (e) {
@@ -80,6 +80,7 @@ def parse(String description) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Handle commands from Thermostat
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 def setHeatingSetpoint(double degrees) {
 	if (logEnable) log.debug "setHeatingSetpoint...START"
     
@@ -103,7 +104,11 @@ def setHeatingSetpoint(double degrees) {
     if (logEnable) log.debug "setpoint requested is $degrees"
     if (logEnable) log.debug "setpoint written is $degrees2"
     if (logEnable) log.debug "setHeatingSetpoint...END"
-	return zwave.thermostatSetpointV1.thermostatSetpointSet(setpointType: 1, scale: state.scale, precision: p, scaledValue: degrees2).format()
+
+	commands([
+		zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 1, scale: state.scale, precision: p, scaledValue: degrees2),
+        zwave.thermostatSetpointV2.thermostatSetpointGet(setpointType: 1)
+	], 1000)       
 }
 
 def setCoolingSetpoint(double degrees) {
@@ -130,14 +135,19 @@ def setCoolingSetpoint(double degrees) {
     if (logEnable) log.debug "setpoint requested is $degrees"
     if (logEnable) log.debug "setpoint written is $degrees2"
     if (logEnable) log.debug "setCoolingSetpoint...END"
-	return zwave.thermostatSetpointV1.thermostatSetpointSet(setpointType: 2, scale: state.scale, precision: p, scaledValue: degrees2).format()
+
+    commands([
+		zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 2, scale: state.scale, precision: p, scaledValue: degrees2),
+        zwave.thermostatSetpointV2.thermostatSetpointGet(setpointType: 2)
+	], 1000)       
 }
 
 def off() {
 	if (logEnable) log.debug "Switching to off mode..."
     commands([
-		zwave.thermostatModeV1.thermostatModeSet(mode: 0),
-        zwave.thermostatModeV1.thermostatModeGet()
+		zwave.thermostatModeV2.thermostatModeSet(mode: 0),
+        zwave.thermostatModeV2.thermostatModeGet(),
+        zwave.thermostatOperatingStateV2.thermostatOperatingStateGet()
 	], 1000)
 }
 
@@ -149,24 +159,27 @@ def on() {
 def heat() {
 	if (logEnable) log.debug "Switching to heat mode..."
 	commands([
-		zwave.thermostatModeV1.thermostatModeSet(mode: 1),
-		zwave.thermostatModeV1.thermostatModeGet()
+		zwave.thermostatModeV2.thermostatModeSet(mode: 1),
+		zwave.thermostatModeV2.thermostatModeGet(),
+        zwave.thermostatOperatingStateV2.thermostatOperatingStateGet()
 	], 1000)   
 }
 
 def emergencyHeat() {
 	if (logEnable) log.debug "Switching to emergency heat mode..."
     commands([
-		zwave.thermostatModeV1.thermostatModeSet(mode: 4),
-		zwave.thermostatModeV1.thermostatModeGet()
+		zwave.thermostatModeV2.thermostatModeSet(mode: 4),
+		zwave.thermostatModeV2.thermostatModeGet(),
+        zwave.thermostatOperatingStateV2.thermostatOperatingStateGet()
 	], 1000)
 }
 
 def cool() {
 	if (logEnable) log.debug "Switching to cool mode..."
-    comands([
-		zwave.thermostatModeV1.thermostatModeSet(mode: 2),
-		zwave.thermostatModeV1.thermostatModeGet()
+    commands([
+		zwave.thermostatModeV2.thermostatModeSet(mode: 2),
+		zwave.thermostatModeV2.thermostatModeGet(),
+        zwave.thermostatOperatingStateV2.thermostatOperatingStateGet()
 	], 1000)
 }
 
@@ -175,28 +188,29 @@ def setThermostatMode(value) {
 	if (logEnable) log.debug "value: " + value
 	def cmds = []
 	switch (value) {
-		case "auto":
-		    if (logEnable) log.debug "Switching to auto mode..."
-			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 3)
-			break
 		case "off":
 			if (logEnable) log.debug "Switching to off mode..."
-			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 0)
+			cmds << zwave.thermostatModeV2.thermostatModeSet(mode: 0)
 			break
 		case "heat":
 			if (logEnable) log.debug "Switching to heat mode..."
-			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 1)
+			cmds << zwave.thermostatModeV2.thermostatModeSet(mode: 1)
 			break
 		case "cool":
 			if (logEnable) log.debug "Switching to cool mode..."
-			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 2)
+			cmds << zwave.thermostatModeV2.thermostatModeSet(mode: 2)
+			break
+		case "auto":
+		    if (logEnable) log.debug "Switching to auto mode..."
+			cmds << zwave.thermostatModeV2.thermostatModeSet(mode: 3)
 			break
 		case "emergency heat":
 			if (logEnable) log.debug "Switching to emergency heat mode..."
-			cmds << zwave.thermostatModeV1.thermostatModeSet(mode: 4)
+			cmds << zwave.thermostatModeV2.thermostatModeSet(mode: 4)
 			break
 	}
-	cmds << zwave.thermostatModeV1.thermostatModeGet()
+	cmds << zwave.thermostatModeV2.thermostatModeGet()
+    cmds << zwave.thermostatOperatingStateV2.thermostatOperatingStateGet()
 	commands(cmds, 1000)
 }
 
@@ -221,14 +235,6 @@ def fanAuto() {
 def fanCirculate() {
 	if (logEnable) log.debug "Fan circulate mode not supported for this thermostat type..."
 	log.warn "Fan circulate mode not supported for this thermostat type..."
-    /*
-	sendEvent(name: "currentfanMode", value: "Fan Cycle Mode" as String)
-	delayBetween([
-		zwave.thermostatFanModeV1.thermostatFanModeSet(fanMode: 6).format(),
-		zwave.thermostatFanModeV1.thermostatFanModeGet().format(),
-        zwave.thermostatFanStateV1.thermostatFanStateGet().format()
-	], 3000)
-	*/
 }
 
 def setThermostatFanMode(value) {
@@ -249,14 +255,16 @@ def setThermostatFanMode(value) {
 			break
 	}
 	cmds << zwave.thermostatFanModeV1.thermostatFanModeGet()
+    cmds << zwave.thermostatFanStateV1.thermostatFanStateGet()
 	commands(cmds, 1000)
 }
 
 def auto() {
 	if (logEnable) log.debug "Switching to auto mode..."
     commands([
-		zwave.thermostatModeV1.thermostatModeSet(mode: 3),
-		zwave.thermostatModeV1.thermostatModeGet()
+		zwave.thermostatModeV2.thermostatModeSet(mode: 3),
+		zwave.thermostatModeV2.thermostatModeGet(),
+        zwave.thermostatOperatingStateV2.thermostatOperatingStateGet()
 	], 1000)
 }
 
@@ -265,41 +273,15 @@ def setSchedule() {
 	log.warn "setSchedule does not do anything with this driver."
 }
 
-def filterReset() {
-	commands([
-		zwave.configurationV1.configurationSet(parameterNumber: 52, size: 2, scaledConfigurationValue: 0),
-		zwave.configurationV1.configurationGet(parameterNumber: 52)
-	], 1000)
-}
-
-def coolTimerReset() {
-	commands([
-		zwave.configurationV1.configurationSet(parameterNumber: 55, size: 2, scaledConfigurationValue: 0),
-		zwave.configurationV1.configurationGet(parameterNumber: 55)
-	], 1000)
-}
-
-def heatTimerReset() {
-	commands([
-		zwave.configurationV1.configurationSet(parameterNumber: 54, size: 2, scaledConfigurationValue: 0),
-		zwave.configurationV1.configurationGet(parameterNumber: 54)
-	], 1000)
-}
-
 def refresh() {
 	if (logEnable) log.debug "Executing 'refresh'"
-	if (logEnable) log.debug "....done executing refresh"
 	commands([
-		zwave.thermostatModeV1.thermostatModeGet(),
-		zwave.thermostatOperatingStateV1.thermostatOperatingStateGet(),
+		zwave.thermostatModeV2.thermostatModeGet(),
+		zwave.thermostatOperatingStateV2.thermostatOperatingStateGet(),
 		zwave.thermostatFanModeV1.thermostatFanModeGet(),
 		zwave.thermostatFanStateV1.thermostatFanStateGet(),
-		zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: 1),
-		zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: 2),
-		zwave.configurationV1.configurationGet(parameterNumber: 52),
-		zwave.configurationV1.configurationGet(parameterNumber: 54),
-		zwave.configurationV1.configurationGet(parameterNumber: 53),
-		zwave.configurationV1.configurationGet(parameterNumber: 55)
+		zwave.thermostatSetpointV2.thermostatSetpointGet(setpointType: 1),
+		zwave.thermostatSetpointV2.thermostatSetpointGet(setpointType: 2)
 	], 1000)   
 }
 
@@ -307,62 +289,34 @@ def configure() {
 	if (logEnable) log.debug "Executing 'configure'"
 	if (logEnable) log.debug "zwaveHubNodeId: " + zwaveHubNodeId
 	if (logEnable) log.debug "....done executing 'configure'"
-	device.removeSetting("paramFilterTimer")
-	device.removeSetting("paramCoolTimer") 
-	device.removeSetting("paramHeatTimer") 
 	
 	commands([
-		zwave.thermostatModeV1.thermostatModeSupportedGet(),
+		zwave.thermostatModeV2.thermostatModeSupportedGet(),
 		zwave.thermostatFanModeV1.thermostatFanModeSupportedGet(),
-		zwave.configurationV1.configurationSet(parameterNumber: 23, size: 2, scaledConfigurationValue: -1),
-		zwave.configurationV1.configurationGet(parameterNumber: 23),
 		zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:[zwaveHubNodeId])
 	], 1000)
 }
 
-def ParamToInteger(value) {
-	long newParam
-	if (value instanceof CharSequence) {
-		if (logEnable) log.debug "$value is a CharSequence"
-		def newString = value.split("-")
-		newParam = newString[0].toInteger()
-	} else {
-		if (value instanceof Boolean) {
-			newParam = value ? 1 : 0
-		} else {
-			newParam = value
-		}
-	}
-	return newParam
-}
-
-def SyncClock() {
-	Calendar currentDate = Calendar.getInstance()
-	def cmds = [
-		zwave.clockV1.clockSet(hour: currentDate.get(Calendar.HOUR_OF_DAY), minute: currentDate.get(Calendar.MINUTE), weekday: currentDate.get(Calendar.DAY_OF_WEEK))
-	]
-	if (logEnable) log.debug cmd
-	commands(cmds, 400)
+def ManualFanTimer(value) {
+	if (logEnable) log.debug "Executing 'ManualFanTimer'"
+    value = value.toInteger()
+	if (logEnable) log.debug "FanTimer value: " + value
+	
+	commands([
+		zwave.configurationV1.configurationSet(scaledConfigurationValue: value, parameterNumber: 15, size: 1),
+		zwave.configurationV1.configurationGet(parameterNumber: 15),
+		zwave.thermostatFanModeV1.thermostatFanModeGet(),
+        zwave.thermostatFanStateV1.thermostatFanStateGet()
+    ], 500)
 }
 
 def SensorCal(value) {
 	value = value.toInteger()
 	if (logEnable) log.debug "SensorCal value: " + value
-	def SetCalValue
-
-	if (value < 0) {
-		SetCalValue = 256 + value // == -1 ? 255 : value == -2 ? 254 : value == -3 ? 253 : value == -4 ? 252 : value == -5 ? 251 : value == -6 ? 250 : value == -7 ? 249 : value == -8 ? 248 : value == -9 ? 247 : value == -10 ? 246 : "unknown"
-		if (logEnable) log.debug "SetCalValue: " + SetCalValue
-	} else {
-		SetCalValue = value.toInteger()
-		if (logEnable) log.debug "SetCalValue: " + SetCalValue
-	}
-
-	if (logEnable) log.debug "SetCalValue: " + SetCalValue
 	
 	commands([
-		zwave.configurationV1.configurationSet(scaledConfigurationValue: SetCalValue, parameterNumber: 48, size: 1),
-		zwave.configurationV1.configurationGet(parameterNumber: 48)
+		zwave.configurationV1.configurationSet(scaledConfigurationValue: value, parameterNumber: 17, size: 1),
+		zwave.configurationV1.configurationGet(parameterNumber: 17)
 		], 500)
 }
 
@@ -385,127 +339,124 @@ def updated() {
 		log.debug "debug logging is enabled."
 		runIn(1800,logsOff)
 	}
-		
-	def ParamNum = [:], ParamSize = [:]
-    //def paramAutoSendEnableBits = -1
-    
-	// Build Parameter Number Map
-	ParamNum['paramSystemType'] = 1
-	ParamNum['paramFanType'] = 2
-	ParamNum['paramCOType'] = 3
-	ParamNum['param2StageHeatEnable'] = 4
-	ParamNum['paramAuxHeatEnable'] = 5
-	ParamNum['param2StageCoolEnable'] = 6
-	ParamNum['paramTemperatureUnits'] = 7
-	ParamNum['paramMOT'] = 8
-	ParamNum['paramMRT'] = 9
-	ParamNum['paramSPMinDelta'] = 10
-	ParamNum['paramStage1HDeltaON'] = 11
-	ParamNum['paramStage1HDeltaOFF'] = 12
-	ParamNum['paramStage2HDeltaON'] = 13
-	ParamNum['paramStage2HDeltaOFF'] = 14
-	ParamNum['paramAuxHDeltaON'] = 15
-	ParamNum['paramAuxHDeltaOFF'] = 16
-	ParamNum['paramStage1CDeltaON'] = 17
-	ParamNum['paramStage1CDeltaOFF'] = 18
-	ParamNum['paramStage2CDeltaON'] = 19
-	ParamNum['paramStage2CDeltaOFF'] = 20
-    //ParamNum['paramAutoSendEnableBits'] = 23
-	ParamNum['paramDisplayLock'] = 24
-	ParamNum['paramBacklightTimer'] = 26
-	ParamNum['paramMaxHeatSP'] = 33
-	ParamNum['paramMinCoolSP'] = 34
-	ParamNum['paramScheduleEnable'] = 38
-	ParamNum['paramRunHold'] = 39
-	ParamNum['paramSetback'] = 40
-	ParamNum['paramUnOccupiedHSP'] = 41
-	ParamNum['paramUnOccupiedCSP'] = 42
-	ParamNum['paramSensorCal'] = 48
-	ParamNum['paramFilterTimer'] = 52
-	ParamNum['paramFilterTimerMax'] = 53
-	ParamNum['paramHeatTimer'] = 54
-	ParamNum['paramCoolTimer'] = 55
-	ParamNum['paramFanPurgeHeat'] = 61
-	ParamNum['paramFanPurgeCool'] = 62
-	ParamNum['paramTempSendDeltaTemp'] = 186
-	ParamNum['paramTempSendDeltaTime'] = 187		
 
-	// Build Parameter Size Map
-	ParamSize['paramSystemType'] = 1
-	ParamSize['paramFanType'] = 1
-	ParamSize['paramCOType'] = 1
-	ParamSize['param2StageHeatEnable'] = 1
-	ParamSize['paramAuxHeatEnable'] = 1
-	ParamSize['param2StageCoolEnable'] = 1
-	ParamSize['paramTemperatureUnits'] = 1
-	ParamSize['paramMOT'] = 1
-	ParamSize['paramMRT'] = 1
-	ParamSize['paramSPMinDelta'] = 1
-	ParamSize['paramStage1HDeltaON'] = 1
-	ParamSize['paramStage1HDeltaOFF'] = 1
-	ParamSize['paramStage2HDeltaON'] = 1
-	ParamSize['paramStage2HDeltaOFF'] = 1
-    //ParamSize['paramAutoSendEnableBits'] = 2
-	ParamSize['paramAuxHDeltaON'] = 1
-	ParamSize['paramAuxHDeltaOFF'] = 1
-	ParamSize['paramStage1CDeltaON'] = 1
-	ParamSize['paramStage1CDeltaOFF'] = 1
-	ParamSize['paramStage2CDeltaON'] = 1
-	ParamSize['paramStage2CDeltaOFF'] = 1
-	ParamSize['paramDisplayLock'] = 1
-	ParamSize['paramBacklightTimer'] = 1
-	ParamSize['paramMaxHeatSP'] = 1
-	ParamSize['paramMinCoolSP'] = 1
-	ParamSize['paramScheduleEnable'] = 1
-	ParamSize['paramRunHold'] = 1
-	ParamSize['paramSetback'] = 1
-	ParamSize['paramUnOccupiedHSP'] = 1
-	ParamSize['paramUnOccupiedCSP'] = 1
-	ParamSize['paramSensorCal'] = 1
-	ParamSize['paramFilterTimer'] = 2
-	ParamSize['paramFilterTimerMax'] = 2
-	ParamSize['paramHeatTimer'] = 2
-	ParamSize['paramCoolTimer'] = 2
-	ParamSize['paramFanPurgeHeat'] = 1
-	ParamSize['paramFanPurgeCool'] = 1
-	ParamSize['paramTempSendDeltaTemp'] = 1
-	ParamSize['paramTempSendDeltaTime'] = 1
-	
-	def cmds = []
-	
-	settings.each {
-		if (it.key.substring(0,5) == "param") {
-			long newNumber, newSize, newValue
-			newNumber = ParamNum[it.key]
-			newSize = ParamSize[it.key]
-			newValue = ParamToInteger(it.value)
-			if (logEnable) log.debug "key: ${it.key}, parameterNumber: ${newNumber}, value: ${it.value}, newvalue: ${newValue}"
-			if (newNumber == 48) {
-				long SetCalValue
-				if (newValue < 0) {
-					SetCalValue = 256 + newValue // == -1 ? 255 : newValue == -2 ? 254 : newValue == -3 ? 253 : newValue == -4 ? 252 : newValue == -5 ? 251 : newValue == -6 ? 250 : newValue == -7 ? 249 : newValue == -8 ? 248 : newValue == -9 ? 247 : newValue == -10 ? 246 : "unknown"
-					if (logEnable) log.debug "SetCalValue: " + SetCalValue
-					newValue = SetCalValue	
-				} else {
-					if (logEnable) log.debug "SetCalValue: " + SetCalValue
-				}
-			}
-			
-			//if (newSize==2 && newValue<=255) {
-				//if (logEnable) log.debug "zwave.configurationV1.configurationSet(parameterNumber: $newNumber, size: $newSize, configurationValue: [0, $newValue]).format(),"
-				//cmds << zwave.configurationV1.configurationSet(parameterNumber: newNumber, size: newSize, configurationValue: [0, newValue])
-				//cmds << zwave.configurationV1.configurationGet(parameterNumber: newNumber)
-			//} else {
-		 //if (logEnable) log.debug "zwave.configurationV1.configurationSet(parameterNumber: $newNumber, size: $newSize, scaledConfigurationValue: $newValue).format(),"
-				cmds << zwave.configurationV1.configurationSet(parameterNumber: newNumber, size: newSize, scaledConfigurationValue: newValue)
-				cmds << zwave.configurationV1.configurationGet(parameterNumber: newNumber)
-			//}
-		}	
-	}
-	    
+    def cmds = []
+    String tempstr    
+    int paramValue = -99    
+    String[] str;    
+    
+    /*
+    	1 - input "paramTempReportThreshold", "enum", title: "Temperature Delta for Reporting", multiple: false, defaultValue: "2: 1.0 Degree", options: ["0: Disabled", "1: 0.5 Degree", "2: 1.0 Degree", "3: 1.5 Degrees", "4: 2.0 Degrees"], required: false, displayDuringSetup: true																		
+		5 - input "paramHumidityReportThreshold", "enum", title: "Humidity Delta for Reporting", multiple: false, defaultValue: "2: 5%", options: ["0: Disabled", "1: 3%", "2: 5%", "3: 10%"], required: false, displayDuringSetup: true																		
+        7 - input "paramSwingTemp", "enum", title: "Swing Temperature (degrees away from setpoint before HVAC turns on)", multiple: false, defaultValue: "4: 2.0 Degrees", options: ["1: 0.5 Degree", "2: 1.0 Degree", "3: 1.5 Degrees", "4: 2.0 Degrees", "5: 2.5 Degrees", "6: 3.0 Degrees", "7: 3.5 Degrees", "8: 4.0 Degrees"], required: false, displayDuringSetup: true																		
+        9 - input "paramRecoveryMode", "enum", title: "Recovery Mode", multiple: false, defaultValue: "2: Economy", options: ["1: Fast", "2: Economy"], required: false, displayDuringSetup: true																		
+		11 - input "paramUIMode", "enum", title: "UI Mode", multiple: false, defaultValue: "0: Normal", options: ["0: Normal", "1: Simple"], required: false, displayDuringSetup: true																		
+		12 - input "paramMulticast", "enum", title: "Multicast Messaging", multiple: false, defaultValue: "0: Disabled", options: ["0: Disabled", "1: Enabled"], required: false, displayDuringSetup: true																		
+		17 - input "paramSensorCal", "enum", title: "Temperature Sensor Calibration/Offset (degrees)", multiple: false, defaultValue: "0", options: ["0", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6"], required: false, displayDuringSetup: true						
+		18 - input "paramDisplayUnits", "enum", title: "Display Units", multiple: false, defau
+    */
+    
+    if (paramTempReportThreshold != null) {
+        str = paramTempReportThreshold.split(':');
+        tempstr = str[0]
+        paramValue = tempstr.toInteger();
+        if (paramValue != -99) {
+            cmds << zwave.configurationV1.configurationSet(parameterNumber: 1, size: 1, scaledConfigurationValue: paramValue)
+            cmds << zwave.configurationV1.configurationGet(parameterNumber: 1)
+        }
+        str = []
+        tempstr=""
+        paramValue = -99;
+    }
+    
+    if (paramHumidityReportThreshold != null) {
+        str = paramHumidityReportThreshold.split(':');
+        tempstr = str[0]
+        paramValue = tempstr.toInteger();
+        if (paramValue != -99) {
+            cmds << zwave.configurationV1.configurationSet(parameterNumber: 5, size: 1, scaledConfigurationValue: paramValue)
+            cmds << zwave.configurationV1.configurationGet(parameterNumber: 5)
+        }
+        str = []
+        tempstr=""
+        paramValue = -99;
+    }
+
+    if (paramSwingTemp != null) {
+        str = paramSwingTemp.split(':');
+        tempstr = str[0]
+        paramValue = tempstr.toInteger();
+        if (paramValue != -99) {
+            cmds << zwave.configurationV1.configurationSet(parameterNumber: 7, size: 1, scaledConfigurationValue: paramValue)
+            cmds << zwave.configurationV1.configurationGet(parameterNumber: 7)
+        }
+        str = []
+        tempstr=""
+        paramValue = -99;
+    }
+
+    if (paramRecoveryMode != null) {
+        str = paramRecoveryMode.split(':');
+        tempstr = str[0]
+        paramValue = tempstr.toInteger();
+        if (paramValue != -99) {
+            cmds << zwave.configurationV1.configurationSet(parameterNumber: 9, size: 1, scaledConfigurationValue: paramValue)
+            cmds << zwave.configurationV1.configurationGet(parameterNumber: 9)
+        }
+        str = []
+        tempstr=""
+        paramValue = -99;
+    }
+
+    if (paramUIMode != null) {
+        str = paramUIMode.split(':');
+        tempstr = str[0]
+        paramValue = tempstr.toInteger();
+        if (paramValue != -99) {
+            cmds << zwave.configurationV1.configurationSet(parameterNumber: 11, size: 1, scaledConfigurationValue: paramValue)
+            cmds << zwave.configurationV1.configurationGet(parameterNumber: 11)
+        }
+        str = []
+        tempstr=""
+        paramValue = -99;
+    }
+
+    if (paramMulticast != null) {
+        str = paramMulticast.split(':');
+        tempstr = str[0]
+        paramValue = tempstr.toInteger();
+        if (paramValue != -99) {
+            cmds << zwave.configurationV1.configurationSet(parameterNumber: 12, size: 1, scaledConfigurationValue: paramValue)
+            cmds << zwave.configurationV1.configurationGet(parameterNumber: 12)
+        }
+        str = []
+        tempstr=""
+        paramValue = -99;
+    }
+
+    if (paramSensorCal != null) {
+        paramValue = paramSensorCal.toInteger();
+        if (paramValue != -99) {
+            cmds << zwave.configurationV1.configurationSet(parameterNumber: 17, size: 1, scaledConfigurationValue: paramValue)
+            cmds << zwave.configurationV1.configurationGet(parameterNumber: 17)
+        }
+        str = []
+        tempstr=""
+        paramValue = -99;
+    }
+    
+    if (paramDisplayUnits != null) {
+        str = paramDisplayUnits.split(':');
+        tempstr = str[0]
+        paramValue = tempstr.toInteger();
+        if (paramValue != -99) {
+            cmds << zwave.configurationV1.configurationSet(parameterNumber: 18, size: 1, scaledConfigurationValue: paramValue)
+            cmds << zwave.configurationV1.configurationGet(parameterNumber: 18)
+        }
+    }
+        
 	if (logEnable) log.debug "cmds: " + cmds
 	commands(cmds, 500)
-	//return delayBetween(cmds, 500)
 }
 
 def logsOff() {
@@ -520,87 +471,6 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
     if (logEnable) log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} sent parameterNumber:${cmd.parameterNumber}, size:${cmd.size}, value:${cmd.scaledConfigurationValue}"
     def config = cmd.scaledConfigurationValue
     def CalValue
-    if (cmd.parameterNumber == 48) {
-        if (logEnable) log.debug "cmd.scaledConfigurationValue: " + config
-	
-		if (config.toInteger() > 7) {
-	    	CalValue = config.toInteger() - 256 // == 255 ? "-1" : config == 254 ? "-2" : config == 253 ? "-3" : config == 252 ? "-4" : config == 251 ? "-5" : config == 250 ? "-6" : config == 249 ? "-7" : config == 248 ? "-8" : config == 247 ? "-9" : config == 246 ? "-10" : "unknown"
-	    	if (logEnable) log.debug "CalValue: " + CalValue
-	    	sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
-		} else {
-			CalValue = config
-			if (logEnable) log.debug "CalValue: " + CalValue
-			sendEvent([name:"currentSensorCal", value: CalValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
-		}
-    	
-    }
-	if (cmd.parameterNumber == 53) { 
-		state.filterTimerMax = cmd.scaledConfigurationValue
-		device.updateSetting("paramFilterTimerMax", cmd.scaledConfigurationValue)
-	}
-	if (cmd.parameterNumber == 52) {
-		state.filterTimer = cmd.scaledConfigurationValue
-		if (cmd.scaledConfigurationValue >= state.filterTimerMax) {
-			if (state.filterStatus != "replace") {
-				sendEvent([name:"filterStatus", value: "replace", displayed: true, isStatusChange:true])
-			}	
-		} else {
-			if (state.filterStatus != "normal") { 
-				sendEvent([name: "filterStatus", value: "normal", displayed: true, isStateChange:true])
-			}
-		}
-	}
-	if (cmd.parameterNumber == 54) { 
-		state.heatTimer = cmd.scaledConfigurationValue
-	}
-	if (cmd.parameterNumber == 55) {
-		state.coolTimer = cmd.scaledConfigurationValue
-	}
-
-    if (cmd.parameterNumber == 21) {
-    if (!config) {
-        state.mechanicalStatus = ""
-        return
-    }
-    def mechStatus = ""
-	if ((config & (1L << 0)) != 0) {mechStatus += "MECH_H1,"}
-	if ((config & (1L << 1)) != 0) {mechStatus += "MECH_H2,"}
-	if ((config & (1L << 2)) != 0) {mechStatus += "MECH_H3,"}
-	if ((config & (1L << 3)) != 0) {mechStatus += "MECH_C1,"}
-	if ((config & (1L << 4)) != 0) {mechStatus += "MECH_C2,"}
-	if ((config & (1L << 5)) != 0) {mechStatus += "PHANTOM_F,"}
-	if ((config & (1L << 6)) != 0) {mechStatus += "MECH_F,"}
-	if ((config & (1L << 7)) != 0) {mechStatus += "MANUAL_F,"}
-	if ((config & (1L << 8)) != 0) {mechStatus += "reserved,"}
-	mechStatus = mechStatus[0..-2]
-	state.mechanicalStatus = mechStatus
-    if (logEnable) log.debug "mechanicalStatus = $mechStatus"
-    }
-
-    if (cmd.parameterNumber == 22) {
-    if (!config) {
-        state.scpStatus = ""
-        def mapCR = [:]
-        mapCR.name = "thermostatOperatingState" 
-        mapCR.value = "idle"
-	    updateDataValue("thermostatOperatingState", mapCR.value)
-        sendEvent(mapCR)
-        return
-    }
-	def scp = ""
-	if ((config & (1L << 0)) != 0) {scp += "STATE_HEAT,"}
-	if ((config & (1L << 1)) != 0) {scp += "STATE_COOL,"}
-	if ((config & (1L << 2)) != 0) {scp += "STATE_2ND,"}
-	if ((config & (1L << 3)) != 0) {scp += "STATE_3RD,"}
-	if ((config & (1L << 4)) != 0) {scp += "STATE_FAN,"}
-	if ((config & (1L << 5)) != 0) {scp += "STATE_LAST,"}
-	if ((config & (1L << 6)) != 0) {scp += "STATE_MOT,"}
-	if ((config & (1L << 7)) != 0) {scp += "STATE_MRT,"}
-	scp = scp[0..-2]
-	state.scpStatus = scp
-    if (logEnable) log.debug "scpStatus = $scp"
-    
-    }
 	
     if (logEnable) log.debug "Parameter: ${cmd.parameterNumber} value is: ${config}"
 }
@@ -615,6 +485,12 @@ def zwaveEvent(hubitat.zwave.commands.sensormultilevelv1.SensorMultilevelReport 
 		map.unit = getTemperatureScale()
 		map.name = "temperature"
 	}
+	if (cmd.sensorType.toInteger() == 5) {
+        map.value = cmd.scaledSensorValue
+		map.unit = "%"
+		map.name = "humidity"
+	}
+    
 	if (logEnable) log.debug "In SensorMultilevelReport map is $map"
     sendEvent(map)
 	if (logEnable) log.debug "SensorMultilevelReport...END"
@@ -623,7 +499,7 @@ def zwaveEvent(hubitat.zwave.commands.sensormultilevelv1.SensorMultilevelReport 
 
 def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointReport cmd)
 {
-	if (logEnable) log.debug "ThermostatSetPointReport...START"
+	if (logEnable) log.debug "ThermostatSetpointReport...START"
 	def cmdScale = cmd.scale == 1 ? "F" : "C"
     if (logEnable) log.debug "cmdScale is $cmd.scale before (this is the state variable), and $cmdScale after"
     if (logEnable) log.debug "setpoint requested is $cmd.scaledValue and unit is $cmdScale"
@@ -741,31 +617,31 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	return map	
 }
 
-def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev1.ThermostatOperatingStateReport cmd)
+def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOperatingStateReport cmd)
 {
-	if (logEnable) log.debug "thermostatOperatingStateV1...START"
+	if (logEnable) log.debug "thermostatOperatingState...START"
 	def map = [:]
 	if (logEnable) log.debug "cmd.operatingState: " + cmd.operatingState
 	switch (cmd.operatingState) {
-		case hubitat.zwave.commands.thermostatoperatingstatev1.ThermostatOperatingStateReport.OPERATING_STATE_IDLE:
+		case hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOperatingStateReport.OPERATING_STATE_IDLE:
 			map.value = "idle"
             break
-		case hubitat.zwave.commands.thermostatoperatingstatev1.ThermostatOperatingStateReport.OPERATING_STATE_HEATING:
+		case hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOperatingStateReport.OPERATING_STATE_HEATING:
 			map.value = "heating"
            	break
-		case hubitat.zwave.commands.thermostatoperatingstatev1.ThermostatOperatingStateReport.OPERATING_STATE_COOLING:
+		case hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOperatingStateReport.OPERATING_STATE_COOLING:
 			map.value = "cooling"
             break
-		case hubitat.zwave.commands.thermostatoperatingstatev1.ThermostatOperatingStateReport.OPERATING_STATE_FAN_ONLY:
+		case hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOperatingStateReport.OPERATING_STATE_FAN_ONLY:
 			map.value = "fan only"
 			break
-		case hubitat.zwave.commands.thermostatoperatingstatev1.ThermostatOperatingStateReport.OPERATING_STATE_PENDING_HEAT:
+		case hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOperatingStateReport.OPERATING_STATE_PENDING_HEAT:
 			map.value = "pending heat"
             break
-		case hubitat.zwave.commands.thermostatoperatingstatev1.ThermostatOperatingStateReport.OPERATING_STATE_PENDING_COOL:
+		case hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOperatingStateReport.OPERATING_STATE_PENDING_COOL:
 			map.value = "pending cool"
             break
-		case hubitat.zwave.commands.thermostatoperatingstatev1.ThermostatOperatingStateReport.OPERATING_STATE_VENT_ECONOMIZER:
+		case hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOperatingStateReport.OPERATING_STATE_VENT_ECONOMIZER:
 			map.value = "vent economizer"
             break
 	}
@@ -778,32 +654,63 @@ def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev1.ThermostatOpera
 	if (map.value == "cooling") {updateDataValue("lastRunningMode", "cool")}
     if (logEnable) log.debug "lastRunningMode is: " + getDataValue("lastRunningMode")
     //								
-	if (logEnable) log.debug "thermostatOperatingStateV1...END"
+	if (logEnable) log.debug "thermostatOperatingState...END"
 	return map
 }
 
-def zwaveEvent(hubitat.zwave.commands.thermostatmodev1.ThermostatModeReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeReport cmd) {
 	if (logEnable) log.debug "ThermostatModeReport...START"
 	if (logEnable) log.debug "cmd: $cmd"
-	def map = [name: "thermostatMode", data:[supportedThermostatModes: state.supportedModes]]
-	switch (cmd.mode) {
-		case hubitat.zwave.commands.thermostatmodev1.ThermostatModeReport.MODE_OFF:
+    def map = [name: "thermostatMode", data:[supportedThermostatModes: state.supportedModes]]
+	if (logEnable) log.debug "map: $map"
+    if (logEnable) log.debug "cmd.mode: $cmd.mode"
+    switch (cmd.mode) {
+        case 0: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_OFF:
 			map.value = "off"
 			break
-		case hubitat.zwave.commands.thermostatmodev1.ThermostatModeReport.MODE_HEAT:
+		case 1: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_HEAT:
 			map.value = "heat"
 			break
-		case hubitat.zwave.commands.thermostatmodev1.ThermostatModeReport.MODE_AUXILIARY_HEAT:
-			map.value = "emergency heat"
-			break
-		case hubitat.zwave.commands.thermostatmodev1.ThermostatModeReport.MODE_COOL:
+		case 2: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_COOL:
 			map.value = "cool"
 			break
-		case hubitat.zwave.commands.thermostatmodev1.ThermostatModeReport.MODE_AUTO:
+		case 3: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_AUTO:
 			map.value = "auto"
+			break
+		case 4: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_AUXILIARY_HEAT:
+			map.value = "emergency heat"
+			break
+		case 5: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_RESUME:
+			map.value = "resume"
+			break
+		case 6: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_FAN_ONLY:
+			map.value = "fan only"
+			break
+		case 7: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_FURNACE:
+			map.value = "furnace"
+			break
+		case 8: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_DRY_AIR:
+			map.value = "dry air"
+			break
+		case 9: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_MOIST_AIR:
+			map.value = "moist air"
+			break
+		case 10: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_AUTO_CHANGEOVER:
+			map.value = "auto changeover"
+			break
+		case 11: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_ENERGY_SAVE_HEAT:
+			map.value = "energy save heat"
+			break
+		case 12: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_ENERGY_SAVE_COOL:
+			map.value = "energy save cool"
+			break
+		case 13: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_AWAY:
+			map.value = "away"
 			break
 	}
 	
+    if (logEnable) log.debug "map.value: $map.value"
+    
 	// Sync lastRunningMode and thermostatSetpoint if the mode is changed
 	if (getDataValue("lastRunningMode") != map.value) {
 		if (map.value == "cool") {
@@ -823,7 +730,8 @@ def zwaveEvent(hubitat.zwave.commands.thermostatmodev1.ThermostatModeReport cmd)
 	
 	updateDataValue("thermostatMode", map.value)
 	sendEvent(map)
-	commands([
+
+    commands([
 		zwave.configurationV1.configurationGet(parameterNumber: 53),
 		zwave.configurationV1.configurationGet(parameterNumber: 54)
 	], 400)
@@ -831,49 +739,30 @@ def zwaveEvent(hubitat.zwave.commands.thermostatmodev1.ThermostatModeReport cmd)
 	return map
 }
 
-def zwaveEvent(hubitat.zwave.commands.thermostatmodev1.ThermostatModeSupportedReport cmd) {
-	if (logEnable) log.debug "V1 ThermostatModeSupportedReport...START"
-	if (logEnable) log.debug "cmd: " + cmd
-	def supportedModes = ""
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if (cmd.off) { supportedModes += "off " }
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if(cmd.heat) { supportedModes += "heat " }
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if(cmd.auxiliaryemergencyHeat) { supportedModes += "emergencyHeat " }
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if(cmd.cool) { supportedModes += "cool " }
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if(cmd.auto) { supportedModes += "auto " }
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if (supportedModes) {
-		state.supportedModes = supportedModes
-	} else {
-		supportedModes = "off heat cool auto "
-		state.supportedModes = supportedModes
-	}
-	
-	if (logEnable) log.debug "state.supportedModes: " + state.supportedModes
-	if (logEnable) log.debug "V1 ThermostatModeSupportedReport...END"
-}
-
-
 def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeSupportedReport cmd) {
 	if (logEnable) log.debug "V2 ThermostatModeSupportedReport...START"
 	if (logEnable) log.debug "cmd: " + cmd
-	def supportedModes = ""
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if (cmd.off) { supportedModes += "off " }
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if(cmd.heat) { supportedModes += "heat " }
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if(cmd.auxiliaryemergencyHeat) { supportedModes += "emergencyHeat " }
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if(cmd.cool) { supportedModes += "cool " }
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if(cmd.auto) { supportedModes += "auto " }
-	if (logEnable) log.debug "supportedModes: " + supportedModes
-	if (supportedModes) {
+
+    def supportedModes = ""
+
+    if (cmd.off) { supportedModes += "off " }
+	if (cmd.heat) { supportedModes += "heat " }
+	if (cmd.auxiliaryemergencyHeat) { supportedModes += "emergencyHeat " }
+	if (cmd.cool) { supportedModes += "cool " }
+	if (cmd.auto) { supportedModes += "auto " }
+    if (cmd.autoChangeover) { supportedModes += "autoChangeover " }
+    if (cmd.away) { supportedModes += "away " }
+    if (cmd.dryAir) { supportedModes += "dryAir " }
+    if (cmd.energySaveCool) { supportedModes += "energySaveCool " }
+    if (cmd.energySaveHeat) { supportedModes += "energySaveHeat " }
+    if (cmd.fanOnly) { supportedModes += "fanOnly " }
+    if (cmd.furnace) { supportedModes += "furnace " }
+    if (cmd.moistAir) { supportedModes += "moistAir " }
+    if (cmd.resume) { supportedModes += "resume " }
+
+    if (logEnable) log.debug "supportedModes: " + supportedModes
+
+    if (supportedModes) {
 		state.supportedModes = supportedModes
 	} else {
 		supportedModes = "off heat cool auto "
@@ -888,25 +777,11 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeSuppo
 	if (logEnable) log.debug "cmd: " + cmd
 	def supportedFanModes = ""
 	
-	/* NOTE - Not currently implemented in the zwave stack as of Hubitat 2.0.6
-
 	if (cmd.auto) { supportedFanModes += "auto " }
-	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
 	if (cmd.autoHigh) { supportedFanModes += "autoHigh " }
-	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
-	if (cmd.autoMedium) { supportedFanModes += "autoMedium " }
-	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
-	if (cmd.circulation) { supportedFanModes += "circulation " }
-	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
 	if (cmd.high) { supportedFanModes += "high " }
-	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
-	if (cmd.humidityCirculation) { supportedFanModes += "humidityCirculation " }
-	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
 	if (cmd.low) { supportedFanModes += "low " }
 	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
-	if (cmd.medium) { supportedFanModes += "medium " }
-	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
-	
 
 	if (supportedFanModes) {
 		state.supportedFanModes = supportedFanModes
@@ -914,12 +789,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeSuppo
 		supportedFanModes = "auto on "
 		state.supportedFanModes = supportedFanModes
 	}
-    */
-	
-    // Since report not supported, just force it for now. If ever supported, uncomment the above block and remove this:
-    supportedFanModes = "auto on "
-	state.supportedFanModes = supportedFanModes
-    
+	    
     if (logEnable) log.debug "ThermostatFanModeSupportedReport...END"
 }
 
@@ -952,14 +822,17 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeRepor
     if (logEnable) log.debug "ThermostatFanModeReport...START"
 	def map = [:]
 	switch (cmd.fanMode) {
-		case hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport.FAN_MODE_AUTO_LOW:
-			map.value = "Auto"
+		case 0: //hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport.FAN_MODE_AUTO_LOW:
+			map.value = "auto"
             break
-		case hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport.FAN_MODE_LOW:
-			map.value = "On"
+		case 1: //hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport.FAN_MODE_LOW:
+			map.value = "low"
             break
-		case hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport.FAN_MODE_CIRCULATION:
-			map.value = "Circulate"
+        case 2: //hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport.FAN_MODE_AUTO_HIGH:
+			map.value = "auto"
+            break
+		case 3: //hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport.FAN_MODE_HIGH:
+			map.value = "high"
             break
 	}
 	map.name = "thermostatFanMode"
@@ -992,7 +865,6 @@ def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
     sendEvent(map)
     return map
 }
-
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
 	log.warn "Unexpected zwave command $cmd"
