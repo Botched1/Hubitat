@@ -329,7 +329,7 @@ def DebugLogging(value) {
 	if (value=="OFF") {logsoff}
         if (value=="ON") {
 		log.debug "debug logging is enabled."
-		unschedule()
+		unschedule(logsOff)
 		device.updateSetting("logEnable",[value:"true",type:"bool"])
 		runIn(1800,logsOff)
 	}	
