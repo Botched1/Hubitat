@@ -16,6 +16,7 @@
  *
  *  Version 1.0 - 07/25/2020     Initial Version
  *  Version 1.1 - 07/26/2020     Fixed currentSensorCal not recording correctly
+ *  Version 1.2 - 07/27/2020     Added Refresh after 10s when configure button is pressed
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -292,6 +293,8 @@ def configure() {
 	if (logEnable) log.debug "zwaveHubNodeId: " + zwaveHubNodeId
 	if (logEnable) log.debug "....done executing 'configure'"
 	
+	runIn(10,refresh)
+	
 	commands([
 		zwave.thermostatModeV2.thermostatModeSupportedGet(),
 		zwave.thermostatFanModeV1.thermostatFanModeSupportedGet(),
@@ -324,12 +327,12 @@ def SensorCal(value) {
 
 def DebugLogging(value) {
 	if (value=="OFF") {logsoff}
-    if (value=="ON") {
+        if (value=="ON") {
 		log.debug "debug logging is enabled."
+		unschedule()
 		device.updateSetting("logEnable",[value:"true",type:"bool"])
 		runIn(1800,logsOff)
-	}
-	
+	}	
 }
 
 def updated() {
