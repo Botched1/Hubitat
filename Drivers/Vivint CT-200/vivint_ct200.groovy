@@ -17,8 +17,9 @@
  *  Version 1.0 - 07/25/2020     Initial Version
  *  Version 1.1 - 07/26/2020     Fixed currentSensorCal not recording correctly
  *  Version 1.2 - 07/27/2020     Added Refresh after 10s when configure button is pressed, Added scheduled battery refresh every 12 hours
- *  Version 1.3 - 07/27/2020     Attempted to fix Celsius input/output issues
- *  Version 1.4 - 07/28/2020     Attempted to fix Celsius input/output issues #2
+ *  Version 1.3 - 07/27/2020     Attempted to fix Celcius input/output issues #1
+ *  Version 1.4 - 07/28/2020     Attempted to fix Celcius input/output issues #2
+ *  Version 1.5 - 07/28/2020     Attempted to fix Celcius input/output issues #3
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -89,12 +90,22 @@ def setHeatingSetpoint(double degrees) {
 	if (logEnable) log.debug "setHeatingSetpoint...START"
     
 	def locationScale = getTemperatureScale()
-    def p = (state.precision == null) ? 0 : state.precision
+    def p = 0
 	
+	/*
 	if (p==0) {
 		degrees2 = Math.rint(degrees)
 	} else {
         degrees2 = degrees2.round(p)
+	}
+	*/
+
+	if (locationScale == "F") {
+		p=0;
+		degrees2 = Math.rint(degrees)
+	} else {
+        p=1;
+		degrees2 = degrees2.round(1)
 	}
 	
     if (logEnable) log.debug "locationScale is $locationScale"
@@ -113,13 +124,22 @@ def setCoolingSetpoint(double degrees) {
 	if (logEnable) log.debug "setCoolingSetpoint...START"
 
 	def locationScale = getTemperatureScale()
-	def p = (state.precision == null) ? 0 : state.precision
+	def p = 0
 
+	/*
 	if (p==0) {
 		degrees2 = Math.rint(degrees)
 	} else {
-		degrees2 = (Double)degrees
-		degrees2 = degrees2.round(p)
+        degrees2 = degrees2.round(p)
+	}
+	*/
+
+	if (locationScale == "F") {
+		p=0;
+		degrees2 = Math.rint(degrees)
+	} else {
+        p=1;
+		degrees2 = degrees2.round(1)
 	}
 	
     if (logEnable) log.debug "locationScale is $locationScale"
@@ -489,9 +509,9 @@ def zwaveEvent(hubitat.zwave.commands.sensormultilevelv1.SensorMultilevelReport 
 		if (cmdScale==getTemperatureScale()) {
 			map.value=cmd.scaledSensorValue
 		} else if (cmdScale=="C" && getTemperatureScale()=="F") {
-			map.value=celsiusToFahrenheit(cmd.scaledSensorValue)
+			map.value=Math.rint(celsiusToFahrenheit(cmd.scaledSensorValue))
 		} else if (cmdScale=="F" && getTemperatureScale()=="C") {
-			map.value=fahrenheitToCelsius(cmd.scaledSensorValue)
+			map.value=fahrenheitToCelsius(cmd.scaledSensorValue).round(1)
 		}
 		map.unit = getTemperatureScale()
 		map.name = "temperature"
@@ -526,9 +546,9 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	if (cmdScale==getTemperatureScale()) {
 		map.value=cmd.scaledValue
 	} else if (cmdScale=="C" && getTemperatureScale()=="F") {
-		map.value=celsiusToFahrenheit(cmd.scaledValue)
+		map.value=Math.rint(celsiusToFahrenheit(cmd.scaledValue))
 	} else if (cmdScale=="F" && getTemperatureScale()=="C") {
-		map.value=fahrenheitToCelsius(cmd.scaledValue)
+		map.value=fahrenheitToCelsius(cmd.scaledValue).round(1)
 	}
 	map.unit = getTemperatureScale()
 	map.displayed = true
