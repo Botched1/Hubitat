@@ -23,6 +23,7 @@
  *  Version 1.5.1 - 07/28/2020     Fix round error
  *  Version 1.5.2 - 07/28/2020     Fix scaledSensorValue error in ThermostatSetpointReport
  *  Version 1.5.3 - 07/28/2020     Fixed temperature reading rounding
+ *  Version 1.6   - 07/28/2020     Added Energy Saving mode command
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -39,6 +40,7 @@ metadata {
 		command "SensorCal", [[name:"Degrees",type:"ENUM", description:"Number of degrees to add/subtract from thermostat sensor", constraints:["0", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6"]]]
 		command "ManualFanTimer", [[name:"Minutes",type:"ENUM", description:"Manually run fan for specified # of minutes", constraints:["0", "15", "30", "60"]]]
 		command "DebugLogging", [[name:"Command",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]
+		command "EnergySaving", [[name:"Command",type:"ENUM", description:"Turn Energy Saving Mode OFF/ON", constraints:["OFF", "ON"]]]
 		
 		attribute "thermostatFanState", "string"
 		attribute "currentSensorCal", "number"
@@ -352,6 +354,23 @@ def DebugLogging(value) {
 		runIn(1800,logsOff)
 	}	
 }
+
+def EnergySaving(value) {
+    def cmds = []
+    if (value=="ON") {
+        cmds << zwave.basicV1.basicSet(value: 0x00)
+        cmds << zwave.basicV1.basicGet()
+    } else {
+        cmds << zwave.basicV1.basicSet(value: 0xFF)
+        cmds << zwave.basicV1.basicGet()
+	}	
+    cmds << zwave.thermostatModeV2.thermostatModeGet()
+	cmds << zwave.thermostatOperatingStateV2.thermostatOperatingStateGet()
+	cmds << zwave.thermostatFanModeV1.thermostatFanModeGet()
+	cmds << zwave.thermostatFanStateV1.thermostatFanStateGet()
+    commands(cmds, 500)
+}
+
 
 def updated() {
 	if (logEnable) log.debug "Executing 'updated'"
