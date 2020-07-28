@@ -18,6 +18,7 @@
  *  Version 1.1 - 07/26/2020     Fixed currentSensorCal not recording correctly
  *  Version 1.2 - 07/27/2020     Added Refresh after 10s when configure button is pressed, Added scheduled battery refresh every 12 hours
  *  Version 1.3 - 07/27/2020     Attempted to fix Celcius input/output issues
+ *  Version 1.4 - 07/28/2020     Attempted to fix Celcius input/output issues #2
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -96,12 +97,6 @@ def setHeatingSetpoint(double degrees) {
         degrees2 = degrees2.round(p)
 	}
 	
-    if (state.scale == null)
-    {
-        state.scale = 1
-    }
-    
-	if (logEnable) log.debug "stateScale is $state.scale"
     if (logEnable) log.debug "locationScale is $locationScale"
 	if (logEnable) log.debug "precision is $p"
     if (logEnable) log.debug "setpoint requested is $degrees"
@@ -109,7 +104,6 @@ def setHeatingSetpoint(double degrees) {
     if (logEnable) log.debug "setHeatingSetpoint...END"
 
 	commands([
-		//zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 1, scale: state.scale, precision: p, scaledValue: degrees2),
         zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 1, scale: getTemperatureScale()=="F" ? 1 : 0, precision: p, scaledValue: degrees2),
         zwave.thermostatSetpointV2.thermostatSetpointGet(setpointType: 1)
 	], 1000)       
@@ -128,12 +122,6 @@ def setCoolingSetpoint(double degrees) {
 		degrees2 = degrees2.round(p)
 	}
 	
-    if (state.scale == null)
-    {
-        state.scale = 1
-    }
-    
-	if (logEnable) log.debug "stateScale is $state.scale"
     if (logEnable) log.debug "locationScale is $locationScale"
 	if (logEnable) log.debug "precision is $p"
     if (logEnable) log.debug "setpoint requested is $degrees"
@@ -141,7 +129,6 @@ def setCoolingSetpoint(double degrees) {
     if (logEnable) log.debug "setCoolingSetpoint...END"
 
     commands([
-		//zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 2, scale: state.scale, precision: p, scaledValue: degrees2),
         zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 2, scale: getTemperatureScale()=="F" ? 1 : 0, precision: p, scaledValue: degrees2),
         zwave.thermostatSetpointV2.thermostatSetpointGet(setpointType: 2)
 	], 1000)       
@@ -238,7 +225,6 @@ def fanAuto() {
 }
 
 def fanCirculate() {
-	if (logEnable) log.debug "Fan circulate mode not supported for this thermostat type..."
 	log.warn "Fan circulate mode not supported for this thermostat type..."
 }
 
@@ -274,7 +260,6 @@ def auto() {
 }
 
 def setSchedule() {
-	if (logEnable) log.debug "Executing 'setSchedule'"
 	log.warn "setSchedule does not do anything with this driver."
 }
 
@@ -296,8 +281,8 @@ def configure() {
 	if (logEnable) log.debug "zwaveHubNodeId: " + zwaveHubNodeId
 	if (logEnable) log.debug "....done executing 'configure'"
 	
-	runIn(10,refresh)
-  runIn(43200,updateBattery)
+	runIn(5,refresh)
+	runIn(43200,updateBattery)
 
 	
 	commands([
@@ -354,12 +339,13 @@ def updated() {
 		runIn(1800,logsOff)
 	}
 	
-   runIn(43200,updateBattery)
+	runIn(43200,updateBattery)
 
     def cmds = []
+
+    String[] str    
     String tempstr    
     int paramValue = -99    
-    String[] str;    
     
     /*
     	1 - input "paramTempReportThreshold", "enum", title: "Temperature Delta for Reporting", multiple: false, defaultValue: "2: 1.0 Degree", options: ["0: Disabled", "1: 0.5 Degree", "2: 1.0 Degree", "3: 1.5 Degrees", "4: 2.0 Degrees"], required: false, displayDuringSetup: true																		
@@ -373,9 +359,9 @@ def updated() {
     */
     
     if (paramTempReportThreshold != null) {
-        str = paramTempReportThreshold.split(':');
+        str = paramTempReportThreshold.split(':')
         tempstr = str[0]
-        paramValue = tempstr.toInteger();
+        paramValue = tempstr.toInteger()
         if (paramValue != -99) {
             cmds << zwave.configurationV1.configurationSet(parameterNumber: 1, size: 1, scaledConfigurationValue: paramValue)
             cmds << zwave.configurationV1.configurationGet(parameterNumber: 1)
@@ -386,16 +372,16 @@ def updated() {
     }
     
     if (paramHumidityReportThreshold != null) {
-        str = paramHumidityReportThreshold.split(':');
+        str = paramHumidityReportThreshold.split(':')
         tempstr = str[0]
-        paramValue = tempstr.toInteger();
+        paramValue = tempstr.toInteger()
         if (paramValue != -99) {
             cmds << zwave.configurationV1.configurationSet(parameterNumber: 5, size: 1, scaledConfigurationValue: paramValue)
             cmds << zwave.configurationV1.configurationGet(parameterNumber: 5)
         }
         str = []
         tempstr=""
-        paramValue = -99;
+        paramValue = -99
     }
 
     if (paramSwingTemp != null) {
@@ -408,63 +394,63 @@ def updated() {
         }
         str = []
         tempstr=""
-        paramValue = -99;
+        paramValue = -99
     }
 
     if (paramRecoveryMode != null) {
-        str = paramRecoveryMode.split(':');
+        str = paramRecoveryMode.split(':')
         tempstr = str[0]
-        paramValue = tempstr.toInteger();
+        paramValue = tempstr.toInteger()
         if (paramValue != -99) {
             cmds << zwave.configurationV1.configurationSet(parameterNumber: 9, size: 1, scaledConfigurationValue: paramValue)
             cmds << zwave.configurationV1.configurationGet(parameterNumber: 9)
         }
         str = []
         tempstr=""
-        paramValue = -99;
+        paramValue = -99
     }
 
     if (paramUIMode != null) {
-        str = paramUIMode.split(':');
+        str = paramUIMode.split(':')
         tempstr = str[0]
-        paramValue = tempstr.toInteger();
+        paramValue = tempstr.toInteger()
         if (paramValue != -99) {
             cmds << zwave.configurationV1.configurationSet(parameterNumber: 11, size: 1, scaledConfigurationValue: paramValue)
             cmds << zwave.configurationV1.configurationGet(parameterNumber: 11)
         }
         str = []
         tempstr=""
-        paramValue = -99;
+        paramValue = -99
     }
 
     if (paramMulticast != null) {
-        str = paramMulticast.split(':');
+        str = paramMulticast.split(':')
         tempstr = str[0]
-        paramValue = tempstr.toInteger();
+        paramValue = tempstr.toInteger()
         if (paramValue != -99) {
             cmds << zwave.configurationV1.configurationSet(parameterNumber: 12, size: 1, scaledConfigurationValue: paramValue)
             cmds << zwave.configurationV1.configurationGet(parameterNumber: 12)
         }
         str = []
         tempstr=""
-        paramValue = -99;
+        paramValue = -99
     }
 
     if (paramSensorCal != null) {
-        paramValue = paramSensorCal.toInteger();
+        paramValue = paramSensorCal.toInteger()
         if (paramValue != -99) {
             cmds << zwave.configurationV1.configurationSet(parameterNumber: 17, size: 1, scaledConfigurationValue: paramValue)
             cmds << zwave.configurationV1.configurationGet(parameterNumber: 17)
         }
         str = []
         tempstr=""
-        paramValue = -99;
+        paramValue = -99
     }
     
     if (paramDisplayUnits != null) {
-        str = paramDisplayUnits.split(':');
+        str = paramDisplayUnits.split(':')
         tempstr = str[0]
-        paramValue = tempstr.toInteger();
+        paramValue = tempstr.toInteger()
         if (paramValue != -99) {
             cmds << zwave.configurationV1.configurationSet(parameterNumber: 18, size: 1, scaledConfigurationValue: paramValue)
             cmds << zwave.configurationV1.configurationGet(parameterNumber: 18)
@@ -485,26 +471,32 @@ def logsOff() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
     if (logEnable) log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} sent parameterNumber:${cmd.parameterNumber}, size:${cmd.size}, value:${cmd.scaledConfigurationValue}"
-    def config = cmd.scaledConfigurationValue
-    def CalValue = config
-	
+	if (logEnable) log.debug "Parameter: ${cmd.parameterNumber} value is: ${cmd.scaledConfigurationValue}"
+
     if (cmd.parameterNumber == 17) { 
         sendEvent([name:"currentSensorCal", value: cmd.scaledConfigurationValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
 	}
-    
-    if (logEnable) log.debug "Parameter: ${cmd.parameterNumber} value is: ${config}"
 }
 
 def zwaveEvent(hubitat.zwave.commands.sensormultilevelv1.SensorMultilevelReport cmd) {
 	if (logEnable) log.debug "SensorMultilevelReport V1...START"
 	if (logEnable) log.debug "cmd: $cmd"
+
 	def map = [:]
-	if (logEnable) log.debug "cmd.sensorType: " + cmd.sensorType
+	
 	if (cmd.sensorType.toInteger() == 1) {
-        map.value = cmd.scaledSensorValue
+		def cmdScale = cmd.scale == 1 ? "F" : "C"
+		if (cmdScale==getTemperatureScale()) {
+			map.value=cmd.scaledSensorValue
+		} else if (cmdScale=="C" && getTemperatureScale()=="F") {
+			map.value=celsiusToFahrenheit(cmd.scaledSensorValue)
+		} else if (cmdScale=="F" && getTemperatureScale()=="C") {
+			map.value=fahrenheitToCelsius(cmd.scaledSensorValue)
+		}
 		map.unit = getTemperatureScale()
 		map.name = "temperature"
 	}
+	
 	if (cmd.sensorType.toInteger() == 5) {
         map.value = cmd.scaledSensorValue
 		map.unit = "%"
@@ -512,22 +504,37 @@ def zwaveEvent(hubitat.zwave.commands.sensormultilevelv1.SensorMultilevelReport 
 	}
     
 	if (logEnable) log.debug "In SensorMultilevelReport map is $map"
-    sendEvent(map)
+ 
+	sendEvent(map)
+
 	if (logEnable) log.debug "SensorMultilevelReport...END"
+
 	return map
 }
 
 def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointReport cmd)
 {
 	if (logEnable) log.debug "ThermostatSetpointReport...START"
+
 	def cmdScale = cmd.scale == 1 ? "F" : "C"
-    if (logEnable) log.debug "cmdScale is $cmd.scale before (this is the state variable), and $cmdScale after"
+
+    if (logEnable) log.debug "cmdScale is $cmdScale"
     if (logEnable) log.debug "setpoint requested is $cmd.scaledValue and unit is $cmdScale"
+
 	def map = [:]
-	map.value = cmd.scaledValue
+
+	if (cmdScale==getTemperatureScale()) {
+		map.value=cmd.scaledValue
+	} else if (cmdScale=="C" && getTemperatureScale()=="F") {
+		map.value=celsiusToFahrenheit(cmd.scaledValue)
+	} else if (cmdScale=="F" && getTemperatureScale()=="C") {
+		map.value=fahrenheitToCelsius(cmd.scaledValue)
+	}
 	map.unit = getTemperatureScale()
 	map.displayed = true
+
     if (logEnable) log.debug "value is $map.value and unit is $map.unit"
+
 	switch (cmd.setpointType) {
 		case 1:
 			map.name = "heatingSetpoint"
@@ -540,12 +547,9 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 		default:
 			return [:]
 	}
-	if (logEnable) log.debug "Setpoint Size is $cmd.size"
-	state.size = cmd.size
-	if (logEnable) log.debug "Setpoint Scale is $cmd.scale"
-	state.scale = cmd.scale
-	if (logEnable) log.debug "Setpoint Precision is $cmd.precision"
+
 	state.precision = cmd.precision
+
     if (logEnable) log.debug "In ThermostatSetpointReport map is $map"
 	sendEvent([name: map.name, value: map.value, displayed:true, unit: map.unit, isStateChange:true])
 
@@ -574,8 +578,8 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	}
 	
 	def map2 = [:]
-	map2.value = cmd.scaledValue
-	map2.unit = getTemperatureScale()
+	map2.value = map.value
+	map2.unit = map.unit
 	map2.displayed = true
 	map2.name = "thermostatSetpoint"
 	
@@ -632,7 +636,6 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	sendEvent([name: map2.name, value: map2.value, displayed:true, unit: map2.unit, isStateChange:false])
 
 	if (logEnable) log.debug "thermostatSetpoint is " + getDataValue("thermostatSetpoint")
-	
 	if (logEnable) log.debug "ThermostatSetPointReport...END"
 	return map	
 }
@@ -640,7 +643,10 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOperatingStateReport cmd)
 {
 	if (logEnable) log.debug "thermostatOperatingState...START"
+
 	def map = [:]
+	map.name = "thermostatOperatingState"
+
 	if (logEnable) log.debug "cmd.operatingState: " + cmd.operatingState
 	switch (cmd.operatingState) {
 		case hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOperatingStateReport.OPERATING_STATE_IDLE:
@@ -665,15 +671,17 @@ def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOpera
 			map.value = "vent economizer"
             break
 	}
-	map.name = "thermostatOperatingState"
+
     if (logEnable) log.debug "In ThermostatOperatingState map is $map"
+
     updateDataValue("thermostatOperatingState", map.value)
 	sendEvent(map)
+
 	// Update lastRunningMode variable. Needed for Google Home support.
 	if (map.value == "heating") {updateDataValue("lastRunningMode", "heat")}
 	if (map.value == "cooling") {updateDataValue("lastRunningMode", "cool")}
     if (logEnable) log.debug "lastRunningMode is: " + getDataValue("lastRunningMode")
-    //								
+
 	if (logEnable) log.debug "thermostatOperatingState...END"
 	return map
 }
@@ -681,9 +689,12 @@ def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOpera
 def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeReport cmd) {
 	if (logEnable) log.debug "ThermostatModeReport...START"
 	if (logEnable) log.debug "cmd: $cmd"
+
     def map = [name: "thermostatMode", data:[supportedThermostatModes: state.supportedModes]]
+
 	if (logEnable) log.debug "map: $map"
     if (logEnable) log.debug "cmd.mode: $cmd.mode"
+
     switch (cmd.mode) {
         case 0: //hubitat.zwave.commands.thermostatmodeV2.ThermostatModeReport.MODE_OFF:
 			map.value = "off"
@@ -751,10 +762,6 @@ def zwaveEvent(hubitat.zwave.commands.thermostatmodev2.ThermostatModeReport cmd)
 	updateDataValue("thermostatMode", map.value)
 	sendEvent(map)
 
-    commands([
-		zwave.configurationV1.configurationGet(parameterNumber: 53),
-		zwave.configurationV1.configurationGet(parameterNumber: 54)
-	], 400)
 	if (logEnable) log.debug "ThermostatModeReport...END"
 	return map
 }
@@ -801,22 +808,25 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeSuppo
 	if (cmd.autoHigh) { supportedFanModes += "autoHigh " }
 	if (cmd.high) { supportedFanModes += "high " }
 	if (cmd.low) { supportedFanModes += "low " }
-	if (logEnable) log.debug "supportedFanModes: " + supportedFanModes
 
 	if (supportedFanModes) {
+		if (logEnable) log.debug "supportedFanModes: " + supportedFanModes	    
 		state.supportedFanModes = supportedFanModes
 	} else {
+		if (logEnable) log.debug "supportedFanModes was empty. Setting to 'auto on'" 
 		supportedFanModes = "auto on "
 		state.supportedFanModes = supportedFanModes
 	}
-	    
+
     if (logEnable) log.debug "ThermostatFanModeSupportedReport...END"
 }
 
 def zwaveEvent(hubitat.zwave.commands.thermostatfanstatev1.ThermostatFanStateReport cmd) {
 	if (logEnable) log.debug "ThermostatFanStateReport...START"
 	if (logEnable) log.debug "cmd: " + cmd
+
 	def map = [name: "thermostatFanState", unit: ""]
+
 	switch (cmd.fanOperatingState) {
 		case 0:
 			map.value = "idle"
@@ -832,15 +842,19 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanstatev1.ThermostatFanStateRep
 			break
 	}
 	updateDataValue("thermostatFanState", map.value)
+
     if (logEnable) log.debug "In ThermostatFanStateReport map is $map"
-	commands([zwave.configurationV1.configurationGet(parameterNumber: 52)])
     if (logEnable) log.debug "ThermostatFanStateReport...END"
+
 	return map
 }
 
 def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport cmd) {
     if (logEnable) log.debug "ThermostatFanModeReport...START"
+
 	def map = [:]
+	map = [name: "thermostatFanMode", displayed: false]
+	
 	switch (cmd.fanMode) {
 		case 0: //hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeReport.FAN_MODE_AUTO_LOW:
 			map.value = "auto"
@@ -855,12 +869,14 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanmodev1.ThermostatFanModeRepor
 			map.value = "high"
             break
 	}
-	map.name = "thermostatFanMode"
-	map.displayed = false
+
     if (logEnable) log.debug "In ThermostatFanModeReport map is $map"
+
 	updateDataValue("thermostatFanMode", map.value)
     sendEvent(map)
+
 	if (logEnable) log.debug "ThermostatFanModeReport...END"
+
 	return map
 }
 
@@ -871,18 +887,25 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
-    if (logEnable) log.debug "In BatteryReport"
-    //def result = []
+    if (logEnable) log.debug "BatteryReport...START"
+
     def map = [:]
     map = [ name: "battery", unit: "%" ]
+
     if (cmd.batteryLevel == 0xFF) {
         map.value = 1
         map.descriptionText = "${device.displayName} battery is low"
     } else {
         map.value = cmd.batteryLevel
     }
+
+    if (logEnable) log.debug "In BatteryReport map is $map"
+
     updateDataValue("battery", map.value.toString())
     sendEvent(map)
+
+    if (logEnable) log.debug "BatteryReport...END"
+
     return map
 }
 
