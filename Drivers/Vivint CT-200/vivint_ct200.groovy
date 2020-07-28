@@ -21,6 +21,7 @@
  *  Version 1.4   - 07/28/2020     Attempted to fix Celsius input/output issues #2
  *  Version 1.5   - 07/28/2020     Attempted to fix Celsius input/output issues #3
  *  Version 1.5.1 - 07/28/2020     Fix round error
+ *  Version 1.5.2 - 07/28/2020     Fix scaledSensorValue error in ThermostatSetpointReport
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -550,7 +551,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	} else if (cmdScale=="C" && getTemperatureScale()=="F") {
 		map.value=Math.rint(celsiusToFahrenheit(cmd.scaledValue))
 	} else if (cmdScale=="F" && getTemperatureScale()=="C") {
-		map.value=Math.round(fahrenheitToCelsius(cmd.scaledSensorValue)*10)/10
+		map.value=Math.round(fahrenheitToCelsius(cmd.scaledValue)*10)/10
 	}
 	map.unit = getTemperatureScale()
 	map.displayed = true
