@@ -16,7 +16,7 @@
  *
  *  Version 1.0 - 07/25/2020     Initial Version
  *  Version 1.1 - 07/26/2020     Fixed currentSensorCal not recording correctly
- *  Version 1.2 - 07/27/2020     Added Refresh after 10s when configure button is pressed
+ *  Version 1.2 - 07/27/2020     Added Refresh after 10s when configure button is pressed, Added scheduled battery refresh every 12 hours
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -325,6 +325,10 @@ def SensorCal(value) {
 		], 500)
 }
 
+def updateBattery() {
+        return zwave.batteryV1.batteryGet()
+}
+
 def DebugLogging(value) {
 	if (value=="OFF") {logsoff}
         if (value=="ON") {
@@ -344,6 +348,8 @@ def updated() {
 		log.debug "debug logging is enabled."
 		runIn(1800,logsOff)
 	}
+	
+   runIn(43200,updateBattery)
 
     def cmds = []
     String tempstr    
