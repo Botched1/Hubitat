@@ -17,6 +17,7 @@
  *  Version 1.0 - 07/25/2020     Initial Version
  *  Version 1.1 - 07/26/2020     Fixed currentSensorCal not recording correctly
  *  Version 1.2 - 07/27/2020     Added Refresh after 10s when configure button is pressed, Added scheduled battery refresh every 12 hours
+ *  Version 1.3 - 07/27/2020     Attempted to fix Celcius input/output issues
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -108,7 +109,8 @@ def setHeatingSetpoint(double degrees) {
     if (logEnable) log.debug "setHeatingSetpoint...END"
 
 	commands([
-		zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 1, scale: state.scale, precision: p, scaledValue: degrees2),
+		//zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 1, scale: state.scale, precision: p, scaledValue: degrees2),
+        zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 1, scale: getTemperatureScale()=="F" ? 1 : 0, precision: p, scaledValue: degrees2),
         zwave.thermostatSetpointV2.thermostatSetpointGet(setpointType: 1)
 	], 1000)       
 }
@@ -139,7 +141,8 @@ def setCoolingSetpoint(double degrees) {
     if (logEnable) log.debug "setCoolingSetpoint...END"
 
     commands([
-		zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 2, scale: state.scale, precision: p, scaledValue: degrees2),
+		//zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 2, scale: state.scale, precision: p, scaledValue: degrees2),
+        zwave.thermostatSetpointV2.thermostatSetpointSet(setpointType: 2, scale: getTemperatureScale()=="F" ? 1 : 0, precision: p, scaledValue: degrees2),
         zwave.thermostatSetpointV2.thermostatSetpointGet(setpointType: 2)
 	], 1000)       
 }
