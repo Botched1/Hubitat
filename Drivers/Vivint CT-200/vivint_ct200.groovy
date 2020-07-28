@@ -17,9 +17,9 @@
  *  Version 1.0 - 07/25/2020     Initial Version
  *  Version 1.1 - 07/26/2020     Fixed currentSensorCal not recording correctly
  *  Version 1.2 - 07/27/2020     Added Refresh after 10s when configure button is pressed, Added scheduled battery refresh every 12 hours
- *  Version 1.3 - 07/27/2020     Attempted to fix Celcius input/output issues #1
- *  Version 1.4 - 07/28/2020     Attempted to fix Celcius input/output issues #2
- *  Version 1.5 - 07/28/2020     Attempted to fix Celcius input/output issues #3
+ *  Version 1.3 - 07/27/2020     Attempted to fix Celsius input/output issues #1
+ *  Version 1.4 - 07/28/2020     Attempted to fix Celsius input/output issues #2
+ *  Version 1.5 - 07/28/2020     Attempted to fix Celsius input/output issues #3
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
