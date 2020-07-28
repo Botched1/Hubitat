@@ -96,7 +96,7 @@ def setHeatingSetpoint(double degrees) {
 	if (p==0) {
 		degrees2 = Math.rint(degrees)
 	} else {
-        degrees2 = degrees2.round(p)
+        degrees2 = degrees.round(p)
 	}
 	*/
 
@@ -130,7 +130,7 @@ def setCoolingSetpoint(double degrees) {
 	if (p==0) {
 		degrees2 = Math.rint(degrees)
 	} else {
-        degrees2 = degrees2.round(p)
+        degrees2 = degrees.round(p)
 	}
 	*/
 
