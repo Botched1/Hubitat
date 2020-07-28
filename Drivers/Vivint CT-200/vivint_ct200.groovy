@@ -294,6 +294,7 @@ def configure() {
 	if (logEnable) log.debug "....done executing 'configure'"
 	
 	runIn(10,refresh)
+	runIn(43200,updateBattery)
 	
 	commands([
 		zwave.thermostatModeV2.thermostatModeSupportedGet(),
