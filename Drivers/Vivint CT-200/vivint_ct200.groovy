@@ -105,7 +105,7 @@ def setHeatingSetpoint(double degrees) {
 		degrees2 = Math.rint(degrees)
 	} else {
         p=1;
-		degrees2 = degrees2.round(1)
+		degrees2 = degrees.round(1)
 	}
 	
     if (logEnable) log.debug "locationScale is $locationScale"
@@ -139,7 +139,7 @@ def setCoolingSetpoint(double degrees) {
 		degrees2 = Math.rint(degrees)
 	} else {
         p=1;
-		degrees2 = degrees2.round(1)
+		degrees2 = degrees.round(1)
 	}
 	
     if (logEnable) log.debug "locationScale is $locationScale"
