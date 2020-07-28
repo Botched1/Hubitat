@@ -14,12 +14,13 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Version 1.0 - 07/25/2020     Initial Version
- *  Version 1.1 - 07/26/2020     Fixed currentSensorCal not recording correctly
- *  Version 1.2 - 07/27/2020     Added Refresh after 10s when configure button is pressed, Added scheduled battery refresh every 12 hours
- *  Version 1.3 - 07/27/2020     Attempted to fix Celsius input/output issues #1
- *  Version 1.4 - 07/28/2020     Attempted to fix Celsius input/output issues #2
- *  Version 1.5 - 07/28/2020     Attempted to fix Celsius input/output issues #3
+ *  Version 1.0   - 07/25/2020     Initial Version
+ *  Version 1.1   - 07/26/2020     Fixed currentSensorCal not recording correctly
+ *  Version 1.2   - 07/27/2020     Added Refresh after 10s when configure button is pressed, Added scheduled battery refresh every 12 hours
+ *  Version 1.3   - 07/27/2020     Attempted to fix Celsius input/output issues #1
+ *  Version 1.4   - 07/28/2020     Attempted to fix Celsius input/output issues #2
+ *  Version 1.5   - 07/28/2020     Attempted to fix Celsius input/output issues #3
+ *  Version 1.5.1 - 07/28/2020     Fix round error
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -105,7 +106,8 @@ def setHeatingSetpoint(double degrees) {
 		degrees2 = Math.rint(degrees)
 	} else {
         p=1;
-		degrees2 = degrees.round(1)
+		//degrees2 = degrees.round(1)
+		degrees2 = Math.round(degrees * 10)/10
 	}
 	
     if (logEnable) log.debug "locationScale is $locationScale"
@@ -139,7 +141,7 @@ def setCoolingSetpoint(double degrees) {
 		degrees2 = Math.rint(degrees)
 	} else {
         p=1;
-		degrees2 = degrees.round(1)
+		degrees2 = Math.round(degrees * 10)/10
 	}
 	
     if (logEnable) log.debug "locationScale is $locationScale"
@@ -511,7 +513,7 @@ def zwaveEvent(hubitat.zwave.commands.sensormultilevelv1.SensorMultilevelReport 
 		} else if (cmdScale=="C" && getTemperatureScale()=="F") {
 			map.value=Math.rint(celsiusToFahrenheit(cmd.scaledSensorValue))
 		} else if (cmdScale=="F" && getTemperatureScale()=="C") {
-			map.value=fahrenheitToCelsius(cmd.scaledSensorValue).round(1)
+			map.value=Math.round(fahrenheitToCelsius(cmd.scaledSensorValue)*10)/10
 		}
 		map.unit = getTemperatureScale()
 		map.name = "temperature"
@@ -548,7 +550,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	} else if (cmdScale=="C" && getTemperatureScale()=="F") {
 		map.value=Math.rint(celsiusToFahrenheit(cmd.scaledValue))
 	} else if (cmdScale=="F" && getTemperatureScale()=="C") {
-		map.value=fahrenheitToCelsius(cmd.scaledValue).round(1)
+		map.value=Math.round(fahrenheitToCelsius(cmd.scaledSensorValue)*10)/10
 	}
 	map.unit = getTemperatureScale()
 	map.displayed = true
