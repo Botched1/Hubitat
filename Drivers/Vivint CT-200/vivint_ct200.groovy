@@ -511,7 +511,7 @@ def zwaveEvent(hubitat.zwave.commands.sensormultilevelv1.SensorMultilevelReport 
 	if (cmd.sensorType.toInteger() == 1) {
 		def cmdScale = cmd.scale == 1 ? "F" : "C"
 		if (cmdScale==getTemperatureScale()) {
-			map.value = Math.round(cmd.scaledSensorValue)*10)/10
+			map.value = Math.round(cmd.scaledSensorValue*10)/10
 		} else if (cmdScale=="C" && getTemperatureScale()=="F") {
 			map.value=Math.rint(celsiusToFahrenheit(cmd.scaledSensorValue))
 		} else if (cmdScale=="F" && getTemperatureScale()=="C") {
