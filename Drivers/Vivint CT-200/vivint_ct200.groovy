@@ -24,6 +24,7 @@
  *  Version 1.5.2 - 07/28/2020     Fix scaledSensorValue error in ThermostatSetpointReport
  *  Version 1.5.3 - 07/28/2020     Fixed temperature reading rounding
  *  Version 1.6   - 07/28/2020     Added Energy Saving mode command
+ *  Version 1.7   - 08/01/2020     Added support for Hail (happens when thermostat is reboot/1st powered up) and AssociationReport
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -519,6 +520,14 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
     if (cmd.parameterNumber == 17) { 
         sendEvent([name:"currentSensorCal", value: cmd.scaledConfigurationValue, displayed:true, unit: getTemperatureScale(), isStateChange:true])
 	}
+}
+
+def zwaveEvent(hubitat.zwave.commands.hailv1.Hail cmd) {
+	refresh()
+}
+
+void zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
+    if (logEnable) log.debug "${device.label?device.label:device.name}: ${cmd}"
 }
 
 def zwaveEvent(hubitat.zwave.commands.sensormultilevelv1.SensorMultilevelReport cmd) {
