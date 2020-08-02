@@ -25,6 +25,7 @@
  *  Version 1.5.3 - 07/28/2020     Fixed temperature reading rounding
  *  Version 1.6   - 07/28/2020     Added Energy Saving mode command
  *  Version 1.7   - 08/01/2020     Added support for Hail (happens when thermostat is reboot/1st powered up) and AssociationReport
+ *  Version 1.8   - 08/02/2020     Added logic to refresh fan / operating states when they get out of sync or an update report was missed/didn't happen
  */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -292,7 +293,10 @@ def setSchedule() {
 
 def refresh() {
 	if (logEnable) log.debug "Executing 'refresh'"
-	commands([
+
+    updateDataValue("lastSync", now().toString())
+
+    commands([
         zwave.batteryV1.batteryGet(),
         zwave.thermostatModeV2.thermostatModeGet(),
 		zwave.thermostatOperatingStateV2.thermostatOperatingStateGet(),
@@ -510,6 +514,35 @@ def logsOff() {
     device.updateSetting("logEnable",[value:"false",type:"bool"])
 }
 
+def syncStates() {
+	if (logEnable) log.debug "Executing 'syncStates'"
+	unschedule(syncStates)
+    updateDataValue("lastSync", now().toString())
+
+    def tos = getDataValue("thermostatOperatingState")
+    def tfs = getDataValue("thermostatFanState")
+    
+    if ((tos == "idle") && (tfs != "idle")) {
+        if (logEnable) log.debug ("syncStates different so updating.")
+        if (logEnable) log.debug("tos=$tos , tfs=$tfs")
+        return commands([
+		    zwave.thermostatOperatingStateV2.thermostatOperatingStateGet(),
+		    zwave.thermostatFanStateV1.thermostatFanStateGet(),
+	        ], 500)
+    }
+
+    if ((tfs == "idle") && (tos != "idle")) {
+        if (logEnable) log.debug ("syncStates different so updating.")
+        if (logEnable) log.debug ("tos=$tos , tfs=$tfs")
+        return commands([
+		    zwave.thermostatOperatingStateV2.thermostatOperatingStateGet(),
+		    zwave.thermostatFanStateV1.thermostatFanStateGet(),
+	        ], 500)
+    }
+
+    if (logEnable) log.debug ("syncStates same so doing nothing.")
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Handle updates from thermostat
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -724,8 +757,27 @@ def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOpera
             break
 	}
 
+    // Schedule sync check
+    def testSync = getDataValue("lastSync")
+    long lastSync
+    if (testSync) {
+        lastSync = testSync.toLong()
+    }
+    
+    if (lastSync) {
+        if ((now() - lastSync) > 15000) {
+            //log.warn ("TOS syncStates scheduled")
+            //log.warn ("Delta:" + (now() - lastSync))
+            runIn(5,syncStates)
+        }
+    } else {
+        updateDataValue("lastSync", now().toString())
+        //log.warn ("TOS else syncStates scheduled")
+        runIn(5,syncStates)
+    }
+    
     if (logEnable) log.debug "In ThermostatOperatingState map is $map"
-
+    
     updateDataValue("thermostatOperatingState", map.value)
 	sendEvent(map)
 
@@ -895,6 +947,25 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanstatev1.ThermostatFanStateRep
 	}
 	updateDataValue("thermostatFanState", map.value)
 
+    // Schedule sync check
+    def testSync = getDataValue("lastSync")
+    long lastSync
+    if (testSync) {
+        lastSync = testSync.toLong()
+    }
+    
+    if (lastSync) {
+        if ((now() - lastSync) > 15000) {
+            //log.warn ("TFS syncStates scheduled")
+            //log.warn ("Delta:" + (now() - lastSync))
+            runIn(5,syncStates)
+        }
+    } else {
+        updateDataValue("lastSync", now().toString())
+        //log.warn ("TFS else syncStates scheduled")
+        runIn(5,syncStates)
+    }
+    
     if (logEnable) log.debug "In ThermostatFanStateReport map is $map"
     if (logEnable) log.debug "ThermostatFanStateReport...END"
 
