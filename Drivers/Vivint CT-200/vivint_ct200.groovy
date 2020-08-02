@@ -516,31 +516,24 @@ def logsOff() {
 
 def syncStates() {
 	if (logEnable) log.debug "Executing 'syncStates'"
-	unschedule(syncStates)
+    unschedule(syncStates)
     updateDataValue("lastSync", now().toString())
 
     def tos = getDataValue("thermostatOperatingState")
     def tfs = getDataValue("thermostatFanState")
-    
-    if ((tos == "idle") && (tfs != "idle")) {
-        if (logEnable) log.debug ("syncStates different so updating.")
+
+    if ((tos == "idle") ^ (tfs == "idle")) {
+        if (logEnable) log.debug ("syncStates states are different so updating them.")
         if (logEnable) log.debug("tos=$tos , tfs=$tfs")
         return commands([
 		    zwave.thermostatOperatingStateV2.thermostatOperatingStateGet(),
 		    zwave.thermostatFanStateV1.thermostatFanStateGet(),
 	        ], 500)
+    } else {
+        if (logEnable) log.debug ("syncStates states are the same so doing nothing.")
     }
+    
 
-    if ((tfs == "idle") && (tos != "idle")) {
-        if (logEnable) log.debug ("syncStates different so updating.")
-        if (logEnable) log.debug ("tos=$tos , tfs=$tfs")
-        return commands([
-		    zwave.thermostatOperatingStateV2.thermostatOperatingStateGet(),
-		    zwave.thermostatFanStateV1.thermostatFanStateGet(),
-	        ], 500)
-    }
-
-    if (logEnable) log.debug ("syncStates same so doing nothing.")
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -766,13 +759,10 @@ def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOpera
     
     if (lastSync) {
         if ((now() - lastSync) > 15000) {
-            //log.warn ("TOS syncStates scheduled")
-            //log.warn ("Delta:" + (now() - lastSync))
             runIn(5,syncStates)
         }
     } else {
         updateDataValue("lastSync", now().toString())
-        //log.warn ("TOS else syncStates scheduled")
         runIn(5,syncStates)
     }
     
@@ -956,13 +946,10 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanstatev1.ThermostatFanStateRep
     
     if (lastSync) {
         if ((now() - lastSync) > 15000) {
-            //log.warn ("TFS syncStates scheduled")
-            //log.warn ("Delta:" + (now() - lastSync))
             runIn(5,syncStates)
         }
     } else {
         updateDataValue("lastSync", now().toString())
-        //log.warn ("TFS else syncStates scheduled")
         runIn(5,syncStates)
     }
     
