@@ -26,7 +26,8 @@
  *  Version 1.6   - 07/28/2020     Added Energy Saving mode command
  *  Version 1.7   - 08/01/2020     Added support for Hail (happens when thermostat is reboot/1st powered up) and AssociationReport
  *  Version 1.8   - 08/02/2020     Added logic to refresh fan / operating states when they get out of sync or an update report was missed/didn't happen
- */
+ *  Version 1.8.1 - 08/03/2020     Switched lastSync logic to use state variables
+*/
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Actuator"
@@ -294,7 +295,10 @@ def setSchedule() {
 def refresh() {
 	if (logEnable) log.debug "Executing 'refresh'"
 
-    updateDataValue("lastSync", now().toString())
+    unschedule(syncStates)
+    
+    //updateDataValue("lastSync", now().toString())
+    state.lastSync = now()
 
     commands([
         zwave.batteryV1.batteryGet(),
@@ -516,21 +520,26 @@ def logsOff() {
 
 def syncStates() {
 	if (logEnable) log.debug "Executing 'syncStates'"
-    unschedule(syncStates)
-    updateDataValue("lastSync", now().toString())
-
+    
+    //unschedule(syncStates)
+    
+    state.lastSync = now()
+    //log.warn "state.lastSync: $state.lastSync"
+    
     def tos = getDataValue("thermostatOperatingState")
     def tfs = getDataValue("thermostatFanState")
 
     if ((tos == "idle") ^ (tfs == "idle")) {
         if (logEnable) log.debug ("syncStates states are different so updating them.")
         if (logEnable) log.debug("tos=$tos , tfs=$tfs")
+        //log.warn ("syncStates states are different. tos=$tos , tfs=$tfs")
         return commands([
 		    zwave.thermostatOperatingStateV2.thermostatOperatingStateGet(),
 		    zwave.thermostatFanStateV1.thermostatFanStateGet(),
 	        ], 500)
     } else {
         if (logEnable) log.debug ("syncStates states are the same so doing nothing.")
+        //log.warn ("syncStates states are the same so doing nothing.")
     }
     
 
@@ -751,18 +760,12 @@ def zwaveEvent(hubitat.zwave.commands.thermostatoperatingstatev2.ThermostatOpera
 	}
 
     // Schedule sync check
-    def testSync = getDataValue("lastSync")
-    long lastSync
-    if (testSync) {
-        lastSync = testSync.toLong()
-    }
-    
-    if (lastSync) {
-        if ((now() - lastSync) > 15000) {
+    if (state.lastSync) {
+        if ((now() - state.lastSync) > 15000) {
             runIn(5,syncStates)
         }
     } else {
-        updateDataValue("lastSync", now().toString())
+        state.lastSync = now()
         runIn(5,syncStates)
     }
     
@@ -937,19 +940,13 @@ def zwaveEvent(hubitat.zwave.commands.thermostatfanstatev1.ThermostatFanStateRep
 	}
 	updateDataValue("thermostatFanState", map.value)
 
-    // Schedule sync check
-    def testSync = getDataValue("lastSync")
-    long lastSync
-    if (testSync) {
-        lastSync = testSync.toLong()
-    }
-    
-    if (lastSync) {
-        if ((now() - lastSync) > 15000) {
+    // Schedule sync check    
+    if (state.lastSync) {
+        if ((now() - state.lastSync) > 15000) {
             runIn(5,syncStates)
         }
     } else {
-        updateDataValue("lastSync", now().toString())
+        state.lastSync = now()
         runIn(5,syncStates)
     }
     
