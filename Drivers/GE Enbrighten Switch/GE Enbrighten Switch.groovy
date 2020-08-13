@@ -8,7 +8,7 @@
  *  1.2.0 (02/07/2020) - Added pushed, held, and released capability. Required renumbering the buttons. Now 1/2=Up/Down, 3/4=Double Up/Down, 5/6=Triple Up/Down
  *  1.2.1 (02/07/2020) - Added doubleTapped events and added doubleTap capability. Now users can use button 3/4 for double tap or the system "doubleTapped" events.
  *  1.3.0 (05/17/2020) - Added associations and inverted paddle options
- *  2.0.0e (08/13/2020) - Added S2 capability for Hubitat 2.2.3 and newer
+ *  2.0.0f (08/13/2020) - Added S2 capability for Hubitat 2.2.3 and newer
 */
 
 import groovy.transform.Field
@@ -237,8 +237,8 @@ def on() {
 	state.bin = -1
 
     return delayBetween([
-		secure(zwave.switchBinaryV1.switchBinarySet(switchValue: 0xFF).format()),
-		secure(zwave.switchBinaryV1.switchBinaryGet().format())
+		secure(zwave.switchBinaryV1.switchBinarySet(switchValue: 0xFF).format())
+		//,secure(zwave.switchBinaryV1.switchBinaryGet().format())
 	],250)
 }
 
@@ -247,8 +247,8 @@ def off() {
 	state.bin = -1
 
     return delayBetween([
-		secure(zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format()),
-		secure(zwave.switchBinaryV1.switchBinaryGet().format())
+		secure(zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format())
+		//,secure(zwave.switchBinaryV1.switchBinaryGet().format())
 	],250)
 }
 
