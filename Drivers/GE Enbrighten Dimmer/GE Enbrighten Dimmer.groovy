@@ -10,7 +10,18 @@
  *  1.4.0 (02/07/2020) - Added pushed, held, and released capability. Required renumbering the buttons. Now 1/2=Up/Down, 3/4=Double Up/Down, 5/6=Triple Up/Down
  *  1.4.1 (02/07/2020) - Added doubleTapped events and added doubleTap capability. Now users can use button 3/4 for double tap or the system "doubleTapped" events.
  *  1.5.0 (05/17/2020) - Added associations and inverted paddle options
+ *  2.0.0 (08/07/2020) - Added S2 capability for Hubitat 2.2.3 and newer
 */
+
+import groovy.transform.Field
+
+@Field static Map commandClassVersions = 
+    [
+        0x26: 3    //switchMultiLevel
+        ,0x70: 2    //configuration
+        ,0x72: 2    //Manufacturer Specific
+        ,0x85: 2    //association
+]
 
 metadata {
 	definition (name: "GE Enbrighten Z-Wave Plus Dimmer", namespace: "Botched1", author: "Jason Bottjen") {
@@ -47,47 +58,32 @@ metadata {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Parse
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def parse(String description) {
-    def result = null
-	if (description != "updated") {
-		if (logEnable) log.debug "parse() >> zwave.parse($description)"
-		def cmd = zwave.parse(description)
-
-		if (logEnable) log.debug "cmd: $cmd"
-
-        if (cmd) {
-            result = zwaveEvent(cmd)
-        }
-	}
-    if (!result) { if (logEnable) log.debug "Parse returned ${result} for $description" }
-    else {if (logEnable) log.debug "Parse returned ${result}"}
-	
-	return result
+void parse(String description){
+    if (logEnable) log.debug "parse description: ${description}"
+    hubitat.zwave.Command cmd = zwave.parse(description,commandClassVersions)
+    if (cmd) {
+        zwaveEvent(cmd)
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Z-Wave Messages
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
-	if (logEnable) log.debug "zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}"
-	
-	def newVersion = 1
-	
-	// SwitchMultilevel = 38 decimal
-	// Configuration = 112 decimal
-	// Manufacturer Specific = 114 decimal
-	// Association = 133 decimal
-	if (cmd.commandClass == 38) {newVersion = 3}
-	if (cmd.commandClass == 112) {newVersion = 2}
-	if (cmd.commandClass == 114) {newVersion = 2}								 
-	if (cmd.commandClass == 133) {newVersion = 2}		
-	
-	def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data, newVersion)
-	if (encapsulatedCommand) {
-       zwaveEvent(encapsulatedCommand)
-   } else {
-       log.warn "Unable to extract CRC16 command from ${cmd}"
-   }
+String secure(String cmd){
+    return zwaveSecureEncap(cmd)
+}
+
+String secure(hubitat.zwave.Command cmd){
+    return zwaveSecureEncap(cmd)
+}
+
+void zwaveEvent(hubitat.zwave.commands.supervisionv1.SupervisionGet cmd){
+    hubitat.zwave.Command encapCmd = cmd.encapsulatedCommand(commandClassVersions)
+    
+    if (encapCmd) {
+        zwaveEvent(encapCmd)
+    }
+    sendHubCommand(new hubitat.device.HubAction(secure(zwave.supervisionV1.supervisionReport(sessionID: cmd.sessionID, reserved: 0, moreStatusUpdates: false, status: 0xFF, duration: 0)), hubitat.device.Protocol.ZWAVE))
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
@@ -97,7 +93,7 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
     if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
-	if (logEnable) log.debug "This report does nothing in this driver, and can be ignored..."	
+	if (logEnable) log.debug "This does nothing in this driver, and can be ignored..."	
 }
 
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
@@ -114,26 +110,8 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
     }
 }
 
-
 def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	if (logEnable) log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
-    /*
-    def config = cmd.scaledConfigurationValue.toInteger()
-    def result = []
-	def name = ""
-    def value = ""
-    def reportValue = cmd.configurationValue[0]
-    switch (cmd.parameterNumber) {
-        case 3:
-            name = "indicatorStatus"
-            value = reportValue == 1 ? "when on" : reportValue == 2 ? "never" : "when off"
-            break
-        default:
-            break
-    }
-	result << sendEvent([name: name, value: value, displayed: false])
-	return result
-    */
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
@@ -272,15 +250,14 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def on() {
 	if (logEnable) log.debug "Turn device ON"
-	//state.bin = -1
 	if (logEnable) log.debug "state.level is $state.level"
-	if (state.level == 0 || state.level == "") {state.level=99}
+	if (state.level == 0 || state.level == "" || state.level == null) {state.level=99}
 	setLevel(state.level, 0)
+    
 }
 
 def off() {
 	if (logEnable) log.debug "Turn device OFF"
-	//state.bin = -1
 	setLevel(0, 0)
 }
 
@@ -298,33 +275,26 @@ def setLevel(value, duration) {
 	if (value) {state.level = value}
 
 	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration"
-    result << zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format()
-    return result
+
+    return delayBetween([
+            secure(zwave.switchMultilevelV3.switchMultilevelSet(value: value, dimmingDuration: duration))
+        ] , 250)
 }
 
 def setDefaultDimmerLevel(value) {
 	if (logEnable) log.debug "Setting default dimmer level: ${value}"
-    def cmds = []
-    cmds << zwave.configurationV1.configurationSet(scaledConfigurationValue: value , parameterNumber: 32, size: 1).format()
-  	cmds << zwave.configurationV1.configurationGet(parameterNumber: 32).format()
-    delayBetween(cmds, 500)
+    return delayBetween([
+        secure(zwave.configurationV1.configurationSet(scaledConfigurationValue: value , parameterNumber: 32, size: 1).format())
+        ,secure(zwave.configurationV1.configurationGet(parameterNumber: 32).format())
+        ], 250)
 }
 
 def refresh() {
 	log.info "refresh() is called"
 	
-	def cmds = []
-	cmds << zwave.switchMultilevelV1.switchMultilevelGet().format()
-    /* Commented this out, as it didn't seem necessary to read back all of the config parameters
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 6).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 30).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 31).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 32).format()
-	cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
-	*/
-    delayBetween(cmds,500)
+    delayBetween([
+        secure(zwave.switchMultilevelV3.switchMultilevelGet())
+        ] ,250)
 }
 
 def installed() {
@@ -343,48 +313,48 @@ def updated() {
 	def cmds = []
     
 	// Associations    
-    cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+    cmds << secure(zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format())
 
 	def nodes = []
 	nodes = parseAssocGroupList(settings.requestedGroup2, 2)
-    cmds << zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: []).format()
-    cmds << zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format()
-    cmds << zwave.associationV2.associationGet(groupingIdentifier: 2).format()
+    cmds << secure(zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: []).format())
+    cmds << secure(zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format())
+    cmds << secure(zwave.associationV2.associationGet(groupingIdentifier: 2).format())
     state.currentGroup2 = settings.requestedGroup2
 	
    	nodes = parseAssocGroupList(settings.requestedGroup3, 3)
-    cmds << zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: []).format()
-    cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes).format()
-    cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+    cmds << secure(zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: []).format())
+    cmds << secure(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes).format())
+    cmds << secure(zwave.associationV2.associationGet(groupingIdentifier: 3).format())
     state.currentGroup3 = settings.requestedGroup3
 	
 	// Set LED param
 	if (paramLED==null) {
 		paramLED = 0
 	}	
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLED.toInteger(), parameterNumber: 3, size: 1).format()
-	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+	cmds << secure(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLED.toInteger(), parameterNumber: 3, size: 1).format())
+	cmds << secure(zwave.configurationV2.configurationGet(parameterNumber: 3).format())
 
 	// Set Inverted param
 	if (paramInverted==null) {
 		paramInverted = 0
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted.toInteger(), parameterNumber: 4, size: 1).format()
-	cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
+	cmds << secure(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted.toInteger(), parameterNumber: 4, size: 1).format())
+	cmds << secure(zwave.configurationV2.configurationGet(parameterNumber: 4).format())
 	
 	// Set Ramp Rate
 	if (paramUpDownRate==null) {
 		paramUpDownRate = 0
 	}	
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramUpDownRate.toInteger(), parameterNumber: 6, size: 1).format()
-	cmds << zwave.configurationV2.configurationGet(parameterNumber: 6).format()
+	cmds << secure(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramUpDownRate.toInteger(), parameterNumber: 6, size: 1).format())
+	cmds << secure(zwave.configurationV2.configurationGet(parameterNumber: 6).format())
 
    	// Set Switch Mode
 	if (paramSwitchMode==null) {
 		paramSwitchMode = 0
 	}	
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramSwitchMode.toInteger(), parameterNumber: 16, size: 1).format()
-	cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
+	cmds << secure(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramSwitchMode.toInteger(), parameterNumber: 16, size: 1).format())
+	cmds << secure(zwave.configurationV2.configurationGet(parameterNumber: 16).format())
 
     /* Comment out for now, as it is unclear how/if this actually works
    	// Set Minimum Dim %
@@ -406,8 +376,8 @@ def updated() {
 	if (paramDefaultDim==null) {
 		paramDefaultDim = 0
     }	
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramDefaultDim.toInteger(), parameterNumber: 32, size: 1).format()
-	cmds << zwave.configurationV2.configurationGet(parameterNumber: 32).format()
+	cmds << secure(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramDefaultDim.toInteger(), parameterNumber: 32, size: 1).format())
+	cmds << secure(zwave.configurationV2.configurationGet(parameterNumber: 32).format())
 
     delayBetween(cmds, 500)
 }
@@ -417,22 +387,21 @@ def configure() {
 	state.bin = -1
 	if (state.level == "") {state.level = 99}
 	def cmds = []
-	// sendEvent(name: "numberOfButtons", value: 6, displayed: false)
 
 	// Associations    
-    cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+    cmds << secure(zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format())
 
 	def nodes = []
 	nodes = parseAssocGroupList(settings.requestedGroup2, 2)
-    cmds << zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: []).format()
-    cmds << zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format()
-    cmds << zwave.associationV2.associationGet(groupingIdentifier: 2).format()
+    cmds << secure(zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: []).format())
+    cmds << secure(zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format())
+    cmds << secure(zwave.associationV2.associationGet(groupingIdentifier: 2).format())
     state.currentGroup2 = settings.requestedGroup2
 	
    	nodes = parseAssocGroupList(settings.requestedGroup3, 3)
-    cmds << zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: []).format()
-    cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes).format()
-    cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+    cmds << secure(zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: []).format())
+    cmds << secure(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes).format())
+    cmds << secure(zwave.associationV2.associationGet(groupingIdentifier: 3).format())
     state.currentGroup3 = settings.requestedGroup3
 
     delayBetween(cmds, 500)
