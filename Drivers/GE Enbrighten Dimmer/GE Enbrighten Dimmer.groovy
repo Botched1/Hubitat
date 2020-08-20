@@ -134,6 +134,22 @@ def zwaveEvent(hubitat.zwave.commands.hailv1.Hail cmd) {
 	if (logEnable) log.debug "This does nothing in this driver, and shouldn't have been called..."
 }
 
+def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.DeviceSpecificReport cmd) {
+    if (logEnable) log.debug "Device Specific Report: ${cmd}"
+    switch (cmd.deviceIdType) {
+        case 1:
+            // serial number
+            def serialNumber=""
+            if (cmd.deviceIdDataFormat==1) {
+                cmd.deviceIdData.each { serialNumber += hubitat.helper.HexUtils.integerToHexString(it & 0xff,1).padLeft(2, '0')}
+            } else {
+                cmd.deviceIdData.each { serialNumber += (char) it }
+            }
+            device.updateDataValue("serialNumber", serialNumber)
+            break
+    }
+}
+
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
 	if (logEnable) log.debug "---SwitchMultilevelReport V3---  ${device.displayName} sent ${cmd}"
 	def newType
