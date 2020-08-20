@@ -9,6 +9,7 @@
  *  1.2.1 (02/07/2020) - Added doubleTapped events and added doubleTap capability. Now users can use button 3/4 for double tap or the system "doubleTapped" events.
  *  1.3.0 (05/17/2020) - Added associations and inverted paddle options
  *  2.0.0f (08/13/2020) - Added S2 capability for Hubitat 2.2.3 and newer
+ *  2.1.0  (08/20/2020) - Fixed some command version issues
 */
 
 import groovy.transform.Field
@@ -19,6 +20,7 @@ import groovy.transform.Field
         ,0x70: 2    //configuration
         ,0x72: 2    //Manufacturer Specific
         ,0x85: 2    //association
+	,0x86: 3    //Version
 ]
 
 metadata {
@@ -143,15 +145,31 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	}
 }
 
-def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.versionv3.VersionReport cmd) {
 	def fw = "${cmd.applicationVersion}.${cmd.applicationSubVersion}"
 	updateDataValue("fw", fw)
-	if (logEnable) log.debug "---VERSION REPORT V1--- ${device.displayName} is running firmware version: $fw, Z-Wave version: ${cmd.zWaveProtocolVersion}.${cmd.zWaveProtocolSubVersion}"
+	if (logEnable) log.debug "---VERSION REPORT V3--- ${device.displayName} is running firmware version: $fw, Z-Wave version: ${cmd.zWaveProtocolVersion}.${cmd.zWaveProtocolSubVersion}"
 }
 
 def zwaveEvent(hubitat.zwave.commands.hailv1.Hail cmd) {
 	if (logEnable) log.debug "Hail command received..."
 	if (logEnable) log.debug "This does nothing in this driver, and shouldn't have been called..."
+}
+
+def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.DeviceSpecificReport cmd) {
+    if (logEnable) log.debug "Device Specific Report: ${cmd}"
+    switch (cmd.deviceIdType) {
+        case 1:
+            // serial number
+            def serialNumber=""
+            if (cmd.deviceIdDataFormat==1) {
+                cmd.deviceIdData.each { serialNumber += hubitat.helper.HexUtils.integerToHexString(it & 0xff,1).padLeft(2, '0')}
+            } else {
+                cmd.deviceIdData.each { serialNumber += (char) it }
+            }
+            device.updateDataValue("serialNumber", serialNumber)
+            break
+    }
 }
 
 def zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cmd) {
