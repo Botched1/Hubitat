@@ -39,40 +39,37 @@ metadata {
 		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]        
 	}
 
- preferences {
-	//input "paramLightTimer", "enum", title: "Light Timeout", description: "Length of time after no motion for the light to shut off in Occupancy/Vacancy modes", options: ["0" : "5 seconds", "1" : "1 minute", "5" : "5 minutes (default)", "15" : "15 minutes", "30" : "30 minutes", "255" : "disabled"], required: false, displayDuringSetup: true
-	//input "paramOperationMode", "enum", title: "Operating Mode", description: "Occupancy: Automatically turn on and off the light with motion\nVacancy: Manually turn on, automatically turn off light with no motion.", options: ["1" : "Manual", "2" : "Vacancy", "3" : "Occupancy (default)"], required: false, displayDuringSetup: true
-	input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
-	input "paramMotionEnabled", "enum", title: "Motion Sensor", description: "Enable/Disable Motion Sensor.", options: ["0" : "Disable","1" : "Enable (default)"], required: false
-	input "paramMotionSensitivity", "enum", title: "Motion Sensitivity", options: ["1" : "High", "2" : "Medium (default)", "3" : "Low"], required: false, displayDuringSetup: true
-	input "paramLightSense", "enum", title: "Light Sensing", description: "If enabled, Occupancy mode will only turn light on if it is dark", options: ["0" : "Disabled","1" : "Enabled (default)"], required: false, displayDuringSetup: true
-	input "paramMotionResetTimer", "enum", title: "Motion Detection Reset Time", options: ["0" : "Disabled", "1" : "10 sec", "2" : "20 sec (default)", "3" : "30 sec", "4" : "45 sec", "110" : "27 mins"], required: false
-	//
-	input "paramZSteps", "number", title: "Z-Wave Dimming % Per Step", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
-	input "paramZDuration", "number", title: "Z-Wave Dimming Interval Between Steps (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
-	input "paramPSteps", "number", title: "Physical Dimming % Per Step", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
-	input "paramPDuration", "number", title: "Physical Dimming Interval Between Steps (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
-	//
-	input "paramSwitchMode", "enum", title: "Switch Mode Enable", description: "Physical switch buttons only do ON/OFF - no dimming", multiple: false, options: ["0" : "Disable (default)", "1" : "Enable"], required: false, displayDuringSetup: true
-	// input "paramDefaultDimmerLevel", "number", title: "Default Dimmer Level (0=Last Dimmer Level)", multiple: false, defaultValue: "0", range: "0..100", required: false, displayDuringSetup: true	 
-	input "paramDimUpRate", "enum", title: "Speed to Dim up the light to the default level", multiple: false, options: ["0" : "Quickly (Default)", "1" : "Slowly"], required: false, displayDuringSetup: true
-	//	 
-	input (
-            	name: "requestedGroup2",
-            	title: "Association Group 2 Members (Max of 5):",
-            	type: "text",
-            	required: false
-        	)
+	preferences {
+		input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
+		input "paramMotionEnabled", "enum", title: "Motion Sensor", description: "Enable/Disable Motion Sensor.", options: ["0" : "Disable","1" : "Enable (default)"], required: false
+		input "paramMotionSensitivity", "enum", title: "Motion Sensitivity", options: ["1" : "High", "2" : "Medium (default)", "3" : "Low"], required: false, displayDuringSetup: true
+		input "paramLightSense", "enum", title: "Light Sensing", description: "If enabled, Occupancy mode will only turn light on if it is dark", options: ["0" : "Disabled","1" : "Enabled (default)"], required: false, displayDuringSetup: true
+		input "paramMotionResetTimer", "enum", title: "Motion Detection Reset Time", options: ["0" : "Disabled", "1" : "10 sec", "2" : "20 sec (default)", "3" : "30 sec", "4" : "45 sec", "110" : "27 mins"], required: false
+		//
+		input "paramZSteps", "number", title: "Z-Wave Dimming % Per Step", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
+		input "paramZDuration", "number", title: "Z-Wave Dimming Interval Between Steps (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
+		input "paramPSteps", "number", title: "Physical Dimming % Per Step", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
+		input "paramPDuration", "number", title: "Physical Dimming Interval Between Steps (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
+		//
+		input "paramSwitchMode", "enum", title: "Switch Mode Enable", description: "Physical switch buttons only do ON/OFF - no dimming", multiple: false, options: ["0" : "Disable (default)", "1" : "Enable"], required: false, displayDuringSetup: true
+		input "paramDimUpRate", "enum", title: "Speed to Dim up the light to the default level", multiple: false, options: ["0" : "Quickly (Default)", "1" : "Slowly"], required: false, displayDuringSetup: true
+		//	 
+		input (
+			name: "requestedGroup2",
+			title: "Association Group 2 Members (Max of 5):",
+			type: "text",
+			required: false
+			)
 
-	input (
-            	name: "requestedGroup3",
-            	title: "Association Group 3 Members (Max of 4):",
-            	type: "text",
-            	required: false
-        	)
-	input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
-	input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true	
-   }
+		input (
+			name: "requestedGroup3",
+			title: "Association Group 3 Members (Max of 4):",
+			type: "text",
+			required: false
+			)
+		input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+		input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true	
+	}
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Parse
@@ -143,8 +140,10 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
 			sendEvent(name: "numberOfButtons", value: 2, displayed: false)
 		} else {
 			sendEvent(name: "numberOfButtons", value: 0, displayed: false)
-			delayBetween([zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format(),
-				zwave.associationV2.associationGet(groupingIdentifier: 3).format()],500)
+			delayBetween([
+				zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
+				,zwave.associationV2.associationGet(groupingIdentifier: 3).format()]
+				,500)
 		}
 	}
 }
