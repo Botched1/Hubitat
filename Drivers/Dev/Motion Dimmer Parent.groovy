@@ -78,7 +78,7 @@ metadata {
 // Parse
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def parse(String description) {
-    def result = null
+	def result = null
 	if (description != "updated") {
 		if (logEnable) log.debug "parse() >> zwave.parse($description)"
 		def cmd = zwave.parse(description) //, [0x20: 1, 0x25: 1, 0x56: 1, 0x70: 2, 0x72: 2, 0x85: 2])
@@ -87,10 +87,13 @@ def parse(String description) {
 		
 		if (cmd) {
 			result = zwaveEvent(cmd)
-        }
+		}
 	}
-    if (!result) { if (logEnable) log.debug "Parse returned ${result} for $description" }
-    else {if (logEnable) log.debug "Parse returned ${result}"}
+	if (!result) {
+		if (logEnable) log.debug "Parse returned ${result} for $description"
+	} else {
+		if (logEnable) log.debug "Parse returned ${result}"
+	}
 	
 	return result
 }
@@ -115,116 +118,114 @@ def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 	
 	def encapsulatedCommand = zwave.getCommand(cmd.commandClass, cmd.command, cmd.data, newVersion)
 	if (encapsulatedCommand) {
-       zwaveEvent(encapsulatedCommand)
-   } else {
-       log.warn "Unable to extract CRC16 command from ${cmd}"
-   }
+		zwaveEvent(encapsulatedCommand)
+	} else {
+		log.warn "Unable to extract CRC16 command from ${cmd}"
+	}
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
-    log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
+	log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
 	//createEvent(name: "switch", value: cmd.value ? "on" : "off", isStateChange: true)
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
-	
-    if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
+	if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
 	def result = []
 	
-    return result
+	return result
 }
 
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
 	if (logEnable) log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
-    if (cmd.groupingIdentifier == 3) {
-    	if (cmd.nodeId.contains(zwaveHubNodeId)) {
-        	sendEvent(name: "numberOfButtons", value: 2, displayed: false)
-        }
-        else {
-        	sendEvent(name: "numberOfButtons", value: 0, displayed: false)
+	if (cmd.groupingIdentifier == 3) {
+		if (cmd.nodeId.contains(zwaveHubNodeId)) {
+			sendEvent(name: "numberOfButtons", value: 2, displayed: false)
+		} else {
+			sendEvent(name: "numberOfButtons", value: 0, displayed: false)
 			delayBetween([zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format(),
-			zwave.associationV2.associationGet(groupingIdentifier: 3).format()],500)
-        }
-    }
+				zwave.associationV2.associationGet(groupingIdentifier: 3).format()],500)
+		}
+	}
 }
 
 def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	if (logEnable) log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
-    def config = cmd.scaledConfigurationValue.toInteger()
-    def result = []
+	def config = cmd.scaledConfigurationValue.toInteger()
+	def result = []
 	def name = ""
-    def value = ""
-    def reportValue = config // cmd.configurationValue[0]
-    switch (cmd.parameterNumber) {
-        case 1:
-            name = "Light Timeout"
-            value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == 255 ? "disabled" : "error"
-            if (value == 0) {state.lightTimeout = "5 seconds"}
-            else if (value == 1) {state.lightTimeout = "1 minute"}
-            else if (value == 5) {state.lightTimeout = "5 minutes (default)"}
-            else if (value == 15) {state.lightTimeout = "15 minutes"}
-            else if (value == 30) {state.lightTimeout = "30 minutes"}
-            else if (value == 255) {state.lightTimeout = "disabled"}
-            break
-        case 3:
-            name = "Operating Mode"
-            value = reportValue == 1 ? "Manual" : reportValue == 2 ? "Vacancy" : reportValue == 3 ? "Occupancy (default)": "error"
-            if (value == 1) {state.operatingMode = "Manual"} 
-            else if (value == 2) {state.operatingMode = "Vacancy"} 
-            else if (value == 3) {state.operatingMode = "Occupancy (default)"}
-            break
-        case 5:
-            name = "Invert Buttons"
-            value = reportValue == 0 ? "Disabled (default)" : reportValue == 1 ? "Enabled" : "error"
-            break
-        case 6:
-            name = "Motion Sensor"
-            value = reportValue == 0 ? "Disabled" : reportValue == 1 ? "Enabled (default)" : "error"
-            break
-        case 7:
-            name = "Z-Wave Dimming Number of Steps"
-            value = reportValue
-            break
-        case 8:
-            name = "Z-Wave Dimming Step Duration"
-            value = reportValue
-            break
-        case 9:
-            name = "Physical Dimming Number of Steps"
-            value = reportValue
-            break
-        case 10:
-            name = "Physical Dimming Step Duration"
-            value = reportValue
-            break
-        case 13:
-            name = "Motion Sensitivity"
-            value = reportValue == 1 ? "High" : reportValue == 2 ? "Medium (default)" :  reportValue == 3 ? "Low" : "error"
-            break
-        case 14:
-            name = "Light Sensing"
-            value = reportValue == 0 ? "Disabled" : reportValue == 1 ? "Enabled (default)" : "error"
-            break
-        case 15:
+	def value = ""
+	def reportValue = config // cmd.configurationValue[0]
+	switch (cmd.parameterNumber) {
+		case 1:
+			name = "Light Timeout"
+			value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == 255 ? "disabled" : "error"
+			if (value == 0) {state.lightTimeout = "5 seconds"}
+			else if (value == 1) {state.lightTimeout = "1 minute"}
+			else if (value == 5) {state.lightTimeout = "5 minutes (default)"}
+			else if (value == 15) {state.lightTimeout = "15 minutes"}
+			else if (value == 30) {state.lightTimeout = "30 minutes"}
+			else if (value == 255) {state.lightTimeout = "disabled"}
+			break
+		case 3:
+			name = "Operating Mode"
+			value = reportValue == 1 ? "Manual" : reportValue == 2 ? "Vacancy" : reportValue == 3 ? "Occupancy (default)": "error"
+			if (value == 1) {state.operatingMode = "Manual"} 
+			else if (value == 2) {state.operatingMode = "Vacancy"} 
+			else if (value == 3) {state.operatingMode = "Occupancy (default)"}
+			break
+		case 5:
+			name = "Invert Buttons"
+			value = reportValue == 0 ? "Disabled (default)" : reportValue == 1 ? "Enabled" : "error"
+			break
+		case 6:
+			name = "Motion Sensor"
+			value = reportValue == 0 ? "Disabled" : reportValue == 1 ? "Enabled (default)" : "error"
+			break
+		case 7:
+			name = "Z-Wave Dimming Number of Steps"
+			value = reportValue
+			break
+		case 8:
+			name = "Z-Wave Dimming Step Duration"
+			value = reportValue
+			break
+		case 9:
+			name = "Physical Dimming Number of Steps"
+			value = reportValue
+			break
+		case 10:
+			name = "Physical Dimming Step Duration"
+			value = reportValue
+			break
+		case 13:
+			name = "Motion Sensitivity"
+			value = reportValue == 1 ? "High" : reportValue == 2 ? "Medium (default)" :  reportValue == 3 ? "Low" : "error"
+			break
+		case 14:
+			name = "Light Sensing"
+			value = reportValue == 0 ? "Disabled" : reportValue == 1 ? "Enabled (default)" : "error"
+			break
+		case 15:
 			name = "Motion Reset Timer"
-            value = reportValue == 0 ? "Disabled" : reportValue == 1 ? "10 seconds" : reportValue == 2 ? "20 seconds (default)" : reportValue == 3 ? "30 seconds" : reportValue == 4 ? "45 seconds" : reportValue == 110 ? "27 minutes" : "error"
-            break
-        case 16:
-            name = "Switch Mode"
-            value = reportValue == 0 ? "Disabled (default)" : reportValue == 1 ? "Enabled" : "error"
-            break
-        case 17:
-            name = "Default Dimmer Level"
-            value = reportValue
-            state.defaultDimmerLevel = value
-            break
-        case 18:
-            name = "Dimming Rate"
-            value = reportValue == 0 ? "Quickly (default)" : reportValue == 1 ? "Slowly" : "error"
-            break
-        default:
-            break
-    }
+			value = reportValue == 0 ? "Disabled" : reportValue == 1 ? "10 seconds" : reportValue == 2 ? "20 seconds (default)" : reportValue == 3 ? "30 seconds" : reportValue == 4 ? "45 seconds" : reportValue == 110 ? "27 minutes" : "error"
+			break
+		case 16:
+			name = "Switch Mode"
+			value = reportValue == 0 ? "Disabled (default)" : reportValue == 1 ? "Enabled" : "error"
+			break
+		case 17:
+			name = "Default Dimmer Level"
+			value = reportValue
+			state.defaultDimmerLevel = value
+			break
+		case 18:
+			name = "Dimming Rate"
+			value = reportValue == 0 ? "Quickly (default)" : reportValue == 1 ? "Slowly" : "error"
+			break
+		default:
+			break
+	}
 	result << createEvent([name: name, value: value, displayed: false])
 	return result
 }
