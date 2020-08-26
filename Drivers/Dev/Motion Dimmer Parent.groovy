@@ -345,24 +345,24 @@ void componentRefresh(cd){
 
 void componentOn(cd){
 	if (logEnable) log.info "received on request from ${cd.displayName}"
-	//getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on"]])
+	getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on"]])
 	on()
 }
 
 void componentOff(cd){
 	if (logEnable) log.info "received off request from ${cd.displayName}"
-	//getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"]])
+	getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"]])
 	off()
 }
 
 void componentSetLevel(cd,level,transitionTime = null) {
 	if (logEnable) log.info "received setLevel(${level}, ${transitionTime}) request from ${cd.displayName}"
 	getChildDevice(cd.deviceNetworkId).parse([[name:"level", value:level, descriptionText:"${cd.displayName} level was set to ${level}%", unit: "%"]])
-	if (logEnable) log.info "component setLevel transitionTime is ${transitionTime}"
+	
 	if (transitionTime == null) {
-		setLevel(level)
+		setLevel(cd,level,0)
 	} else {
-		setLevel(level,transitionTime)
+		setLevel(cd,level,transitionTime)
 	}       
 }
 
@@ -392,6 +392,7 @@ void on() {
 	if (logEnable) log.debug "Turn device ON"
 	def cmds = []
 	//sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "digital", isStateChange: true)
+	
 	cmds << zwave.basicV1.basicSet(value: 0xFF).format()
 	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 3000), hubitat.device.Protocol.ZWAVE))
@@ -403,85 +404,36 @@ void off() {
 	//sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "digital", isStateChange: true)
 
 	cmds << zwave.basicV1.basicSet(value: 0x00).format()
-	//cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 3000), hubitat.device.Protocol.ZWAVE))
 }
 
-/*
-def setLevel(value) {
-	setLevel(value,0)
-	
-	
-	def valueaux = value as Integer
-	def level = Math.max(Math.min(valueaux, 99), 0)
-	def currval = device.currentValue("switch")
-	def delay = 0
-	state.level = level
-	def cmds = []
-	
-	if (logEnable) log.debug "SetLevel (value) - currval: $currval"
-
-        /*
-	if (level > 0 && currval == "off") {
-		if (logDesc) log.info "$device.displayName was turned on"
-        sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "digital")
-	} else if (level == 0 && currval == "on") {
-		if (logDesc) log.info "$device.displayName was turned off"
-        sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "digital")
-		delay += 2000
-	}
-        
-    
-	//sendEvent(name: "level", value: level, unit: "%")
-	sendEvent(name: "level", value: level, unit: "%", descriptionText: "$device.displayName is " + level + "%", type: "digital")
-	if (settings.paramZSteps) {
-		zsteps = settings.paramZSteps
-	} else {
-		zsteps = 1
-	}
-	
-	if (settings.paramZDuration) {
-		zdelay = settings.paramZDuration
-	} else {
-		zdelay = 3
-	}
-	
-	delay = delay + (zsteps * zdelay * 10 + 1000).toInteger()
-	
-	if (logEnable) log.debug "setLevel >> value: $level, delay: $delay"
-	
-	/*
-	delayBetween ([
-		zwave.basicV1.basicSet(value: level).format(),
-		zwave.switchMultilevelV1.switchMultilevelGet().format()
-		], delay )
-	
-	cmds << zwave.basicV1.basicSet(value: level).format()
-	cmds << zwave.switchMultilevelV1.switchMultilevelGet().format()
-    
-	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, delay), hubitat.device.Protocol.ZWAVE))
-}
-*/
-
-def setLevel(value, duration=null) {
+def setLevel(cd, value, duration=null) {
 	if (logEnable) log.debug "setLevel($value, $duration)"
-	def currval = device.currentValue("switch")
-	def getStatusDelay = (duration * 1000 + 1000).toInteger()
-	value = Math.max(Math.min(value.toInteger(), 99), 0)
-	state.level = value
 	
-	/*
-	if (value > 0 && currval == "off") {
-		sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "digital")
-	} else if (value == 0 && currval == "on") {
-		sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "digital")
-		delay += 2000
+	if (duration==null) {
+		duration=0
 	}
-	*/
+
+	def getStatusDelay = (duration * 1000 + 1000).toInteger()
+		
+	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	
-	//sendEvent(name: "level", value: value, unit: "%", descriptionText: "$device.displayName is $value%")
-	sendEvent(name: "level", value: value, unit: "%", descriptionText: "$device.displayName is " + value + "%", type: "digital")
-    
+	String cv = cd.currentValue("switch")
+	List<Map> evts = []
+
+	// Create child events
+	if (value > 0) {
+		evts.add([name:"level", value:${value}, descriptionText:"${cd.displayName} level was set to ${value}%", unit: "%", type: "digital"])	
+		if (cv == "off") {
+			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
+		}
+	} else if (value == 0 && cv == "on") {
+		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
+	}
+    	
+	// Send events to child
+	cd.parse(evts)    
+	
 	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $getStatusDelay"
 	
 	def cmds = []
@@ -492,8 +444,10 @@ def setLevel(value, duration=null) {
 
 def setDefaultDimmerLevel(value) {
 	if (logEnable) log.debug "Setting default dimmer level: ${value}"
+	
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	state.defaultDimmerLevel = value
+	
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
@@ -544,7 +498,6 @@ def Occupancy() {
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
 	delayBetween(cmds, 500)
 }
-
 
 def Vacancy() {
 	state.operatingMode = "Vacancy"
@@ -608,6 +561,7 @@ def updated() {
 
 	def cmds = []
 
+	// See if Child Devices are Created, if not then create them
 	String thisId = device.id
 	
 	def cd = getChildDevice("${thisId}-Dimmer")
