@@ -410,7 +410,7 @@ void off(cd) {
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 3000), hubitat.device.Protocol.ZWAVE))
 }
 
-def setLevel(cd, value, duration=null) {
+void setLevel(cd, value, duration=null) {
 	if (logEnable) log.debug "setLevel($value, $duration)"
 	
 	if (duration==null) {
@@ -445,7 +445,7 @@ def setLevel(cd, value, duration=null) {
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, getStatusDelay), hubitat.device.Protocol.ZWAVE))
 }
 
-def setDefaultDimmerLevel(value) {
+void setDefaultDimmerLevel(value) {
 	if (logEnable) log.debug "Setting default dimmer level: ${value}"
 	
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
@@ -457,7 +457,7 @@ def setDefaultDimmerLevel(value) {
 	delayBetween(cmds, 500)
 }
 
-def setLightTimeout(value) {
+void setLightTimeout(value) {
 	if (logEnable) log.debug "Setting light timeout value: ${value}"
 	def cmds = []        
     
@@ -494,7 +494,7 @@ def setLightTimeout(value) {
 	delayBetween(cmds, 500)
 }
 
-def Occupancy() {
+void Occupancy() {
 	state.operatingMode = "Occupancy (default)"
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
@@ -502,7 +502,7 @@ def Occupancy() {
 	delayBetween(cmds, 500)
 }
 
-def Vacancy() {
+void Vacancy() {
 	state.operatingMode = "Vacancy"
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
@@ -510,7 +510,7 @@ def Vacancy() {
 	delayBetween(cmds, 500)
 }
 
-def Manual() {
+void Manual() {
 	state.operatingMode = "Manual"
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
@@ -518,7 +518,7 @@ def Manual() {
 	delayBetween(cmds, 500)
 }
 
-def refresh() {
+void refresh() {
 	log.info "refresh() is called"
 	
 	def cmds = []
@@ -546,13 +546,13 @@ def refresh() {
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
-def installed() {
+void installed() {
 	device.updateSetting("logEnable", [value: "true", type: "bool"])
 	runIn(1800,logsOff)
 	configure()
 }
 
-def updated() {
+void updated() {
 	log.info "updated..."
 	log.warn "debug logging is: ${logEnable == true}"
 	log.warn "description logging is: ${txtEnable == true}"
@@ -679,7 +679,7 @@ def updated() {
 	delayBetween(cmds, 500)
 }
 
-def configure() {
+void configure() {
 	log.info "configure triggered"
 	
 	def cmds = []
@@ -720,7 +720,7 @@ private parseAssocGroupList(list, group) {
 	return nodes
 }
 
-def DebugLogging(value) {
+void DebugLogging(value) {
 	if (value=="OFF") {logsoff}
 	if (value=="ON") {
 		log.debug "debug logging is enabled."
@@ -729,7 +729,7 @@ def DebugLogging(value) {
 	}
 }
 
-def logsOff(){
+void logsOff(){
 	log.warn "debug logging disabled..."
 	device.updateSetting("logEnable",[value:"false",type:"bool"])
 }
