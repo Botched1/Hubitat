@@ -379,7 +379,7 @@ def fetchChild(String type){
 	def cd = getChildDevice("${thisId}-${type}")
 
 	if (!cd) {
-		log.warn "fetchChile - no child found for ${type}"
+		log.warn "fetchChild - no child found for ${type}"
 	}
 
 	return cd 
