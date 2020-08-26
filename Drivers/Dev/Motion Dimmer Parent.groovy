@@ -715,9 +715,9 @@ private parseAssocGroupList(list, group) {
 		    } else {
 			    log.warn "Association Group ${group}: Invalid member: ${node}"
 		    }
-	    }
+		}
 	}
-    return nodes
+	return nodes
 }
 
 def DebugLogging(value) {
