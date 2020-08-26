@@ -120,9 +120,8 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
-	def result = []
-	
-	return result
+	//def result = []
+	//return result
 }
 
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
@@ -237,18 +236,14 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	    
 	if (cmd.value == 255) {
 		if (cv == "off") evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on"])
-		//evts.add([name:"level", value:level, descriptionText:"${cd.displayName} level was set to ${level}%", unit: "%"])
-		cd.parse(evts)    
-        
 		if (logDesc) log.info "$device.displayName was turned on"
 	} else if (cmd.value == 0) {
 		if (cv == "on") evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"])
-		//evts.add([name:"level", value:level, descriptionText:"${cd.displayName} level was set to ${level}%", unit: "%"])
-		cd.parse(evts)    
-        
 		if (logDesc) log.info "$device.displayName was turned off"
 	}
-	//createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: "physical", isStateChange: true])
+	
+	// Send events to child
+	cd.parse(evts)    
 }
 
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
@@ -271,7 +266,6 @@ def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.hailv1.Hail cmd) {
 	log.warn "Hail command received..."
-	//[name: "hail", value: "hail", descriptionText: "Switch button was pressed", displayed: false]
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
@@ -279,55 +273,52 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 }
 def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
 	if (logEnable) log.debug "---NOTIFICATION REPORT V3--- ${device.displayName} sent ${cmd}"
-	def result = []
 	
 	if (cmd.notificationType == 0x07) {
+		List<Map> evts = []
 		def cd = fetchChild("Motion Sensor")
+		if (!cd) {
+			log.warn "In NotificationReport no Motion Sensor child found with fetchChild"
+			return
+		}
+		
 		if ((cmd.event == 0x00)) {
 			if (logDesc) log.info "$device.displayName motion has stopped"
-			//result << createEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped", type: "physical", isStateChange: true)
-			cd.parse([[name:"motion", value:"inactive", descriptionText:"${cd.displayName} motion inactive"]])
+			evts.add([name:"motion", value:"inactive", descriptionText:"${cd.displayName} motion inactive", type: "physical"])
+			cd.parse(evts)
 		} else if (cmd.event == 0x08) {
 			if (logDesc) log.info "$device.displayName detected motion"
-			//result << createEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion", type: "physical", isStateChange: true)
-			cd.parse([[name:"motion", value:"active", descriptionText:"${cd.displayName} motion active"]])
+			evts.add([name:"motion", value:"inactive", descriptionText:"${cd.displayName} motion active", type: "physical"])
+			cd.parse(evts)  
 		} 
 	}
-	//result
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
 	if (logEnable) log.debug "SwitchMultilevelReport"
 	
 	def cd = fetchChild("Dimmer")
+	
 	if (cd) {
 		String cv = cd.currentValue("switch")
 	} else {
 		log.warn "In SwitchMultilevelReport no dimmer child found with fetchChild"
 		return
 	}
+	
 	List<Map> evts = []
 
 	if (cmd.value) {
-		if (cv == "off") evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on"])
-		evts.add([name:"level", value:${cmd.value}, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%"])
+		if (cv == "off") {
+			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical"])
+		}
+		evts.add([name:"level", value:${cmd.value}, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: "physical"])
 		cd.parse(evts)    
-
-		//sendEvent(name: "level", value: cmd.value, unit: "%", descriptionText: "$device.displayName is " + cmd.value + "%", type: "physical")
-		if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
-		//if (device.currentValue("switch") == "off") {
-		//    sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "physical", isStateChange: true)
-		//    if (logDesc) log.info "$device.displayName was turned on"
-		//}
 	} else {
-		if (cv == "on") evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"])
-		//evts.add([name:"level", value:level, descriptionText:"${cd.displayName} level was set to ${level}%", unit: "%"])
-		cd.parse(evts)    
-
-		//if (device.currentValue("switch") == "on") {
-		//    sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "physical", isStateChange: true)
-		//    if (logDesc) log.info "$device.displayName was turned off"
-		//}
+		if (cv == "on") {
+			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical"])
+			cd.parse(evts)
+		}
 	}
 }
 
@@ -345,19 +336,19 @@ void componentRefresh(cd){
 
 void componentOn(cd){
 	if (logEnable) log.info "received on request from ${cd.displayName}"
-	getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on"]])
-	on()
+	//getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on"]])
+	on(cd)
 }
 
 void componentOff(cd){
 	if (logEnable) log.info "received off request from ${cd.displayName}"
-	getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"]])
-	off()
+	//getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"]])
+	off(cd)
 }
 
 void componentSetLevel(cd,level,transitionTime = null) {
 	if (logEnable) log.info "received setLevel(${level}, ${transitionTime}) request from ${cd.displayName}"
-	getChildDevice(cd.deviceNetworkId).parse([[name:"level", value:level, descriptionText:"${cd.displayName} level was set to ${level}%", unit: "%"]])
+	//getChildDevice(cd.deviceNetworkId).parse([[name:"level", value:level, descriptionText:"${cd.displayName} level was set to ${level}%", unit: "%"]])
 	
 	if (transitionTime == null) {
 		setLevel(cd,level,0)
@@ -388,21 +379,33 @@ def fetchChild(String type){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Driver Commands / Functions
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void on() {
+void on(cd) {
 	if (logEnable) log.debug "Turn device ON"
-	def cmds = []
-	//sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "digital", isStateChange: true)
 	
+	// Make child events
+	List<Map> evts = []
+	evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
+	
+	// Send events to child
+	cd.parse(evts)
+	
+	def cmds = []
 	cmds << zwave.basicV1.basicSet(value: 0xFF).format()
 	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 3000), hubitat.device.Protocol.ZWAVE))
 }
 
-void off() {
+void off(cd) {
 	if (logEnable) log.debug "Turn device OFF"
+	
+	// Make child events
+	List<Map> evts = []
+	evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
+	
+	// Send events to child
+	cd.parse(evts)
+	
 	def cmds = []
-	//sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "digital", isStateChange: true)
-
 	cmds << zwave.basicV1.basicSet(value: 0x00).format()
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 3000), hubitat.device.Protocol.ZWAVE))
 }
@@ -422,7 +425,7 @@ def setLevel(cd, value, duration=null) {
 	List<Map> evts = []
 
 	// Create child events
-	if (value > 0) {
+	if (value) {
 		evts.add([name:"level", value:${value}, descriptionText:"${cd.displayName} level was set to ${value}%", unit: "%", type: "digital"])	
 		if (cv == "off") {
 			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
@@ -540,7 +543,6 @@ def refresh() {
 		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
 	}
 	
-	//delayBetween(cmds,500)
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
@@ -644,13 +646,6 @@ def updated() {
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramSwitchMode.toInteger(), parameterNumber: 16, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
 
-	// Set Default Dimmer Level
-	//if (paramDefaultDimmerLevel==null) {
-	//	paramDefaultDimmerLevel = 0
-	//}
-	//cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramDefaultDimmerLevel.toInteger(), parameterNumber: 17, size: 1).format()
-	//cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
-
 	// Set Dim Up Rate
 	if (paramDimUpRate==null) {
 		paramDimUpRate = 0
@@ -703,26 +698,25 @@ private parseAssocGroupList(list, group) {
 		def count = 0
 
 		nodeList.each { node ->
-		node = node.trim()
+		    node = node.trim()
 		
-		if ( count >= max) {
-			log.warn "Association Group ${group}: Number of members is greater than ${max}! The following member was discarded: ${node}"
-		} else if (node.matches("\\p{XDigit}+")) {
-			def nodeId = Integer.parseInt(node,16)
-			if (nodeId == zwaveHubNodeId) {
-				log.warn "Association Group ${group}: Adding the hub as an association is not allowed (it would break double-tap)."
-			} else if ( (nodeId > 0) & (nodeId < 256) ) {
-				nodes << nodeId
-				count++
-			} else {
-				log.warn "Association Group ${group}: Invalid member: ${node}"
-			}
-		} else {
-			log.warn "Association Group ${group}: Invalid member: ${node}"
-		}
+		    if ( count >= max) {
+			    log.warn "Association Group ${group}: Number of members is greater than ${max}! The following member was discarded: ${node}"
+		    } else if (node.matches("\\p{XDigit}+")) {
+			    def nodeId = Integer.parseInt(node,16)
+			    if (nodeId == zwaveHubNodeId) {
+				    log.warn "Association Group ${group}: Adding the hub as an association is not allowed (it would break double-tap)."
+			    } else if ( (nodeId > 0) & (nodeId < 256) ) {
+				    nodes << nodeId
+				    count++
+			    } else {
+				    log.warn "Association Group ${group}: Invalid member: ${node}"
+			    }
+		    } else {
+			    log.warn "Association Group ${group}: Invalid member: ${node}"
+		    }
+	    }
 	}
-    	}
-    
     return nodes
 }
 
