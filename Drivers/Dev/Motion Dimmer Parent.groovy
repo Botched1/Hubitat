@@ -1,27 +1,15 @@
 /**
  *  IMPORT URL: 
  *
- *  GE Z-Wave Plus Motion Dimmer Parent
+ *  GE Z-Wave Plus Motion Dimmer Component
+ *  Driver that exposes the dimmer and motion sensor part of a GE Motion Dimmer device asseparate child components
  *
- *
- *  Original based off of the Dimmer Switch under Templates in the IDE 
- *  Original SmartThigns custom DTH Author: Matt Lebaugh (@mlebaugh)
- *
- *  HUBITAT PORT
- *  1.0.0 (03/03/2019) - Initial verson.
- *  1.1.0 (03/03/2019) - Update to fix some CRC16 encapsulation issues. Added command class version  map.
- *  1.1.1 (03/03/2019) - Cleaned up some warning logging that should have been converted to debug.
- *  2.0.0 (02/01/2020) - Added occupancy/vacancy/manual commands, added association settings to preferences
- *  2.0.1 (02/01/2020) - Tweak to allow for 100 as a default dimmer value
- *  2.1.0 (02/01/2020) - Added setLightTimeout and DebugLogging commands, added description logging, added state variables for default dimmer level/operating mode/and light timeout
- *  2.1.1 (02/01/2020) - Added digital/physical type indicators on the events
- *  2.2.0 (05/17/2020) - Updated step/duration description text
- *  3.0.0 (08/25/2020) - First attempt at parent/child structure
- *  3.1.0 (08/27/2020) - Added more options to Debug Logging command and added startLevelChange and stopLevelChange commands
+ *  1.0.0 (08/25/2020) - First attempt at parent/child structure
+ *  1.1.0 (08/27/2020) - Added more options to Debug Logging command and added startLevelChange and stopLevelChange commands
 */
 
 metadata {
-	definition (name: "GE Z-Wave Plus Motion Dimmer Parent", namespace: "Botched1", author: "Jason Bottjen") {
+	definition (name: "GE Z-Wave Plus Motion Dimmer Component", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Configuration"
 		
 		command "setDefaultDimmerLevel", [[name:"Default Dimmer Level",type:"NUMBER", description:"Default Dimmer Level Used when Turning ON. (0=Last Dimmer Value)", range: "0..99"]]
