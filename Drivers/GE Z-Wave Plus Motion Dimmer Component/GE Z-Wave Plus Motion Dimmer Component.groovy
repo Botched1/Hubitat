@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: 
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Component/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Component.groovy
  *
  *  GE Z-Wave Plus Motion Dimmer Component
  *  Driver that exposes the dimmer and motion sensor part of a GE Motion Dimmer device asseparate child components
