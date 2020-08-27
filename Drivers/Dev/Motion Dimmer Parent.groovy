@@ -1,11 +1,11 @@
 /**
- *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE-Jasco%20Z-Wave%20Plus%20Motion%20Dimmer/GE-Jasco%20Z-Wave%20Plus%20Motion%20Dimmer.groovy
+ *  IMPORT URL: 
  *
- *  GE Z-Wave Plus Motion Dimmer
+ *  GE Z-Wave Plus Motion Dimmer Parent
  *
  *
  *  Original based off of the Dimmer Switch under Templates in the IDE 
- *  Original custom DTH Author: Matt Lebaugh (@mlebaugh)
+ *  Original SmartThigns custom DTH Author: Matt Lebaugh (@mlebaugh)
  *
  *  HUBITAT PORT
  *  1.0.0 (03/03/2019) - Initial verson.
@@ -17,6 +17,7 @@
  *  2.1.1 (02/01/2020) - Added digital/physical type indicators on the events
  *  2.2.0 (05/17/2020) - Updated step/duration description text
  *  3.0.0 (08/25/2020) - First attempt at parent/child structure
+ *  3.1.0 (08/27/2020) - Added more options to Debug Logging command and added startLevelChange and stopLevelChange commands
 */
 
 metadata {
@@ -28,7 +29,7 @@ metadata {
 		command "Occupancy"
 		command "Vacancy"
 		command "Manual"
-		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]        
+		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]        
 	}
 
 	preferences {
@@ -115,13 +116,37 @@ def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 	log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
-	//createEvent(name: "switch", value: cmd.value ? "on" : "off", isStateChange: true)
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
-	//def result = []
-	//return result
+
+	def cd = fetchChild("Dimmer")
+	String cv = ""
+
+	if (cd) {
+		cv = cd.currentValue("switch")
+	} else {
+		log.warn "In BasicSet no dimmer child found with fetchChild"
+		return
+	}
+	
+	List<Map> evts = []
+
+	if (cmd.value == 255) {
+		if (cv == "off") {
+			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical"])
+			//if (logDesc) log.info "$device.displayName was turned on"
+		}
+	} else if (cmd.value == 0) {
+		if (cv == "on") {
+			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"])
+			//if (logDesc) log.info "$device.displayName was turned off"
+		}
+	}
+    		
+	// Send events to child
+	cd.parse(evts)  
 }
 
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
@@ -221,29 +246,8 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
-	if (logEnable) log.debug "---BINARY SWITCH REPORT V1--- ${device.displayName} sent ${cmd}"
-    
-	def desc
-	def cd = fetchChild("Dimmer")
-	if (cd) {
-		String cv = cd.currentValue("switch")
-	} else {
-		log.warn "In SwitchBinaryReport no dimmer child found with fetchChild"
-		return
-	}
-	
-	List<Map> evts = []
-	    
-	if (cmd.value == 255) {
-		if (cv == "off") evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on"])
-		if (logDesc) log.info "$device.displayName was turned on"
-	} else if (cmd.value == 0) {
-		if (cv == "on") evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"])
-		if (logDesc) log.info "$device.displayName was turned off"
-	}
-	
-	// Send events to child
-	cd.parse(evts)    
+	log.warn "*********** SwitchBinaryReport ************"
+	log.warn "***** Please report to driver author ******"
 }
 
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
@@ -273,22 +277,24 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 }
 def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
 	if (logEnable) log.debug "---NOTIFICATION REPORT V3--- ${device.displayName} sent ${cmd}"
-	
-	if (cmd.notificationType == 0x07) {
-		List<Map> evts = []
-		def cd = fetchChild("Motion Sensor")
-		if (!cd) {
-			log.warn "In NotificationReport no Motion Sensor child found with fetchChild"
-			return
-		}
+
+	def cd = fetchChild("Motion Sensor")
+
+	if (!cd) {
+		log.warn "In NotificationReport no Motion Sensor child found with fetchChild"
+		return
+	}		
+
+	List<Map> evts = []
 		
+	if (cmd.notificationType == 0x07) {
 		if ((cmd.event == 0x00)) {
-			if (logDesc) log.info "$device.displayName motion has stopped"
+			//if (logDesc) log.info "$device.displayName motion has stopped"
 			evts.add([name:"motion", value:"inactive", descriptionText:"${cd.displayName} motion inactive", type: "physical"])
 			cd.parse(evts)
 		} else if (cmd.event == 0x08) {
-			if (logDesc) log.info "$device.displayName detected motion"
-			evts.add([name:"motion", value:"inactive", descriptionText:"${cd.displayName} motion active", type: "physical"])
+			//if (logDesc) log.info "$device.displayName detected motion"
+			evts.add([name:"motion", value:"active", descriptionText:"${cd.displayName} motion active", type: "physical"])
 			cd.parse(evts)  
 		} 
 	}
@@ -298,9 +304,10 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 	if (logEnable) log.debug "SwitchMultilevelReport"
 	
 	def cd = fetchChild("Dimmer")
-	
+	String cv = ""
+
 	if (cd) {
-		String cv = cd.currentValue("switch")
+		cv = cd.currentValue("switch")
 	} else {
 		log.warn "In SwitchMultilevelReport no dimmer child found with fetchChild"
 		return
@@ -312,11 +319,13 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 		if (cv == "off") {
 			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical"])
 		}
-		evts.add([name:"level", value:${cmd.value}, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: "physical"])
-		cd.parse(evts)    
+		evts.add([name:"level", value: cmd.value, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: "physical"])
+		// Send events to child
+		cd.parse(evts)
 	} else {
 		if (cv == "on") {
 			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical"])
+			// Send events to child
 			cd.parse(evts)
 		}
 	}
@@ -336,20 +345,17 @@ void componentRefresh(cd){
 
 void componentOn(cd){
 	if (logEnable) log.info "received on request from ${cd.displayName}"
-	//getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on"]])
 	on(cd)
 }
 
 void componentOff(cd){
 	if (logEnable) log.info "received off request from ${cd.displayName}"
-	//getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"]])
 	off(cd)
 }
 
-void componentSetLevel(cd,level,transitionTime = null) {
+void componentSetLevel(cd, level,transitionTime = null) {
 	if (logEnable) log.info "received setLevel(${level}, ${transitionTime}) request from ${cd.displayName}"
-	//getChildDevice(cd.deviceNetworkId).parse([[name:"level", value:level, descriptionText:"${cd.displayName} level was set to ${level}%", unit: "%"]])
-	
+
 	if (transitionTime == null) {
 		setLevel(cd,level,0)
 	} else {
@@ -381,13 +387,13 @@ def fetchChild(String type){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void on(cd) {
 	if (logEnable) log.debug "Turn device ON"
-	
+
 	// Make child events
 	List<Map> evts = []
 	evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
 	
 	// Send events to child
-	cd.parse(evts)
+	getChildDevice(cd.deviceNetworkId).parse(evts)
 	
 	def cmds = []
 	cmds << zwave.basicV1.basicSet(value: 0xFF).format()
@@ -403,7 +409,7 @@ void off(cd) {
 	evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
 	
 	// Send events to child
-	cd.parse(evts)
+	getChildDevice(cd.deviceNetworkId).parse(evts)
 	
 	def cmds = []
 	cmds << zwave.basicV1.basicSet(value: 0x00).format()
@@ -417,31 +423,32 @@ void setLevel(cd, value, duration=null) {
 		duration=0
 	}
 
-	def getStatusDelay = (duration * 1000 + 1000).toInteger()
-		
-	value = Math.max(Math.min(value.toInteger(), 99), 0)
-	
-	String cv = cd.currentValue("switch")
-	List<Map> evts = []
+	def getStatusDelay = (duration * 1000 + 1000).toInteger()	
 
+	value = Math.max(Math.min(value.toInteger(), 99), 0)
+
+	String cv = cd.currentValue("switch")
+	
+	List<Map> evts = []
+	
 	// Create child events
 	if (value) {
-		evts.add([name:"level", value:${value}, descriptionText:"${cd.displayName} level was set to ${value}%", unit: "%", type: "digital"])	
+		evts.add([name:"level", value: value, descriptionText:"${cd.displayName} level was set to ${value}%", unit: "%", type: "digital"])
 		if (cv == "off") {
 			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
 		}
 	} else if (value == 0 && cv == "on") {
 		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
 	}
-    	
+
 	// Send events to child
-	cd.parse(evts)    
+	getChildDevice(cd.deviceNetworkId).parse(evts)
 	
-	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $getStatusDelay"
+	if (logEnable) log.debug "setLevel(value, duration) >> value: ${value}, duration: ${duration}, delay: ${getStatusDelay}"
 	
 	def cmds = []
 	cmds << zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format()
-	cmds << zwave.switchMultilevelV1.switchMultilevelGet().format()
+	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, getStatusDelay), hubitat.device.Protocol.ZWAVE))
 }
 
@@ -455,6 +462,26 @@ void setDefaultDimmerLevel(value) {
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
 	delayBetween(cmds, 500)
+}
+
+def startLevelChange(direction) {
+    def upDownVal = direction == "down" ? true : false
+	def cd = fetchChild("Dimmer")
+
+	if (!cd) {
+		log.warn "In startLevelChange no dimmer child found with fetchChild"
+		return
+	}
+	
+	def cmds = []
+	cmds << zwave.switchMultilevelV2.switchMultilevelStartLevelChange(ignoreStartLevel: true, startLevel: cd.currentValue("level"), upDown: upDownVal)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
+}
+
+def stopLevelChange() {
+    def cmds = []
+	cmds << zwave.switchMultilevelV2.switchMultilevelStopLevelChange()
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void setLightTimeout(value) {
@@ -523,7 +550,7 @@ void refresh() {
 	
 	def cmds = []
 	cmds << zwave.switchBinaryV1.switchBinaryGet().format()
-	cmds << zwave.switchMultilevelV1.switchMultilevelGet().format()
+	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	cmds << zwave.notificationV3.notificationGet(notificationType: 7).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -721,11 +748,57 @@ private parseAssocGroupList(list, group) {
 }
 
 void DebugLogging(value) {
-	if (value=="OFF") {logsoff}
-	if (value=="ON") {
+	if (value=="OFF") {
+		unschedule(logsOff)
+		logsOff()
+	} else
+
+	if (value=="30m") {
+		unschedule(logsOff)
 		log.debug "debug logging is enabled."
 		device.updateSetting("logEnable",[value:"true",type:"bool"])
-		runIn(1800,logsOff)
+		runIn(1800,logsOff)		
+	} else
+
+	if (value=="1h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(3600,logsOff)		
+	} else
+
+	if (value=="3h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(10800,logsOff)		
+	} else
+
+	if (value=="6h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(21699,logsOff)		
+	} else
+
+	if (value=="12h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(43200,logsOff)		
+	} else
+
+	if (value=="24h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(86400,logsOff)		
+	} else
+		
+	if (value=="ON") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
 	}
 }
 
