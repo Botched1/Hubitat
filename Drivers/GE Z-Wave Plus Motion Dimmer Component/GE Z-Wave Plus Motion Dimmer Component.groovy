@@ -6,6 +6,7 @@
  *
  *  1.0.0 (08/25/2020) - First attempt at parent/child structure
  *  1.1.0 (08/27/2020) - Added more options to Debug Logging command and added startLevelChange and stopLevelChange commands
+ *  1.1.1 (08/28/2020) - Missed setting type on one of the on/off events
 */
 
 metadata {
@@ -128,7 +129,7 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 		}
 	} else if (cmd.value == 0) {
 		if (cv == "on") {
-			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"])
+			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical"])
 			//if (logDesc) log.info "$device.displayName was turned off"
 		}
 	}
