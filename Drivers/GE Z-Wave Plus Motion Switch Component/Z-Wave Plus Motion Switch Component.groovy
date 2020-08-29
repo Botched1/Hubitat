@@ -1,10 +1,11 @@
 /**
- *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Z-Wave%20Plus%20Motion%20Switch%20Component/Z-Wave%20Plus%20Motion%20Switch%20Component.groovy
+ *  IMPORT URL: 
  *
  *  GE Z-Wave Plus Motion Switch Component
  *  Driver that exposes the switch and motion sensor part of a GE Motion Switch device as separate child components
  *
  *  1.0.0 (08/27/2020) - Inititial Version
+ *  1.0.1 (08/29/2020) - Fixed an errant debug log
 */
 
 metadata {
@@ -91,11 +92,11 @@ def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
-	log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
+	if (logEnable) log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
-	log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
+	if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
 }
 
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
@@ -166,7 +167,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
-	if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
+	if (logEnable) log.debug "---SWITCH BINARY V1--- ${device.displayName} sent ${cmd}"
 
 	def cd = fetchChild("Switch")
 
