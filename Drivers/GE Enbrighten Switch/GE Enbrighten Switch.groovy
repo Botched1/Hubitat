@@ -10,6 +10,7 @@
  *  1.3.0 (05/17/2020) - Added associations and inverted paddle options
  *  2.0.0f (08/13/2020) - Added S2 capability for Hubitat 2.2.3 and newer
  *  2.1.0  (08/20/2020) - Fixed some command version issues
+ *  2.2.0 (08/29/2020) - Added number of button config to configure
 */
 
 import groovy.transform.Field
@@ -338,21 +339,24 @@ def configure() {
 	state.bin = -1
 	def cmds = []
 	
+	// Setup buttons
+	sendEvent(name: "numberOfButtons", value: 6, displayed: false)
+	
 	// Associations    
-    cmds << secure(zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format())
+	cmds << secure(zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format())
 
 	def nodes = []
 	nodes = parseAssocGroupList(settings.requestedGroup2, 2)
-    cmds << secure(zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: []).format())
-    cmds << secure(zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format())
-    cmds << secure(zwave.associationV2.associationGet(groupingIdentifier: 2).format())
-    state.currentGroup2 = settings.requestedGroup2
+	cmds << secure(zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: []).format())
+	cmds << secure(zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format())
+	cmds << secure(zwave.associationV2.associationGet(groupingIdentifier: 2).format())
+	state.currentGroup2 = settings.requestedGroup2
 	
    	nodes = parseAssocGroupList(settings.requestedGroup3, 3)
-    cmds << secure(zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: []).format())
-    cmds << secure(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes).format())
-    cmds << secure(zwave.associationV2.associationGet(groupingIdentifier: 3).format())
-    state.currentGroup3 = settings.requestedGroup3
+	cmds << secure(zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: []).format())
+	cmds << secure(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes).format())
+	cmds << secure(zwave.associationV2.associationGet(groupingIdentifier: 3).format())
+	state.currentGroup3 = settings.requestedGroup3
 	
 	delayBetween(cmds, 250)
 }
