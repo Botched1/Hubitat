@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: 
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Z-Wave%20Plus%20Motion%20Switch%20Component/Z-Wave%20Plus%20Motion%20Switch%20Component.groovy
  *
  *  GE Z-Wave Plus Motion Switch Component
  *  Driver that exposes the switch and motion sensor part of a GE Motion Switch device as separate child components
