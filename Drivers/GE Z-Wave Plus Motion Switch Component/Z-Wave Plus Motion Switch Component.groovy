@@ -7,6 +7,7 @@
  *  1.0.0 (08/27/2020) - Inititial Version
  *  1.0.1 (08/29/2020) - Fixed an errant debug log
  *  1.1.0 (08/30/2020) - Made some states attributes, added refresh capability to parent
+ *  1.1.1 (08/30/2020) - Fixed Updated() not working correctly
 */
 
 metadata {
@@ -366,7 +367,7 @@ void setLightTimeout(value) {
 			return
 	}
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
-	delayBetween(cmds, 500)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void Occupancy() {
@@ -375,7 +376,7 @@ void Occupancy() {
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
-	delayBetween(cmds, 500)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void Vacancy() {
@@ -384,7 +385,7 @@ void Vacancy() {
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
-	delayBetween(cmds, 500)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void Manual() {
@@ -393,7 +394,7 @@ void Manual() {
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
-	delayBetween(cmds, 500)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void refresh() {
@@ -504,8 +505,7 @@ void updated() {
 		state.currentGroup3 = settings.requestedGroup3
 	}    
 
-	delayBetween(cmds, 500)
-}
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 
 void configure() {
 	log.info "configure triggered"
