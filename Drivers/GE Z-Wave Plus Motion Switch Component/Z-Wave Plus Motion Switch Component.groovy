@@ -6,6 +6,7 @@
  *
  *  1.0.0 (08/27/2020) - Inititial Version
  *  1.0.1 (08/29/2020) - Fixed an errant debug log
+ *  1.1.0 (08/30/2020) - Made some states attributes, added refresh capability to parent
 */
 
 metadata {
@@ -17,6 +18,9 @@ metadata {
 		command "Vacancy"
 		command "Manual"
 		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]        
+
+		attribute "operatingMode", "string"
+		attribute "lightTimeout", "string"
 	}
 
 	preferences {
@@ -135,9 +139,16 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 		case 3:
 			name = "Operating Mode"
 			value = reportValue == 1 ? "Manual" : reportValue == 2 ? "Vacancy" : reportValue == 3 ? "Occupancy (default)": "error"
-			if (value == 1) {state.operatingMode = "Manual"} 
-			else if (value == 2) {state.operatingMode = "Vacancy"} 
-			else if (value == 3) {state.operatingMode = "Occupancy (default)"}
+			if (value == 1) {
+				state.operatingMode = "Manual"
+				sendEvent([name:"operatingMode", value: "Manual", displayed:true])
+			} else if (value == 2) {
+				state.operatingMode = "Vacancy"
+				sendEvent([name:"operatingMode", value: "Vacancy", displayed:true])
+			} else if (value == 3) {
+				state.operatingMode = "Occupancy (default)"
+				sendEvent([name:"operatingMode", value: "Occupancy (default)", displayed:true])
+			}
 			break
 		case 5:
 			name = "Invert Buttons"
@@ -340,6 +351,7 @@ void setLightTimeout(value) {
 
 void Occupancy() {
 	state.operatingMode = "Occupancy (default)"
+	sendEvent([name:"operatingMode", value: "Occupancy (default)", displayed:true])
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -348,6 +360,7 @@ void Occupancy() {
 
 void Vacancy() {
 	state.operatingMode = "Vacancy"
+	sendEvent([name:"operatingMode", value: "Vacancy", displayed:true])
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -356,6 +369,7 @@ void Vacancy() {
 
 void Manual() {
 	state.operatingMode = "Manual"
+	sendEvent([name:"operatingMode", value: "Manual", displayed:true])
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
