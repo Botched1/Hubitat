@@ -12,6 +12,7 @@
 metadata {
 	definition (name: "GE Z-Wave Plus Motion Switch Component", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Configuration"
+		capability "Refresh"
 		
 		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
 		command "Occupancy"
