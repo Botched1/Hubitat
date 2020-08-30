@@ -171,12 +171,25 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 		case 1:
 			name = "Light Timeout"
 			value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == 255 ? "disabled" : "error"
-			if (value == 0) {state.lightTimeout = "5 seconds"}
-			else if (value == 1) {state.lightTimeout = "1 minute"}
-			else if (value == 5) {state.lightTimeout = "5 minutes (default)"}
-			else if (value == 15) {state.lightTimeout = "15 minutes"}
-			else if (value == 30) {state.lightTimeout = "30 minutes"}
-			else if (value == 255) {state.lightTimeout = "disabled"}
+			if (value == 0) {
+				state.lightTimeout = "5 seconds"
+				sendEvent([name:"lightTimeout", value: "5 seconds", displayed:true])
+			} else if (value == 1) {
+				state.lightTimeout = "1 minute"
+				sendEvent([name:"lightTimeout", value: "1 minute", displayed:true])
+			} else if (value == 5) {
+				state.lightTimeout = "5 minutes (default)"
+				sendEvent([name:"lightTimeout", value: "5 minutes (default)", displayed:true])
+			} else if (value == 15) {
+				state.lightTimeout = "15 minutes"
+				sendEvent([name:"lightTimeout", value: "15 minutes", displayed:true])
+			} else if (value == 30) {
+				state.lightTimeout = "30 minutes"
+				sendEvent([name:"lightTimeout", value: "30 minutes", displayed:true])
+			} else if (value == 255) {
+				state.lightTimeout = "disabled"
+				sendEvent([name:"lightTimeout", value: "disabled", displayed:true])
+			}
 			break
 		case 3:
 			name = "Operating Mode"
@@ -495,26 +508,32 @@ void setLightTimeout(value) {
 	switch (value) {
 		case "5 seconds":
 			state.lightTimeout = "5 seconds"
+			sendEvent([name:"lightTimeout", value: "5 seconds", displayed:true])
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 0 , parameterNumber: 1, size: 1).format()
 			break
 		case "1 minute":
 			state.lightTimeout = "1 minute"
+			sendEvent([name:"lightTimeout", value: "1 minute", displayed:true])
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 1 , parameterNumber: 1, size: 1).format()
 			break
 		case "5 minutes (default)":
 			state.lightTimeout = "5 minutes (default)"
+			sendEvent([name:"lightTimeout", value: "5 minutes (default)", displayed:true])
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 5 , parameterNumber: 1, size: 1).format()
 			break
 		case "15 minutes":
 			state.lightTimeout = "15 minutes"
+			sendEvent([name:"lightTimeout", value: "15 minutes", displayed:true])
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 15 , parameterNumber: 1, size: 1).format()
 			break
 		case "30 minutes":
 			state.lightTimeout = "30 minutes"
+			sendEvent([name:"lightTimeout", value: "30 minutes", displayed:true])
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 30 , parameterNumber: 1, size: 1).format()
 			break
 		case "disabled":
 			state.lightTimeout = "disabled"
+			sendEvent([name:"lightTimeout", value: "disabled", displayed:true])
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 255 , parameterNumber: 1, size: 1).format()
 			break
 		default:
