@@ -506,6 +506,7 @@ void updated() {
 	}    
 
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
+}
 
 void configure() {
 	log.info "configure triggered"
@@ -607,3 +608,4 @@ void logsOff(){
 	log.warn "debug logging disabled..."
 	device.updateSetting("logEnable",[value:"false",type:"bool"])
 }
+    
