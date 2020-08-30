@@ -7,7 +7,8 @@
  *  1.0.0 (08/25/2020) - First attempt at parent/child structure
  *  1.1.0 (08/27/2020) - Added more options to Debug Logging command and added startLevelChange and stopLevelChange commands
  *  1.1.1 (08/28/2020) - Missed setting type on one of the on/off events
- *  1.2.0 (0830/2020)  - Made some states attributes, added refresh capability to parent
+ *  1.2.0 (08/30/2020)  - Made some states attributes, added refresh capability to parent
+ *  1.2.1 (08/30/2020)  - Fixed Updated() not working correctly
 */
 
 metadata {
@@ -479,7 +480,7 @@ void setDefaultDimmerLevel(value) {
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
-	delayBetween(cmds, 500)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 def startLevelChange(direction) {
@@ -542,7 +543,7 @@ void setLightTimeout(value) {
 			return
 	}
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
-	delayBetween(cmds, 500)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE)
 }
 
 void Occupancy() {
@@ -551,7 +552,7 @@ void Occupancy() {
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
-	delayBetween(cmds, 500)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void Vacancy() {
@@ -560,7 +561,7 @@ void Vacancy() {
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
-	delayBetween(cmds, 500)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void Manual() {
@@ -569,7 +570,7 @@ void Manual() {
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
-	delayBetween(cmds, 500)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void refresh() {
@@ -730,7 +731,7 @@ void updated() {
 		state.currentGroup3 = settings.requestedGroup3
 	}    
 
-	delayBetween(cmds, 500)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void configure() {
