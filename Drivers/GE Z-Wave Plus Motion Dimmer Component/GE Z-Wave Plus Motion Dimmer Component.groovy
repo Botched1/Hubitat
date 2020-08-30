@@ -249,6 +249,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 			name = "Default Dimmer Level"
 			value = reportValue
 			state.defaultDimmerLevel = value
+			sendEvent([name:"defaultDimmerLevel", value: value, displayed:true])
 			break
 		case 18:
 			name = "Dimming Rate"
@@ -473,6 +474,7 @@ void setDefaultDimmerLevel(value) {
 	
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	state.defaultDimmerLevel = value
+	sendEvent([name:"defaultDimmerLevel", value: value, displayed:true])
 	
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
