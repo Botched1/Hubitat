@@ -7,11 +7,13 @@
  *  1.0.0 (08/25/2020) - First attempt at parent/child structure
  *  1.1.0 (08/27/2020) - Added more options to Debug Logging command and added startLevelChange and stopLevelChange commands
  *  1.1.1 (08/28/2020) - Missed setting type on one of the on/off events
+ *  1.2.0 (0830/2020)  - Made some states attributes, added refresh capability to parent
 */
 
 metadata {
 	definition (name: "GE Z-Wave Plus Motion Dimmer Component", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Configuration"
+		capability "Refresh"
 		
 		command "setDefaultDimmerLevel", [[name:"Default Dimmer Level",type:"NUMBER", description:"Default Dimmer Level Used when Turning ON. (0=Last Dimmer Value)", range: "0..99"]]
 		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
@@ -19,6 +21,11 @@ metadata {
 		command "Vacancy"
 		command "Manual"
 		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]        
+
+		attribute "operatingMode", "string"
+		attribute "defaultDimmerLevel", "number"
+		attribute "lightTimeout", "string"
+	
 	}
 
 	preferences {
@@ -174,9 +181,16 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 		case 3:
 			name = "Operating Mode"
 			value = reportValue == 1 ? "Manual" : reportValue == 2 ? "Vacancy" : reportValue == 3 ? "Occupancy (default)": "error"
-			if (value == 1) {state.operatingMode = "Manual"} 
-			else if (value == 2) {state.operatingMode = "Vacancy"} 
-			else if (value == 3) {state.operatingMode = "Occupancy (default)"}
+			if (value == 1) {
+				state.operatingMode = "Manual"
+				sendEvent([name:"operatingMode", value: "Manual", displayed:true])
+			} else if (value == 2) {
+				state.operatingMode = "Vacancy"
+				sendEvent([name:"operatingMode", value: "Vacancy", displayed:true])
+			} else if (value == 3) {
+				state.operatingMode = "Occupancy (default)"
+				sendEvent([name:"operatingMode", value: "Occupancy (default)", displayed:true])
+			}
 			break
 		case 5:
 			name = "Invert Buttons"
@@ -512,6 +526,7 @@ void setLightTimeout(value) {
 
 void Occupancy() {
 	state.operatingMode = "Occupancy (default)"
+	sendEvent([name:"operatingMode", value: "Occupancy (default)", displayed:true])
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -520,6 +535,7 @@ void Occupancy() {
 
 void Vacancy() {
 	state.operatingMode = "Vacancy"
+	sendEvent([name:"operatingMode", value: "Vacancy", displayed:true])
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -528,6 +544,7 @@ void Vacancy() {
 
 void Manual() {
 	state.operatingMode = "Manual"
+	sendEvent([name:"operatingMode", value: "Manual", displayed:true])
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
