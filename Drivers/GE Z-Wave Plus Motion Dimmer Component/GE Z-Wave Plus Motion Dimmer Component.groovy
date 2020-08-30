@@ -543,7 +543,7 @@ void setLightTimeout(value) {
 			return
 	}
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
-	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE)
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void Occupancy() {
