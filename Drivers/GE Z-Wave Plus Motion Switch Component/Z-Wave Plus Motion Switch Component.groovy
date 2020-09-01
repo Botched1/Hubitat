@@ -8,6 +8,7 @@
  *  1.0.1 (08/29/2020) - Fixed an errant debug log
  *  1.1.0 (08/30/2020) - Made some states attributes, added refresh capability to parent
  *  1.1.1 (08/30/2020) - Fixed Updated() not working correctly
+ *  1.1.2 (08/31/2020) - Fixed attributes not populating correctly on install
 */
 
 metadata {
@@ -129,41 +130,14 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	def reportValue = config // cmd.configurationValue[0]
 	switch (cmd.parameterNumber) {
 		case 1:
-			name = "Light Timeout"
+			name = "lightTimeout"
 			value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == 255 ? "disabled" : "error"
-			if (value == 0) {
-				state.lightTimeout = "5 seconds"
-				sendEvent([name:"lightTimeout", value: "5 seconds", displayed:true])
-			} else if (value == 1) {
-				state.lightTimeout = "1 minute"
-				sendEvent([name:"lightTimeout", value: "1 minute", displayed:true])
-			} else if (value == 5) {
-				state.lightTimeout = "5 minutes (default)"
-				sendEvent([name:"lightTimeout", value: "5 minutes (default)", displayed:true])
-			} else if (value == 15) {
-				state.lightTimeout = "15 minutes"
-				sendEvent([name:"lightTimeout", value: "15 minutes", displayed:true])
-			} else if (value == 30) {
-				state.lightTimeout = "30 minutes"
-				sendEvent([name:"lightTimeout", value: "30 minutes", displayed:true])
-			} else if (value == 255) {
-				state.lightTimeout = "disabled"
-				sendEvent([name:"lightTimeout", value: "disabled", displayed:true])
-			}
+			sendEvent([name:"lightTimeout", value: value, displayed:true])
 			break
 		case 3:
-			name = "Operating Mode"
+			name = "operatingMode"
 			value = reportValue == 1 ? "Manual" : reportValue == 2 ? "Vacancy" : reportValue == 3 ? "Occupancy (default)": "error"
-			if (value == 1) {
-				state.operatingMode = "Manual"
-				sendEvent([name:"operatingMode", value: "Manual", displayed:true])
-			} else if (value == 2) {
-				state.operatingMode = "Vacancy"
-				sendEvent([name:"operatingMode", value: "Vacancy", displayed:true])
-			} else if (value == 3) {
-				state.operatingMode = "Occupancy (default)"
-				sendEvent([name:"operatingMode", value: "Occupancy (default)", displayed:true])
-			}
+			sendEvent([name:"operatingMode", value: value, displayed:true])
 			break
 		case 5:
 			name = "Invert Buttons"
@@ -447,6 +421,12 @@ void updated() {
 		cd = addChildDevice("hubitat", "Generic Component Motion Sensor", "${thisId}-Motion Sensor", [name: "${device.displayName} Motion Sensor", isComponent: true])
 	}
 	
+	// Get light timeout parameter
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
+	
+	// Get operating mode parameter
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+	
 	// Set Inverted param
 	if (paramInverted==null) {
 		paramInverted = 0
@@ -517,6 +497,8 @@ void configure() {
 	cmds << zwave.associationV2.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
     
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
+	
+	refresh()
 }
 
 private parseAssocGroupList(list, group) {
