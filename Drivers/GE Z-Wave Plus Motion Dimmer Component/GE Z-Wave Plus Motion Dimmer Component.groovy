@@ -10,6 +10,7 @@
  *  1.2.0 (08/30/2020)  - Made some states attributes, added refresh capability to parent
  *  1.2.1 (08/30/2020)  - Fixed Updated() not working correctly
  *  1.2.2 (08/31/2020)  - Fixed attributes not populating correctly on install
+ *  1.2.3 (09/01/2020)  - Fixed redundant on/poff events
 */
 
 metadata {
@@ -119,6 +120,7 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
 
+	/*
 	def cd = fetchChild("Dimmer")
 	String cv = ""
 
@@ -144,7 +146,8 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	}
     		
 	// Send events to child
-	cd.parse(evts)  
+	cd.parse(evts)
+	*/
 }
 
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
