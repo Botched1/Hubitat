@@ -10,7 +10,7 @@
  *  1.2.0 (08/30/2020)  - Made some states attributes, added refresh capability to parent
  *  1.2.1 (08/30/2020)  - Fixed Updated() not working correctly
  *  1.2.2 (08/31/2020)  - Fixed attributes not populating correctly on install
- *  1.2.3 (09/01/2020)  - Fixed redundant on/poff events
+ *  1.2.3 (09/01/2020)  - Fixed redundant on/off events
 */
 
 metadata {
