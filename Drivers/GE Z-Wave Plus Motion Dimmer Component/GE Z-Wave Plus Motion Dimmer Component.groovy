@@ -11,7 +11,6 @@
  *  1.2.1 (08/30/2020)  - Fixed Updated() not working correctly
  *  1.2.2 (08/31/2020)  - Fixed attributes not populating correctly on install
  *  1.2.3 (09/01/2020)  - Fixed redundant on/off events
- *  1.2.4 (09/02/2020)  - Moved ON/OFF events to BasicSet from MultiLevelReport
 */
 
 metadata {
@@ -121,6 +120,7 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
 
+	/*
 	def cd = fetchChild("Dimmer")
 	String cv = ""
 
@@ -145,6 +145,7 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
     		
 	// Send events to child
 	cd.parse(evts)
+	*/
 }
 
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
@@ -307,14 +308,13 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 	
 	List<Map> evts = []
 
+    //if (cmd.value) {
+    //    evts.add([name:"level", value: cmd.value, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: "physical"])
+    //    cd.parse(evts)
+    //}
+    
+    
     if (cmd.value) {
-        evts.add([name:"level", value: cmd.value, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: "physical"])
-        cd.parse(evts)
-    }
-    
-    
-    /*
-	if (cmd.value) {
 		if (cv == "off") {
 			log.warn "In multilevel turning on"
 			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical"])
@@ -330,7 +330,6 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 			cd.parse(evts)
 		}
 	}
-    */
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd) {
