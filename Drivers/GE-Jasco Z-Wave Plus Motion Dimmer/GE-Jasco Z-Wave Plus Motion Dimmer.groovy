@@ -16,6 +16,7 @@
  *  2.1.0 (02/01/2020) - Added setLightTimeout and DebugLogging commands, added description logging, added state variables for default dimmer level/operating mode/and light timeout
  *  2.1.1 (02/01/2020) - Added digital/physical type indicators on the events
  *  2.2.0 (05/17/2020) - Updated step/duration description text
+ *  2.3.0 (09/06/2020) - Made some states attributes
 */
 
 metadata {
@@ -36,6 +37,10 @@ metadata {
         command "Vacancy"
         command "Manual"
 		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]        
+        
+        attribute "operatingMode", "string"
+		attribute "defaultDimmerLevel", "number"
+		attribute "lightTimeout", "string"
 	}
 
  preferences {
@@ -156,21 +161,14 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
     def reportValue = config // cmd.configurationValue[0]
     switch (cmd.parameterNumber) {
         case 1:
-            name = "Light Timeout"
-            value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == 255 ? "disabled" : "error"
-            if (value == 0) {state.lightTimeout = "5 seconds"}
-            else if (value == 1) {state.lightTimeout = "1 minute"}
-            else if (value == 5) {state.lightTimeout = "5 minutes (default)"}
-            else if (value == 15) {state.lightTimeout = "15 minutes"}
-            else if (value == 30) {state.lightTimeout = "30 minutes"}
-            else if (value == 255) {state.lightTimeout = "disabled"}
+			name = "lightTimeout"
+			value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == 255 ? "disabled" : "error"
+		    sendEvent([name:"lightTimeout", value: value, displayed:true])
             break
         case 3:
-            name = "Operating Mode"
-            value = reportValue == 1 ? "Manual" : reportValue == 2 ? "Vacancy" : reportValue == 3 ? "Occupancy (default)": "error"
-            if (value == 1) {state.operatingMode = "Manual"} 
-            else if (value == 2) {state.operatingMode = "Vacancy"} 
-            else if (value == 3) {state.operatingMode = "Occupancy (default)"}
+			name = "operatingMode"
+			value = reportValue == 1 ? "Manual" : reportValue == 2 ? "Vacancy" : reportValue == 3 ? "Occupancy (default)": "error"
+			sendEvent([name:"operatingMode", value: value, displayed:true])
             break
         case 5:
             name = "Invert Buttons"
@@ -213,10 +211,10 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
             value = reportValue == 0 ? "Disabled (default)" : reportValue == 1 ? "Enabled" : "error"
             break
         case 17:
-            name = "Default Dimmer Level"
-            value = reportValue
-            state.defaultDimmerLevel = value
-            break
+			name = "Default Dimmer Level"
+			value = reportValue
+			sendEvent([name:"defaultDimmerLevel", value: value, displayed:true])
+			break
         case 18:
             name = "Dimming Rate"
             value = reportValue == 0 ? "Quickly (default)" : reportValue == 1 ? "Slowly" : "error"
@@ -385,52 +383,63 @@ def setLevel(value, duration) {
 
 def setDefaultDimmerLevel(value) {
 	if (logEnable) log.debug "Setting default dimmer level: ${value}"
+
     value = Math.max(Math.min(value.toInteger(), 99), 0)
-    state.defaultDimmerLevel = value
-    def cmds = []
-    cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
-  	cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
-    delayBetween(cmds, 500)
+	state.defaultDimmerLevel = value
+	sendEvent([name:"defaultDimmerLevel", value: value, displayed:true])
+    
+	def cmds = []
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
+	delayBetween(cmds, 500)
 }
 
 def setLightTimeout(value) {
-    if (logEnable) log.debug "Setting light timeout value: ${value}"
-    def cmds = []        
-    // "5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"
-    switch (value) {
-        case "5 seconds":
-            state.lightTimeout = "5 seconds"
-            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 0 , parameterNumber: 1, size: 1).format()
-            break
-        case "1 minute":
-            state.lightTimeout = "1 minute"
-            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 1 , parameterNumber: 1, size: 1).format()
-            break
-        case "5 minutes (default)":
-            state.lightTimeout = "5 minutes (default)"
-            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 5 , parameterNumber: 1, size: 1).format()
-            break
-        case "15 minutes":
-            state.lightTimeout = "15 minutes"
-            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 15 , parameterNumber: 1, size: 1).format()
-            break
-        case "30 minutes":
-            state.lightTimeout = "30 minutes"
-            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 30 , parameterNumber: 1, size: 1).format()
-            break
-        case "disabled":
-            state.lightTimeout = "disabled"
-            cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 255 , parameterNumber: 1, size: 1).format()
-            break
-        default:
-            return
-    }
+	if (logEnable) log.debug "Setting light timeout value: ${value}"
+	def cmds = []        
+    
+	// "5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"
+	switch (value) {
+		case "5 seconds":
+			state.lightTimeout = "5 seconds"
+			sendEvent([name:"lightTimeout", value: "5 seconds", displayed:true])
+			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 0 , parameterNumber: 1, size: 1).format()
+			break
+		case "1 minute":
+			state.lightTimeout = "1 minute"
+			sendEvent([name:"lightTimeout", value: "1 minute", displayed:true])
+			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 1 , parameterNumber: 1, size: 1).format()
+			break
+		case "5 minutes (default)":
+			state.lightTimeout = "5 minutes (default)"
+			sendEvent([name:"lightTimeout", value: "5 minutes (default)", displayed:true])
+			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 5 , parameterNumber: 1, size: 1).format()
+			break
+		case "15 minutes":
+			state.lightTimeout = "15 minutes"
+			sendEvent([name:"lightTimeout", value: "15 minutes", displayed:true])
+			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 15 , parameterNumber: 1, size: 1).format()
+			break
+		case "30 minutes":
+			state.lightTimeout = "30 minutes"
+			sendEvent([name:"lightTimeout", value: "30 minutes", displayed:true])
+			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 30 , parameterNumber: 1, size: 1).format()
+			break
+		case "disabled":
+			state.lightTimeout = "disabled"
+			sendEvent([name:"lightTimeout", value: "disabled", displayed:true])
+			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 255 , parameterNumber: 1, size: 1).format()
+			break
+		default:
+			return
+	}
   	cmds << zwave.configurationV2.configurationGet(parameterNumber: 1).format()
     delayBetween(cmds, 500)
 }
 
 def Occupancy() {
 	state.operatingMode = "Occupancy (default)"
+	sendEvent([name:"operatingMode", value: "Occupancy (default)", displayed:true])
     def cmds = []
     cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -440,6 +449,7 @@ def Occupancy() {
 
 def Vacancy() {
 	state.operatingMode = "Vacancy"
+	sendEvent([name:"operatingMode", value: "Vacancy", displayed:true])
     def cmds = []
     cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -448,6 +458,7 @@ def Vacancy() {
 
 def Manual() {
 	state.operatingMode = "Manual"
+	sendEvent([name:"operatingMode", value: "Manual", displayed:true])
     def cmds = []
     cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -620,12 +631,16 @@ def updated() {
 }
 
 def configure() {
-    log.info "configure triggered"
+	log.info "configure triggered"
+	
 	def cmds = []
-    cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
+	cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format()
 	cmds << zwave.associationV2.associationRemove(groupingIdentifier:2, nodeId:zwaveHubNodeId).format()
-    cmds << zwave.associationV2.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
-    delayBetween(cmds, 500)
+	cmds << zwave.associationV2.associationSet(groupingIdentifier:3, nodeId:zwaveHubNodeId).format()
+    
+	delayBetween(cmds, 500)
+    
+    refresh()
 }
 
 private parseAssocGroupList(list, group) {
