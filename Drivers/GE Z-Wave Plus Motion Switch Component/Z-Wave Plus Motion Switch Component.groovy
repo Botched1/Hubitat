@@ -400,7 +400,7 @@ void installed() {
 void updated() {
 	log.info "updated..."
 	log.warn "debug logging is: ${logEnable == true}"
-	log.warn "description logging is: ${txtEnable == true}"
+	log.warn "description logging is: ${logDesc == true}"
 	if (logEnable) runIn(1800,logsOff)
 
 	if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
