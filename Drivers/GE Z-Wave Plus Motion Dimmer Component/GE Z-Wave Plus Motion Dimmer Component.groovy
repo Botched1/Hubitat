@@ -316,7 +316,7 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
     
     if (cmd.value) {
 		if (cv == "off") {
-			log.warn "In multilevel turning on"
+			//log.warn "In multilevel turning on"
 			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical"])
 		}
 		evts.add([name:"level", value: cmd.value, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: "physical"])
@@ -324,7 +324,7 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 		cd.parse(evts)
 	} else {
 		if (cv == "on") {
-			log.warn "In multilevel turning off"
+			//log.warn "In multilevel turning off"
 			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical"])
 			// Send events to child
 			cd.parse(evts)
@@ -593,7 +593,7 @@ void installed() {
 void updated() {
 	log.info "updated..."
 	log.warn "debug logging is: ${logEnable == true}"
-	log.warn "description logging is: ${txtEnable == true}"
+	log.warn "description logging is: ${logDesc == true}"
 	if (logEnable) runIn(1800,logsOff)
 
 	if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
