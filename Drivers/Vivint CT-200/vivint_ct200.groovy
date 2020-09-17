@@ -355,7 +355,7 @@ def updateBattery() {
 }
 
 def DebugLogging(value) {
-	if (value=="OFF") {logsoff}
+	if (value=="OFF") {logsOff}
         if (value=="ON") {
 		log.debug "debug logging is enabled."
 		unschedule(logsOff)
