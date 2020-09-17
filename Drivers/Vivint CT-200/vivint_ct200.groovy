@@ -355,8 +355,11 @@ def updateBattery() {
 }
 
 def DebugLogging(value) {
-	if (value=="OFF") {logsOff}
-        if (value=="ON") {
+	if (value=="OFF") {
+		unschedule(logsOff)
+		logsOff
+	}
+        else if (value=="ON") {
 		log.debug "debug logging is enabled."
 		unschedule(logsOff)
 		device.updateSetting("logEnable",[value:"true",type:"bool"])
