@@ -27,6 +27,7 @@
  *  Version 1.7   - 08/01/2020     Added support for Hail (happens when thermostat is reboot/1st powered up) and AssociationReport
  *  Version 1.8   - 08/02/2020     Added logic to refresh fan / operating states when they get out of sync or an update report was missed/didn't happen
  *  Version 1.8.1 - 08/03/2020     Switched lastSync logic to use state variables
+ *  Version 1.9   - 09/22/2020     Added digital/physical type to setpoint change events
 */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -98,7 +99,9 @@ def setHeatingSetpoint(double degrees) {
 	if (logEnable) log.debug "setHeatingSetpoint...START"
     
 	def locationScale = getTemperatureScale()
-    def p = 0
+	def p = 0
+	
+	state.bin = -1
 	
 	/*
 	if (p==0) {
@@ -134,6 +137,8 @@ def setCoolingSetpoint(double degrees) {
 
 	def locationScale = getTemperatureScale()
 	def p = 0
+	
+	state.bin = -1
 
 	/*
 	if (p==0) {
@@ -608,10 +613,24 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 
 	def cmdScale = cmd.scale == 1 ? "F" : "C"
 
-    if (logEnable) log.debug "cmdScale is $cmdScale"
-    if (logEnable) log.debug "setpoint requested is $cmd.scaledValue and unit is $cmdScale"
+	if (logEnable) log.debug "cmdScale is $cmdScale"
+	if (logEnable) log.debug "setpoint requested is $cmd.scaledValue and unit is $cmdScale"
 
 	def map = [:]
+	
+	// check state.bin variable to see if event is digital or physical
+	def newType
+	if (state.bin == -1)
+	{
+		newType = "digital"
+	}
+	else
+	{
+		newType = "physical"
+	}
+	
+	// Reset state.bin variable
+	state.bin = 0	
 
 	if (cmdScale==getTemperatureScale()) {
 		map.value=cmd.scaledValue
@@ -641,7 +660,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	state.precision = cmd.precision
 
     if (logEnable) log.debug "In ThermostatSetpointReport map is $map"
-	sendEvent([name: map.name, value: map.value, displayed:true, unit: map.unit, isStateChange:true])
+	sendEvent([name: map.name, value: map.value, displayed:true, unit: map.unit, type: "$newType", isStateChange:true])
 
 	// Update thermostatSetpoint based on mode and operatingstate
 	def tos = getDataValue("thermostatOperatingState")
