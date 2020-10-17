@@ -9,7 +9,7 @@
  *  1.1.0 (08/30/2020) - Made some states attributes, added refresh capability to parent
  *  1.1.1 (08/30/2020) - Fixed Updated() not working correctly
  *  1.1.2 (08/31/2020) - Fixed attributes not populating correctly on install
- *  1.1.3 (10/17/2020)  - Added actuator capbility so custom commands can be used in rule machine
+ *  1.1.3 (10/17/2020)  - Added actuator capability so custom commands can be used in rule machine
 */
 
 metadata {
