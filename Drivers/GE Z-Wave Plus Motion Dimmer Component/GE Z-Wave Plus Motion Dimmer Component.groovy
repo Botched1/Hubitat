@@ -11,12 +11,14 @@
  *  1.2.1 (08/30/2020)  - Fixed Updated() not working correctly
  *  1.2.2 (08/31/2020)  - Fixed attributes not populating correctly on install
  *  1.2.3 (09/01/2020)  - Fixed redundant on/off events
+ *  1.2.4 (10/17/2020)  - Added actuator capbility so custom commands can be used in rule machine
 */
 
 metadata {
 	definition (name: "GE Z-Wave Plus Motion Dimmer Component", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Configuration"
 		capability "Refresh"
+		capability "Actuator"
 		
 		command "setDefaultDimmerLevel", [[name:"Default Dimmer Level",type:"NUMBER", description:"Default Dimmer Level Used when Turning ON. (0=Last Dimmer Value)", range: "0..99"]]
 		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
