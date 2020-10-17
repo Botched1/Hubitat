@@ -9,12 +9,14 @@
  *  1.1.0 (08/30/2020) - Made some states attributes, added refresh capability to parent
  *  1.1.1 (08/30/2020) - Fixed Updated() not working correctly
  *  1.1.2 (08/31/2020) - Fixed attributes not populating correctly on install
+ *  1.1.3 (10/17/2020)  - Added actuator capbility so custom commands can be used in rule machine
 */
 
 metadata {
 	definition (name: "GE Z-Wave Plus Motion Switch Component", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Configuration"
 		capability "Refresh"
+		capability "Actuator"
 		
 		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
 		command "Occupancy"
