@@ -9,7 +9,8 @@
  *  1.1.0 (08/30/2020) - Made some states attributes, added refresh capability to parent
  *  1.1.1 (08/30/2020) - Fixed Updated() not working correctly
  *  1.1.2 (08/31/2020) - Fixed attributes not populating correctly on install
- *  1.1.3 (10/17/2020)  - Added actuator capability so custom commands can be used in rule machine
+ *  1.1.3 (10/17/2020) - Added actuator capability so custom commands can be used in rule machine
+ *  1.1.4 (10/27/2020) - Fixed motion reset time parameter setting not working
 */
 
 metadata {
@@ -461,7 +462,7 @@ void updated() {
 	if (paramMotionResetTimer==null) {
 		paramMotionResetTimer = 2
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionResetTimer.toInteger(), parameterNumber: 15, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionResetTimer.toInteger(), parameterNumber: 15, size: 2).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 15).format()
 
 	// Association groups
