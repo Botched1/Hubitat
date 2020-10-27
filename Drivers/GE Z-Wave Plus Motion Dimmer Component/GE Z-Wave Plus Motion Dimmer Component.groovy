@@ -12,7 +12,7 @@
  *  1.2.2 (08/31/2020)  - Fixed attributes not populating correctly on install
  *  1.2.3 (09/01/2020)  - Fixed redundant on/off events
  *  1.2.4 (10/17/2020)  - Added actuator capability so custom commands can be used in rule machine
- *  1.2.5 (10/27/2020)  - Fixed motion reset time paraemter setting not working
+ *  1.2.5 (10/27/2020)  - Fixed motion reset time parameter setting not working
 */
 
 metadata {
