@@ -1,0 +1,16 @@
+{
+  "packageName": "GE Enbrighten Z-Wave Plus Switch",
+  "author": "Botched1 (Jason Bottjen)",
+  "version": "2.2.0",
+  "minimumHEVersion": "2.1.9",
+  "dateReleased": "2020-08-29",
+  "drivers": [
+    {
+      "id": "573bb6d2-fed5-4a0a-9a6e-71b3f13a0c5c",
+      "name": "GE Enbrighten Z-Wave Plus Switch",
+      "namespace": "Botched1",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Enbrighten%20Switch/GE%20Enbrighten%20Switch.groovy",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "packageName": "Vivint CT200 Thermostat",
+  "author": "Botched1 (Jason Bottjen)",
+  "version": "1.9",
+  "minimumHEVersion": "0.0",
+  "dateReleased": "2020-10-27",
+  "drivers": [
+    {
+      "id": "21d2d571-919c-409b-bed0-3ae21840a168",
+      "name": "Vivint CT200 Thermostat",
+      "namespace": "Botched1",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/Vivint%20CT-200/vivint_ct200.groovy",
+      "required": true
+    }
+  ]
+}

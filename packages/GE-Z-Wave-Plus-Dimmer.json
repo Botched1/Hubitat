@@ -1,0 +1,16 @@
+{
+  "packageName": "GE Z-Wave Plus Dimmer",
+  "author": "Botched1 (Jason Bottjen)",
+  "version": "2.5.0",
+  "minimumHEVersion": "0.0",
+  "dateReleased": "2020-10-27",
+  "drivers": [
+    {
+      "id": "1812a08e-b658-454a-8717-4af18f4c55ec",
+      "name": "GE Z-Wave Plus Dimmer",
+      "namespace": "Botched1",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE-Jasco%20Z-Wave%20Plus%20Dimmer/GE-Jasco%20Z-Wave%20Plus%20Dimmer.groovy",
+      "required": true
+    }
+  ]
+}

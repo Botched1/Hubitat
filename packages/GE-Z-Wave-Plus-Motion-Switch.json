@@ -1,0 +1,16 @@
+{
+  "packageName": "GE Z-Wave Plus Motion Switch",
+  "author": "Botched1 (Jason Bottjen)",
+  "version": "2.1.1",
+  "minimumHEVersion": "0.0",
+  "dateReleased": "2020-10-27",
+  "drivers": [
+    {
+      "id": "65a29ed5-91e5-4028-93c8-a4676a739db1",
+      "name": "GE Z-Wave Plus Motion Switch",
+      "namespace": "Botched1",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE-Jasco%20Z-Wave%20Plus%20Motion%20Switch/GE-Jasco%20Z-Wave%20Plus%20Motion%20Switch.groovy",
+      "required": true
+    }
+  ]
+}

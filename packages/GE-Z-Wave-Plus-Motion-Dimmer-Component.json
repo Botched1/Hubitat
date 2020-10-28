@@ -1,0 +1,16 @@
+{
+  "packageName": "GE Z-Wave Plus Motion Dimmer Component",
+  "author": "Botched1 (Jason Bottjen)",
+  "version": "1.2.5",
+  "minimumHEVersion": "0.0",
+  "dateReleased": "2020-10-27",
+  "drivers": [
+    {
+      "id": "970700c1-92a1-4723-b91c-0ab50b74205d",
+      "name": "GE Z-Wave Plus Motion Dimmer Component",
+      "namespace": "Botched1",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Component/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Component.groovy",
+      "required": true
+    }
+  ]
+}
