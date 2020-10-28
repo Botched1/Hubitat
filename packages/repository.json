@@ -1,0 +1,96 @@
+{
+  "author": "Botched1 (Jason Bottjen)",
+  "gitHubUrl": "https://github.com/Botched1/Hubitat",
+  "packages": [
+    {
+      "id": "2254dcab-8d6b-42c7-8c9a-454daa7d1f6a",
+      "name": "GE Enbrighten Z-Wave Plus Dimmer",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/GE-Enbrighten-Z-Wave-Plus-Dimmer.json",
+      "description": "Driver for S2 capable GE Enbrighten Dimmer",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "0c139a4a-edfa-43b3-835a-600e65b55c26",
+      "name": "GE Enbrighten Z-Wave Plus Switch",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/GE-Enbrighten-Z-Wave-Plus-Switch.json",
+      "description": "Driver for S2 capable GE Enbrighten Switch",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "0b63b474-aa2f-4e9f-899b-f08ff6615374",
+      "name": "GE Z-Wave Plus Dimmer",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/GE-Z-Wave-Plus-Dimmer.json",
+      "description": "Driver for non-S2 GE Z-Wave Plus Dimmer",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "04503ff2-a484-4481-9a9d-560fd1161883",
+      "name": "GE Z-Wave Plus Switch",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/GE-Z-Wave-Plus-Switch.json",
+      "description": "Driver for non-S2 GE Z-Wave Plus Switch",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "06585949-c19b-4187-9481-126f71ee5d14",
+      "name": "GE Z-Wave Plus Motion Dimmer Component",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/GE-Z-Wave-Plus-Motion-Dimmer-Component.json",
+      "description": "Driver for GE Motion Dimmer that creates separate child deivces for motion and dimmer",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "cf4c5556-54fe-49ea-be21-71f761f541b2",
+      "name": "GE Z-Wave Plus Motion Switch Component",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/GE-Z-Wave-Plus-Motion-Switch-Component.json",
+      "description": "Driver for GE Motion Switch that creates separate child deivces for motion and switch",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "5dc468df-d4bb-4c5d-b66d-201c68e0c303",
+      "name": "GE Z-Wave Plus Motion Switch",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/GE-Z-Wave-Plus-Motion-Switch.json",
+      "description": "Driver for GE Motion Switch",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "4c26a059-aba3-49f7-93af-fbdfd2f64ef2",
+      "name": "GE Z-Wave Plus Motion Dimmer",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/GE-Z-Wave-Plus-Motion-Dimmer.json",
+      "description": "Driver for GE Motion Dimmer",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "ea92d9f5-aa56-468a-83f0-c485175b7f1c",
+      "name": "Vivint CT200 Thermostat",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/Vivint-CT200-Thermostat.json",
+      "description": "Driver for Vivint CT-200 Thermostat",
+      "tags": [
+        "Climate Control"
+      ]
+    }
+  ]
+}
