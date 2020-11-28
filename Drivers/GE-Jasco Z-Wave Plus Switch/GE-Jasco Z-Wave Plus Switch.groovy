@@ -22,6 +22,7 @@
  *  2.1.0 (05/05/2019) - Added physical/digital types to switch events
  *  2.2.0 (06/15/2019) - Added numberOfButtons event
  *  2.3.0 (12/07/2019) - Tweaks to Association Setting
+ *  2.4.0 (11/28/2020) - Modified on/off events to create a new event event when already on/off
  */
 
 metadata {
@@ -188,7 +189,7 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	def desc, newValue, curValue, newType
 	
 	// check state.bin variable to see if event is digital or physical
-	if (state.bin)
+	if (state.bin == -1)
 	{
 		newType = "digital"
 	}
@@ -212,10 +213,10 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 		newValue = "off"
 	}
 
-	if (curValue != newValue) {
+	//if (curValue != newValue) {
 		if (logDesc) log.info "$device.displayName is " + (cmd.value ? "on" : "off")
 		createEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: "$newType", isStateChange: true])
-	}
+	//}
 	
 }
 
