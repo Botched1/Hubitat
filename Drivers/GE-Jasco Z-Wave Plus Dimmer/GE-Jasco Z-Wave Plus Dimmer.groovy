@@ -26,6 +26,7 @@
  *  2.3.0 (10/25/2019) - Fixed setLevel=0 to turn off device as expected, resolved regression introduced in 2.1.0. 
  *  2.4.0 (12/07/2019) - Tweaks to Association code
  *  2.5.0 (05/17/2020) - Updated text of steps/duration
+ *  2.6.0 (11/28/2020) - Modified on/off events to create a new event event when already on/off
  */
 
 metadata {
@@ -266,15 +267,15 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 		if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
 
 		// Set switch status
-		if (device.currentValue("switch") == "off") {
+		//if (device.currentValue("switch") == "off") {
 			sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on [$newType]", type: "$newType", isStateChange: true)
 			if (logDesc) log.info "$device.displayName was turned on [$newType]"
-		}
+		//}
 	} else {
-		if (device.currentValue("switch") == "on") {
+		//if (device.currentValue("switch") == "on") {
 			sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off [$newType]", type: "$newType", isStateChange: true)
 			if (logDesc) log.info "$device.displayName was turned off [$newType]"
-		}
+		//}
 	}
 }
 
