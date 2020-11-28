@@ -1,9 +1,9 @@
 {
   "packageName": "GE Z-Wave Plus Switch",
   "author": "Botched1 (Jason Bottjen)",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2020-10-27",
+  "dateReleased": "2020-11-28",
   "drivers": [
     {
       "id": "ca162fc7-a788-4e97-991a-be4e35ae045c",
