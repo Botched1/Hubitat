@@ -22,12 +22,13 @@
  *  Version 1.5   - 07/28/2020     Attempted to fix Celsius input/output issues #3
  *  Version 1.5.1 - 07/28/2020     Fix round error
  *  Version 1.5.2 - 07/28/2020     Fix scaledSensorValue error in ThermostatSetpointReport
- *  Version 1.5.3 - 07/28/2020     Fixed temperature reading 
- *  Version 1.6   - 07/28/2020     Added Energy Saving mode croundingommand
+ *  Version 1.5.3 - 07/28/2020     Fixed temperature reading rounding
+ *  Version 1.6   - 07/28/2020     Added Energy Saving mode command
  *  Version 1.7   - 08/01/2020     Added support for Hail (happens when thermostat is reboot/1st powered up) and AssociationReport
  *  Version 1.8   - 08/02/2020     Added logic to refresh fan / operating states when they get out of sync or an update report was missed/didn't happen
  *  Version 1.8.1 - 08/03/2020     Switched lastSync logic to use state variables
- *  Version 1.9   - 11/30/2020     Fixed a few zwave parsing errors
+ *  Version 1.9   - 09/22/2020     Added digital/physical type to setpoint change events
+ *  Version 2.0   - 11/30/2020     Fixed a few zwave parsing errors
 */
 metadata {
 	definition (name: "Vivint CT200 Thermostat", namespace: "Botched1", author: "Jason Bottjen") {
@@ -82,7 +83,7 @@ def parse(String description) {
 	if (logEnable) log.debug "Parsing '${description}'"
 	
 	hubitat.zwave.Command cmd = zwave.parse(description, [0x20:1, 0x31: 6, 0x40:2, 0x42:2, 0x43:2, 0x44:1, 0x45:1, 0x59:1, 0x5A:1, 0x5D:1, 0x5E:2, 0x60:4, 0x70:1, 0x72:2, 0x73:1, 0x7A:3, 0x80: 1, 0x81: 1, 0x85:2, 0x86:2, 0x87:1, 0x8F:3])
-    log.debug "New cmd: '${cmd}'"
+    if (logEnable) log.debug "New cmd: '${cmd}'"
 	
 	if (cmd) {
         zwaveEvent(cmd)
@@ -90,6 +91,7 @@ def parse(String description) {
 	
 	return null
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Handle commands from Thermostat
@@ -99,7 +101,7 @@ def setHeatingSetpoint(double degrees) {
 	if (logEnable) log.debug "setHeatingSetpoint...START"
     
 	def locationScale = getTemperatureScale()
-    def p = 0
+	def p = 0
 	
 	state.bin = -1
 	
@@ -134,13 +136,12 @@ def setHeatingSetpoint(double degrees) {
 
 def setCoolingSetpoint(double degrees) {
 	if (logEnable) log.debug "setCoolingSetpoint...START"
-    log.warn "setCoolingSetpoint... ${degrees}"
 
 	def locationScale = getTemperatureScale()
 	def p = 0
-
-	state.bin = -1
 	
+	state.bin = -1
+
 	/*
 	if (p==0) {
 		degrees2 = Math.rint(degrees)
@@ -362,16 +363,14 @@ def updateBattery() {
 
 def DebugLogging(value) {
 	if (value=="OFF") {
-		log.debug "debug logging is disabled."
-		device.updateSetting("logEnable",[value:"false",type:"bool"])
 		unschedule(logsOff)
 		logsOff
-	} 
-	else if (value=="ON") {
+	}
+        else if (value=="ON") {
 		log.debug "debug logging is enabled."
 		unschedule(logsOff)
 		device.updateSetting("logEnable",[value:"true",type:"bool"])
-		//runIn(1800,logsOff)
+		runIn(1800,logsOff)
 	}	
 }
 
@@ -569,7 +568,6 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.hailv1.Hail cmd) {
-    log.warn "Hail received"
 	refresh()
 }
 
@@ -617,11 +615,11 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 
 	def cmdScale = cmd.scale == 1 ? "F" : "C"
 
-    if (logEnable) log.debug "cmdScale is $cmdScale"
-    if (logEnable) log.debug "setpoint requested is $cmd.scaledValue and unit is $cmdScale"
+	if (logEnable) log.debug "cmdScale is $cmdScale"
+	if (logEnable) log.debug "setpoint requested is $cmd.scaledValue and unit is $cmdScale"
 
 	def map = [:]
-
+	
 	// check state.bin variable to see if event is digital or physical
 	def newType
 	if (state.bin == -1)
@@ -635,7 +633,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 	
 	// Reset state.bin variable
 	state.bin = 0	
-	
+
 	if (cmdScale==getTemperatureScale()) {
 		map.value=cmd.scaledValue
 	} else if (cmdScale=="C" && getTemperatureScale()=="F") {
@@ -656,7 +654,6 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 		case 2:
 			map.name = "coolingSetpoint"
 			updateDataValue("coolingSetpoint", map.value.toString())
-            log.warn "ThermostatSetpointReport... ${map.value}"
 			break;
 		default:
 			return [:]
@@ -703,7 +700,7 @@ def zwaveEvent(hubitat.zwave.commands.thermostatsetpointv2.ThermostatSetpointRep
 				if (logEnable) log.debug "thermostatSetpoint being set to " + map.value
 				updateDataValue("thermostatSetpoint", map.value.toString())
 				map2.value = map.value
-				log.warn "ThermostatSetpointReport... ${map.value}"
+				
 			} else { 
 				if (logEnable) log.debug "thermostatSetpoint being set to " + csp
 				updateDataValue("thermostatSetpoint", csp)
