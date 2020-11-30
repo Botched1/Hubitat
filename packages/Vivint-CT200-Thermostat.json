@@ -1,9 +1,9 @@
 {
   "packageName": "Vivint CT200 Thermostat",
   "author": "Botched1 (Jason Bottjen)",
-  "version": "1.9",
+  "version": "2.0",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2020-10-27",
+  "dateReleased": "2020-11-30",
   "drivers": [
     {
       "id": "21d2d571-919c-409b-bed0-3ae21840a168",
