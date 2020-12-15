@@ -13,6 +13,7 @@
  *  2.0.0b (08/07/2020) - Added S2 capability for Hubitat 2.2.3 and newer
  *  2.1.0  (08/20/2020) - Fixed some command version issues
  *  2.2.0  (08/29/2020) - Added number of button config to configure
+ *  2.3.0  (12/15/2020) - Added state for defaultDimmerLevel
 */
 
 import groovy.transform.Field
@@ -304,7 +305,12 @@ def setLevel(value, duration) {
 
 def setDefaultDimmerLevel(value) {
 	if (logEnable) log.debug "Setting default dimmer level: ${value}"
-    return delayBetween([
+	
+	value = Math.max(Math.min(value.toInteger(), 99), 0)
+	state.defaultDimmerLevel = value
+	sendEvent([name:"defaultDimmerLevel", value: value, displayed:true])
+	
+	return delayBetween([
         secure(zwave.configurationV1.configurationSet(scaledConfigurationValue: value , parameterNumber: 32, size: 1).format())
         ,secure(zwave.configurationV1.configurationGet(parameterNumber: 32).format())
         ], 250)
