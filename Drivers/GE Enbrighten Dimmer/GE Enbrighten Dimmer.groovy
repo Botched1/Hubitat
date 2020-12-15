@@ -308,7 +308,7 @@ def setDefaultDimmerLevel(value) {
 	
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	state.defaultDimmerLevel = value
-	sendEvent([name:"defaultDimmerLevel", value: value, displayed:true])
+	sendEvent([name:"defaultDimmerLevel", , descriptionText: "$device.displayName defaultDimmerLevel set to $value%", value: value, displayed:true])
 	
 	return delayBetween([
         secure(zwave.configurationV1.configurationSet(scaledConfigurationValue: value , parameterNumber: 32, size: 1).format())
