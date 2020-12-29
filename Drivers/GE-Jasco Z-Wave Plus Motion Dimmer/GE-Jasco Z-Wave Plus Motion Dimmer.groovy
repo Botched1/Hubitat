@@ -17,6 +17,7 @@
  *  2.1.1 (02/01/2020) - Added digital/physical type indicators on the events
  *  2.2.0 (05/17/2020) - Updated step/duration description text
  *  2.3.0 (09/06/2020) - Made some states attributes
+ *  2.3.1 (12/29/2020) - Unschedule logsOff if manually turn off debug logging
 */
 
 metadata {
@@ -678,8 +679,12 @@ private parseAssocGroupList(list, group) {
 }
 
 def DebugLogging(value) {
-	if (value=="OFF") {logsoff}
-    if (value=="ON") {
+	if (value=="OFF") {
+		unschedule(logsOff)
+		logsoff
+	}
+	
+    	if (value=="ON") {
 		log.debug "debug logging is enabled."
 		device.updateSetting("logEnable",[value:"true",type:"bool"])
 		runIn(1800,logsOff)
