@@ -13,6 +13,7 @@
  *  2.0.0 (02/01/2020) - Added occupancy/vacancy/manual commands, added association settings to preferences
  *  2.1.0 (02/01/2020) - Added setLightTimeout and DebugLogging commands, added description logging, added state variables for operating mode and light timeout
  *  2.1.1 (02/01/2020) - Added digital/physical indication to event types
+ *  2.2.0 (12/29/2020) - Unschedule logsOff if maually turning off debug logging
 */
 
 metadata {
@@ -491,13 +492,15 @@ private parseAssocGroupList(list, group) {
 }
 
 def DebugLogging(value) {
-	if (value=="OFF") {logsoff}
-    if (value=="ON") {
+	if (value=="OFF") {
+		unschedule(logsOff)
+		logsoff
+	}
+	if (value=="ON") {
 		log.debug "debug logging is enabled."
 		device.updateSetting("logEnable",[value:"true",type:"bool"])
 		runIn(1800,logsOff)
 	}
-	
 }
 
 def logsOff(){
