@@ -21,6 +21,7 @@
  *  Changes:
  *
  *  V0.0.1 - 01/12/21 - Test release 1
+ *  V0.0.2 - 01/13/21 - Test release 2. fixed init after reboot, and a few other code cleanup items
  *
  */
 
@@ -30,6 +31,7 @@ metadata {
 	definition(name: "MQTT TEST DRIVER", namespace: "Botched1", author: "Jason Bottjen", description: "MQTT TEST driver", iconUrl: "", iconX2Url: "", iconX3Url: "") 
 	
 	{
+		capability "Initialize"
 		capability "Notification"
 
 		preferences {
@@ -48,11 +50,20 @@ metadata {
 	}
 }
 
-void initialize() {
-    atomicState.topicPrefix = "hubitat/${getHubId()}/"
-	
+def installed() {
+	//log.debug "----- IN INSTALLED -----"
+}
+
+def initialize() {
+	atomicState.topicPrefix = "hubitat/${getHubId()}/"
+	runInMillis(5000, heartbeat)
+	mqttConnectionAttempt()
+	sendEvent(name: "init", value: true, displayed: false)
+}
+
+def mqttConnectionAttempt() {
 	if (logEnable) log.debug "Initialize MQTT Connection"
-    
+ 
 	try {   
         interfaces.mqtt.connect("tcp://${settings?.brokerIp}:${settings?.brokerPort}",
                            "hubitat_${getHubId()}", 
@@ -67,13 +78,18 @@ void initialize() {
         pauseExecution(1000)
         
     } catch(Exception e) {
-        log.error "In initialize: Error initializing."
+        log.error "In mqttConnectionAttempt: Error initializing."
+		if (!interfaces.mqtt.isConnected()) disconnected()
+		return;
     }
+
+	if (interfaces.mqtt.isConnected()) connected()
 }
 
 def updated() {
 	disconnect()
-	initialize()	
+	pauseExecution(1000)
+	mqttConnectionAttempt()	
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -86,15 +102,12 @@ def publish(topic, payload) {
 
 def publishMqtt(topic, payload, qos = 0, retained = true) {
     if (!interfaces.mqtt.isConnected()) {
-        initialize()
+        mqttConnectionAttempt()
     }
-    
-    def pubTopic = "${atomicState.topicPrefix}${topic}"
 
     try {
-        interfaces.mqtt.publish("${pubTopic}", payload, qos, retained)
-        if (logEnable) log.debug "[publishMqtt] topic: ${pubTopic} payload: ${payload}"
-        
+        interfaces.mqtt.publish("${atomicState.topicPrefix}${topic}", payload, qos, retained)
+        if (logEnable) log.debug "[publishMqtt] topic: ${atomicState.topicPrefix}${topic} payload: ${payload}"
     } catch (Exception e) {
         log.error "In publishMqtt: Unable to publish message."
     }
@@ -119,8 +132,7 @@ def unsubscribe(topic) {
 }
 
 def connect() {
-    initialize()
-    connected()
+    mqttConnectionAttempt()
 }
 
 def connected() {
@@ -131,21 +143,22 @@ def connected() {
 }
 
 def disconnect() {
+	unschedule(heartbeat)
+    publishLwt("offline")
     try {
-		unschedule(heartbeat)
         interfaces.mqtt.disconnect()
-        disconnected()
     } catch(e) {
         log.warn "Disconnection from broker failed."
         if (interfaces.mqtt.isConnected()) connected()
+		return;
     }
+    
+	if (!interfaces.mqtt.isConnected()) disconnected()
 }
 
 def disconnected() {
 	log.info "In disconnected: Disconnected from broker"
     sendEvent (name: "connectionState", value: "disconnected")
-    publishLwt("offline")
-	unschedule(heartbeat)
 }
 
 def publishLwt(String status) {
