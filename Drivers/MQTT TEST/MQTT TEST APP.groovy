@@ -21,6 +21,7 @@
  *  Changes:
  *
  *  V0.0.1 - 01/12/21 - Test release 1
+ *  V0.0.2 - 01/13/21 - Test release 2. fixed init after reboot, and a few other code cleanup items
  *
  */
 
@@ -55,14 +56,15 @@ def pageConfig()
 
 def installed() 
 {
+	//log.debug "----- in installed -----"	
 	if (logEnable) log.debug "installed"
 	initialize()
 }
 
 def updated()
 {
+	//log.debug "----- in updated -----"
 	if (logEnable) log.debug "updated"
-	unsubscribe()
 	initialize()
 }
 
@@ -70,14 +72,23 @@ def logsOff(){
     log.warn "debug logging disabled..."
     app.updateSetting("logEnable",[value:"false",type:"bool"])
 }
-	
+
 def initialize() 
 {
+
+	log.debug "initialization starting"
+	
+	// Set state so events that happen during init are ignored in the event handler
+	atomicState.initialized = false
+	
+	// Unsubscribe from all events
+	unsubscribe()
+	
+	// Subscribe to events form selected devices, and MQTT driver
 	subscribe(deviceList, deviceEvent, ["filterEvents": false])
 	subscribe(mqttDriver, "mqtt", deviceEvent, ["filterEvents": false])
-	
-	log.debug "initialization starting"
-	atomicState.initialized = false
+	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": false])
+
 	
 	if (logEnable) {
 		log.warn "Debug logging is enabled. Will be automatically turned off in 30 minutes."
@@ -86,29 +97,23 @@ def initialize()
 	
 	// Walk through selected devices to get commands and attributes
 	for(item in deviceList){
-		//log.debug "device: $item"
-		//log.debug item.getSupportedCommands()
-		//log.debug item.getSupportedAttributes()
-		
-		// Commands
+		// Publish Commands
 		commandList = item.getSupportedCommands()
 
 		for(commandItem in commandList){
-			//log.debug "command: $commandItem"
-			//log.debug commandItem.getParameters()
 			mqttDriver.publish("${item}/${commandItem}/set","")
-			pauseExecution(250)
+			pauseExecution(150)
 		}
 
-		// Subscribe to all command sets
+		// MQTT Subscribe to all command sets
 		mqttDriver.subscribe("+/+/set")
+		pauseExecution(150)
 		
-		// Attributes
+		// Publish Attributes
 		attributeList = item.getSupportedAttributes()
 		
 		for(attributeItem in attributeList){
 			curVal = item.currentValue("${attributeItem}")
-			//log.debug "attribute: $attributeItem = " + curVal
 			
 			if (!curVal) {
 				curVal="null"
@@ -116,11 +121,13 @@ def initialize()
 				curVal = curVal.toString()
 			}
 			mqttDriver.publish("${item}/${attributeItem}/value",curVal)
-			pauseExecution(250)
+			pauseExecution(150)
 		}
 	}
 
 	log.debug "initialization complete"
+	
+	// Set state so new events will get processed in that handler
 	atomicState.initialized = true
 }
 
@@ -128,7 +135,7 @@ def uninstalled()
 {
 	unschedule()
 	unsubscribe()
-	if (logEnable) log.debug "uninstalled"
+	log.debug "uninstalled"
 }
 
 def deviceEvent(evt)
@@ -152,9 +159,17 @@ def deviceEvent(evt)
 		return;
 	}
 	
+    // If MQTT driver is init, then re-initialize app
+	if (evt.name == "init") {
+		initialize()
+		return;
+	}
+
+	// Process incoming HUB DEVICE events, and publish to MQTT topics
 	if (evt.name != "mqtt") {
 		mqttDriver.publish("${evt.getDevice()}/${evt.name}/value","${evt.value}")
-	} 
+	}
+	// Process incoming MQTT events from subscibed topics
 	else
 	{
 		def jsonSlurper = new JsonSlurper()
@@ -173,6 +188,7 @@ def deviceEvent(evt)
 		eventDeviceParams = eventDeviceCommand.getParameters()
 		//log.debug "eventDeviceParams: " + eventDeviceParams
 		
+		// Determine if the updated command accepts parameters or not, and process
 		if (eventDeviceParams) {
 			if (object.value) {
 				newstr = (object.value).split(',')
@@ -222,6 +238,7 @@ def deviceEvent(evt)
 		}
 		else
 		{
+			// No parameters needed for this command, so process it as-is
 			eventDevice."$object.type"()
 		}
 	}
