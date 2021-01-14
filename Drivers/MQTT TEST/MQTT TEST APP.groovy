@@ -23,6 +23,7 @@
  *  V0.0.1 - 01/12/21 - Test release 1
  *  V0.0.2 - 01/13/21 - Test release 2. fixed init after reboot, and a few other code cleanup items
  *  V0.0.3 - 01/13/21 - Added sendAll command support. Made init only do commands and subscriptions, but not re-publish all attributes.
+ *  V0.0.4 - 01/13/21 - Added logic to remove mqttDriver from deviceList if it was selected
  *
  */
 
@@ -94,7 +95,12 @@ def initialize()
 		log.warn "Debug logging is enabled. Will be automatically turned off in 30 minutes."
 		runIn(1800,logsOff)
 	}
-	
+
+	// Remove the MQTT Driver from the device list, if it was selected for publishing
+	if (deviceList.find {it.name == mqttDriver.name}) {
+		deviceList.remove(deviceList.findIndexOf {it.name == mqttDriver.name})
+	}
+
 	// Walk through selected devices to get commands and attributes
 	for(item in deviceList){
 		// Publish Commands
@@ -138,7 +144,12 @@ def sendAll()
 	subscribe(mqttDriver, "mqtt", deviceEvent, ["filterEvents": false])
 	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": false])
 	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": false])
-		
+
+	// Remove the MQTT Driver from the device list, if it was selected for publishing
+	if (deviceList.find {it.name == mqttDriver.name}) {
+		deviceList.remove(deviceList.findIndexOf {it.name == mqttDriver.name})
+	}
+
 	// Walk through selected devices to get commands and attributes
 	for(item in deviceList){
 		// Publish Commands
