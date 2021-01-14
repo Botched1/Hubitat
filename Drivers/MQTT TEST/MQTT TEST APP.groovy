@@ -22,6 +22,7 @@
  *
  *  V0.0.1 - 01/12/21 - Test release 1
  *  V0.0.2 - 01/13/21 - Test release 2. fixed init after reboot, and a few other code cleanup items
+ *  V0.0.3 - 01/13/21 - Added sendAll command support. Made init only do commands and subscriptions, but not re-publish all attributes.
  *
  */
 
@@ -75,8 +76,48 @@ def logsOff(){
 
 def initialize() 
 {
+	log.debug "initialize starting"
+	
+	// Set state so events that happen during init are ignored in the event handler
+	atomicState.initialized = false
+	
+	// Unsubscribe from all events
+	unsubscribe()
+	
+	// Subscribe to events form selected devices, and MQTT driver
+	subscribe(deviceList, deviceEvent, ["filterEvents": false])
+	subscribe(mqttDriver, "mqtt", deviceEvent, ["filterEvents": false])
+	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": false])
+	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": false])
 
-	log.debug "initialization starting"
+	if (logEnable) {
+		log.warn "Debug logging is enabled. Will be automatically turned off in 30 minutes."
+		runIn(1800,logsOff)
+	}
+	
+	// Walk through selected devices to get commands and attributes
+	for(item in deviceList){
+		// Publish Commands
+		commandList = item.getSupportedCommands()
+
+		for(commandItem in commandList){
+			mqttDriver.publish("${item}/${commandItem}/set","")
+			pauseExecution(100)
+		}
+
+		// MQTT Subscribe to all command sets
+		mqttDriver.subscribe("+/+/set")
+	}
+
+	log.debug "initialize complete"
+	
+	// Set state so new events will get processed in that handler
+	atomicState.initialized = true
+}
+
+def sendAll() 
+{
+	log.debug "sendAll starting"
 	
 	// Set state so events that happen during init are ignored in the event handler
 	atomicState.initialized = false
@@ -107,7 +148,7 @@ def initialize()
 
 		// MQTT Subscribe to all command sets
 		mqttDriver.subscribe("+/+/set")
-		pauseExecution(150)
+		pauseExecution(100)
 		
 		// Publish Attributes
 		attributeList = item.getSupportedAttributes()
@@ -121,11 +162,11 @@ def initialize()
 				curVal = curVal.toString()
 			}
 			mqttDriver.publish("${item}/${attributeItem}/value",curVal)
-			pauseExecution(150)
+			pauseExecution(100)
 		}
 	}
 
-	log.debug "initialization complete"
+	log.debug "sendAll complete"
 	
 	// Set state so new events will get processed in that handler
 	atomicState.initialized = true
@@ -165,6 +206,12 @@ def deviceEvent(evt)
 		return;
 	}
 
+    // MQTT driver re-send all
+	if (evt.name == "sendAll") {
+		sendAll()
+		return;
+	}
+		
 	// Process incoming HUB DEVICE events, and publish to MQTT topics
 	if (evt.name != "mqtt") {
 		mqttDriver.publish("${evt.getDevice()}/${evt.name}/value","${evt.value}")
