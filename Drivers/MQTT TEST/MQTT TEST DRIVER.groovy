@@ -21,7 +21,8 @@
  *  Changes:
  *
  *  V0.0.1 - 01/12/21 - Test release 1
- *  V0.0.2 - 01/13/21 - Test release 2. fixed init after reboot, and a few other code cleanup items
+ *  V0.0.2 - 01/13/21 - Test release 2. Fixed init after reboot, and a few other code cleanup items
+ *  V0.0.3 - 01/13/21 - Added sendAll command
  *
  */
 
@@ -47,6 +48,7 @@ metadata {
 		command "unsubscribe", [[name:"topic*",type:"STRING", description:"Topic"]]
 		command "connect"
 		command "disconnect"
+		command "sendAll"
 	}
 }
 
@@ -169,7 +171,10 @@ def deviceNotification(message) {
     // This does nothing, but is required for notification capability
 }
 
-
+def sendAll() {
+	sendEvent(name: "sendAll", value: true, displayed: false)	
+}
+	
 /////////////////////////////////////////////////////////////////////
 // Parse
 /////////////////////////////////////////////////////////////////////
