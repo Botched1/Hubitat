@@ -105,8 +105,16 @@ def initialize()
 			pauseExecution(100)
 		}
 
+		// Publish sendAll command
+		mqttDriver.publish("sendAll","")
+		pauseExecution(100)
+		
 		// MQTT Subscribe to all command sets
 		mqttDriver.subscribe("+/+/set")
+		pauseExecution(100)
+		
+		// Subscribe to sendAll
+		mqttDriver.subscribe("sendAll")
 	}
 
 	log.debug "initialize complete"
@@ -129,13 +137,8 @@ def sendAll()
 	subscribe(deviceList, deviceEvent, ["filterEvents": false])
 	subscribe(mqttDriver, "mqtt", deviceEvent, ["filterEvents": false])
 	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": false])
-
-	
-	if (logEnable) {
-		log.warn "Debug logging is enabled. Will be automatically turned off in 30 minutes."
-		runIn(1800,logsOff)
-	}
-	
+	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": false])
+		
 	// Walk through selected devices to get commands and attributes
 	for(item in deviceList){
 		// Publish Commands
@@ -143,11 +146,19 @@ def sendAll()
 
 		for(commandItem in commandList){
 			mqttDriver.publish("${item}/${commandItem}/set","")
-			pauseExecution(150)
+			pauseExecution(100)
 		}
 
+		// Publish sendAll command
+		mqttDriver.publish("sendAll","")
+		pauseExecution(100)
+		
 		// MQTT Subscribe to all command sets
 		mqttDriver.subscribe("+/+/set")
+		pauseExecution(100)
+		
+		// Subscribe to sendAll
+		mqttDriver.subscribe("sendAll")
 		pauseExecution(100)
 		
 		// Publish Attributes
