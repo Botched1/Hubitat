@@ -85,7 +85,10 @@ def mqttConnectionAttempt() {
 		return;
     }
 
-	if (interfaces.mqtt.isConnected()) connected()
+	if (interfaces.mqtt.isConnected()) {
+		connected()
+		subscribe("sendAll")
+	}
 }
 
 def updated() {
@@ -172,6 +175,7 @@ def deviceNotification(message) {
 }
 
 def sendAll() {
+	if (logEnable) log.debug "In sendAll"
 	sendEvent(name: "sendAll", value: true, displayed: false)	
 }
 	
@@ -185,6 +189,13 @@ def parse(String event) {
     
     if (logEnable) log.debug "In parse, received message: ${message}"
     
+	if  (device == "sendAll") {
+		if (message.payload) {
+			sendAll();
+		}
+		return;
+	}
+	
     def json = new groovy.json.JsonOutput().toJson([
         device: device,
         type: type,
