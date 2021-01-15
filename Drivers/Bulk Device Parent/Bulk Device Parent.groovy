@@ -1,21 +1,29 @@
 /**
- *  Driver used to create bulk switch and dimm er devices easily. Handy for hub load testing.
+ *  Driver used to create bulk switch and dimmer devices easily. Handy for hub load testing.
  * 
  *  Enter # of devices to create and click button. Enter zero to delete all child devices of that type.
  *
- *  1.0.0 (01/14/2021) - Inititial Version. Supports switches and dimmers as child devices.
+ *  1.0.0 (01/14/2021) - Initial Version. Supports switches and dimmers as child devices.
+ *  2.0.0 (01/14/2021) - Added randomizers
  *
  */
 
+import java.time.*
+import groovy.transform.Field
+@Field Random rnd = new Random()
+
 metadata {
 	definition (name: "Bulk Device Parent", namespace: "Botched1", author: "Jason Bottjen") {		
-		command "SwitchCreate", [[name:"How Many?",type:"NUMBER", description:"How Many Switch Child Devices to Make"]]
-		command "CreateDimmer", [[name:"How Many?",type:"NUMBER", description:"How Many Dimmer Child Devices to Make"]]
-		command "SwitchOn"
-		command "SwitchOff"
-		command "DimmerOn"
+		command "DimmerCreate", [[name:"How Many?",type:"NUMBER", description:"How Many Dimmer Child Devices to Make"]]
 		command "DimmerOff"
+		command "DimmerOn"
+		command "DimmerOnOffRandomizer", [[name:"How fast?*",type:"NUMBER", description:"Milliseconds between changes"],[name:"Duration*",type:"NUMBER", description:"Seconds before randomizer automatically stops"]]
 		command "DimmerSetLevel", [[name:"Level*",type:"NUMBER", description:"Level to set (0 to 100)"],[name:"Duration",type:"NUMBER", description:"Transition duration in seconds"]]
+		command "DimmerSetLevelRandomizer", [[name:"How fast?*",type:"NUMBER", description:"Milliseconds between changes"],[name:"Duration*",type:"NUMBER", description:"Seconds before randomizer automatically stops"]]
+		command "SwitchCreate", [[name:"How Many?",type:"NUMBER", description:"How Many Switch Child Devices to Make"]]
+		command "SwitchOff"
+		command "SwitchOn"
+		command "SwitchOnOffRandomizer", [[name:"How fast?*",type:"NUMBER", description:"Milliseconds between changes"],[name:"Duration*",type:"NUMBER", description:"Seconds before randomizer automatically stops"]]
 		
 		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]        
 	}
@@ -134,6 +142,116 @@ void SwitchOff() {
 	DeviceOff("Switch")
 }
 
+void DimmerOnOffRandomizer(repTimeInMsec, offTimeInSec) {
+	if (logEnable) log.debug "Start dimmer randomizer every ${repTimeInMsec} for ${offTimeInSec} seconds."
+	atomicState.dimmerOnOffRepeat = repTimeInMsec
+	atomicState.dimmerOnOffRepeatStop = false
+	runIn(offTimeInSec.intValueExact(), DimmerOnOffRandomizerStop)
+	DimmerOnOffRandomizerWorker()
+}
+
+void DimmerOnOffRandomizerWorker() {
+	if (!atomicState.dimmerOnOffRepeatStop) {
+		String thisId = device.id
+
+		def deviceNumber = rnd.nextInt(atomicState.dimmerNumber)+1
+		def onoffNumber = rnd.nextInt(2)
+		
+		deviceNumber = deviceNumber.toString().padLeft(2,"0")
+		
+		def cd = getChildDevice("${thisId}-Dimmer${deviceNumber}")
+		if (cd) {
+			if (onoffNumber) {
+				on(cd)
+			}
+			else {
+				off(cd)
+			}
+		} 
+		else {
+			log.debug "Did not find device = ${thisId}-Dimmer${deviceNumber}"
+		}
+		
+		runInMillis(atomicState.dimmerOnOffRepeat, DimmerOnOffRandomizerWorker, [overwrite: true])
+	}
+}
+
+def DimmerOnOffRandomizerStop() {
+	atomicState.dimmerOnOffRepeatStop = true
+	unschedule(DimmerOnOffRandomizerWorker)
+}
+	
+void DimmerSetLevelRandomizer(repTimeInMsec, offTimeInSec) {
+	if (logEnable) log.debug "Start dimmer setLevel randomizer every ${repTimeInMsec} for ${offTimeInSec} seconds."
+	atomicState.dimmerSetLevelRepeat = repTimeInMsec
+	atomicState.dimmerSetLevelRepeatStop = false
+	runIn(offTimeInSec.intValueExact(), DimmerSetLevelRandomizerStop)
+	DimmerSetLevelRandomizerWorker()
+}
+
+void DimmerSetLevelRandomizerWorker() {
+	if (!atomicState.dimmerSetLevelRepeatStop) {
+		String thisId = device.id
+
+		def deviceNumber = rnd.nextInt(atomicState.dimmerNumber)+1
+		
+		deviceNumber = deviceNumber.toString().padLeft(2,"0")
+		
+		def cd = getChildDevice("${thisId}-Dimmer${deviceNumber}")
+		if (cd) {
+			setLevel(cd, rnd.nextInt(100), 0)
+		} 
+		else {
+			log.debug "Did not find device = ${thisId}-Dimmer${deviceNumber}"
+		}
+		
+		runInMillis(atomicState.dimmerSetLevelRepeat, DimmerSetLevelRandomizerWorker, [overwrite: true])
+	}
+}
+
+def DimmerSetLevelRandomizerStop() {
+	atomicState.dimmerSetLevelRepeatStop = true
+	unschedule(DimmerSetLevelRandomizerWorker)
+}
+
+void SwitchOnOffRandomizer(repTimeInMsec, offTimeInSec) {
+	if (logEnable) log.debug "Start switch randomizer every ${repTimeInMsec} for ${offTimeInSec} seconds."
+	atomicState.switchOnOffRepeat = repTimeInMsec
+	atomicState.switchOnOffRepeatStop = false
+	runIn(offTimeInSec.intValueExact(), SwitchOnOffRandomizerStop)
+	SwitchOnOffRandomizerWorker()
+}
+
+void SwitchOnOffRandomizerWorker() {
+	if (!atomicState.switchOnOffRepeatStop) {
+		String thisId = device.id
+
+		def deviceNumber = rnd.nextInt(atomicState.switchNumber)+1
+		def onoffNumber = rnd.nextInt(2)
+		
+		deviceNumber = deviceNumber.toString().padLeft(2,"0")
+		
+		def cd = getChildDevice("${thisId}-Switch${deviceNumber}")
+		if (cd) {
+			if (onoffNumber) {
+				on(cd)
+			}
+			else {
+				off(cd)
+			}
+		} 
+		else {
+			log.debug "Did not find device = ${thisId}-Switch${deviceNumber}"
+		}
+		
+		runInMillis(atomicState.switchOnOffRepeat, SwitchOnOffRandomizerWorker, [overwrite: true])
+	}
+}
+
+def SwitchOnOffRandomizerStop() {
+	atomicState.switchOnOffRepeatStop = true
+	unschedule(SwitchOnOffRandomizerWorker)
+}
 
 void off() {
 	if (logEnable) log.debug "PARENT Turn device OFF"
@@ -206,10 +324,12 @@ void DeviceCreate(deviceType, value) {
 }
 
 void DimmerCreate(value) {
+	atomicState.dimmerNumber = value
 	DeviceCreate("Dimmer", value)
 }
 
 void SwitchCreate(value) {
+	atomicState.switchNumber = value
 	DeviceCreate("Switch", value)
 }
 
