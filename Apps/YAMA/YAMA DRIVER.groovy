@@ -23,6 +23,9 @@
  *  V0.0.1 - 01/12/21 - Test release 1
  *  V0.0.2 - 01/13/21 - Test release 2. Fixed init after reboot, and a few other code cleanup items
  *  V0.0.3 - 01/13/21 - Added sendAll command
+ *  V0.0.4 - 01/18/21 - REDACTED
+ *  V0.0.5 - 01/18/21 - Removed atomicState as it was doing odd things on some hubs
+
  *
  */
 
@@ -57,7 +60,6 @@ def installed() {
 }
 
 def initialize() {
-	atomicState.topicPrefix = "hubitat/${getHubId()}/"
 	runInMillis(5000, heartbeat)
 	mqttConnectionAttempt()
 	sendEvent(name: "init", value: true, displayed: false)
@@ -71,7 +73,7 @@ def mqttConnectionAttempt() {
                            "hubitat_${getHubId()}", 
                            settings?.brokerUser, 
                            settings?.brokerPassword, 
-                           lastWillTopic: "${atomicState.topicPrefix}LWT",
+                           lastWillTopic: "hubitat/${getHubId()}/LWT",
                            lastWillQos: 0, 
                            lastWillMessage: "offline", 
                            lastWillRetain: true)
@@ -92,7 +94,6 @@ def mqttConnectionAttempt() {
 }
 
 def updated() {
-	atomicState.topicPrefix = "hubitat/${getHubId()}/"
 	disconnect()
 	pauseExecution(1000)
 	mqttConnectionAttempt()	
@@ -112,8 +113,8 @@ def publishMqtt(topic, payload, qos = 0, retained = true) {
     }
 
     try {
-        interfaces.mqtt.publish("${atomicState.topicPrefix}${topic}", payload, qos, retained)
-        if (logEnable) log.debug "[publishMqtt] topic: ${atomicState.topicPrefix}${topic} payload: ${payload}"
+        interfaces.mqtt.publish("hubitat/${getHubId()}/${topic}", payload, qos, retained)
+        if (logEnable) log.debug "[publishMqtt] topic: hubitat/${getHubId()}/${topic} payload: ${payload}"
     } catch (Exception e) {
         log.error "In publishMqtt: Unable to publish message."
     }
@@ -124,8 +125,8 @@ def subscribe(topic) {
         connect()
     }
 
-    if (logEnable) log.debug "Subscribe to: ${atomicState.topicPrefix}${topic}"
-    interfaces.mqtt.subscribe("${atomicState.topicPrefix}${topic}")
+    if (logEnable) log.debug "Subscribe to: hubitat/${getHubId()}/${topic}"
+    interfaces.mqtt.subscribe("hubitat/${getHubId()}/${topic}")
 }
 
 def unsubscribe(topic) {
@@ -133,8 +134,8 @@ def unsubscribe(topic) {
         connect()
     }
     
-    if (logEnable) log.debug "Unsubscribe from: ${atomicState.topicPrefix}${topic}"
-    interfaces.mqtt.unsubscribe("${atomicState.topicPrefix}${topic}")
+    if (logEnable) log.debug "Unsubscribe from: hubitat/${getHubId()}/${topic}"
+    interfaces.mqtt.unsubscribe("hubitat/${getHubId()}/${topic}")
 }
 
 def connect() {
@@ -218,7 +219,8 @@ def normalize(name) {
 def getHubId() {
     def hub = location.hub
     def hubNameNormalized = normalize(hub.name)
-    return "${hubNameNormalized}".toLowerCase()
+    hubNameNormalized = hubNameNormalized.toLowerCase()
+    return hubNameNormalized
 }
 
 def heartbeat() {
