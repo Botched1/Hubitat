@@ -23,6 +23,7 @@
  *  V0.0.1 - 01/12/21 - Test release 1
  *  V0.0.2 - 01/13/21 - Test release 2. Fixed init after reboot, and a few other code cleanup items
  *  V0.0.3 - 01/13/21 - Added sendAll command
+ *  V0.0.4 - 01/18/21 - Added atomicState.topicPrefix to updated()
  *
  */
 
@@ -92,6 +93,7 @@ def mqttConnectionAttempt() {
 }
 
 def updated() {
+	atomicState.topicPrefix = "hubitat/${getHubId()}/"
 	disconnect()
 	pauseExecution(1000)
 	mqttConnectionAttempt()	
