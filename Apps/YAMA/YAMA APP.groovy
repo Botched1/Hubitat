@@ -1,4 +1,6 @@
-/**
+/*
+ *  Import URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Apps/YAMA/YAMA%20APP.groovy 
+ *
  *  ****************  YAMA (Yet Another MQTT App) APP  ****************
  *
  *  Design Usage:
