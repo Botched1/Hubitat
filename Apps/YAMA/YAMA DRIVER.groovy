@@ -1,4 +1,6 @@
-/**
+/*
+ * Import URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Apps/YAMA/YAMA%20DRIVER.groovy 
+ *
  *  ****************  YAMA (Yet Another MQTT App) DRIVER  ****************
  *
  *  Design Usage:
