@@ -27,7 +27,7 @@
  *  V0.0.3 - 01/13/21 - Added sendAll command
  *  V0.0.4 - 01/18/21 - REDACTED
  *  V0.0.5 - 01/18/21 - Removed atomicState as it was doing odd things on some hubs
- *  V0.0.6 - 01/20/21 - Fixed looping issue when broker discoinnected from calling PublishLWT. Added subscribe to +/+/set and 
+ *  V0.0.6 - 01/20/21 - Fixed looping issue when broker disconnected from calling PublishLWT. Added subscribe to +/+/set and 
  *                      SendAll on connected status. Added periodic reconnect setting.
  *
  */
