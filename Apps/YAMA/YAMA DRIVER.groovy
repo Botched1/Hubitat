@@ -27,7 +27,8 @@
  *  V0.0.3 - 01/13/21 - Added sendAll command
  *  V0.0.4 - 01/18/21 - REDACTED
  *  V0.0.5 - 01/18/21 - Removed atomicState as it was doing odd things on some hubs
-
+ *  V0.0.6 - 01/20/21 - Fixed looping issue when broker discoinnected from calling PublishLWT. Added subscribe to +/+/set and 
+ *                      SendAll on connected status. Added periodic reconnect setting.
  *
  */
 
@@ -45,7 +46,8 @@ metadata {
 			input(name: "brokerPort", type: "string", title: "MQTT Broker Port", description: "example: 1883", required: true, displayDuringSetup: true)
 			input(name: "brokerUser", type: "string", title: "MQTT Broker Username", description: "", required: false, displayDuringSetup: true)
 			input(name: "brokerPassword", type: "password", title: "MQTT Broker Password", description: "", required: false, displayDuringSetup: true)
-			input(name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false)
+			input(name: "periodicConnectionRetry", type: "bool", title: "Periodically attempt re-connection if disconnected", defaultValue: true)
+			input(name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false)		
 		}
 
 		command "publish", [[name:"topic*",type:"STRING",description:"Topic"],[name:"mqtt",type:"STRING", description:"Payload"]]
@@ -54,6 +56,8 @@ metadata {
 		command "connect"
 		command "disconnect"
 		command "sendAll"
+		
+		attribute "connectionState", "string"
 	}
 }
 
@@ -68,30 +72,32 @@ def initialize() {
 }
 
 def mqttConnectionAttempt() {
-	if (logEnable) log.debug "Initialize MQTT Connection"
+	if (logEnable) log.debug "MQTT Connection Attempt"
  
-	try {   
-        interfaces.mqtt.connect("tcp://${settings?.brokerIp}:${settings?.brokerPort}",
-                           "hubitat_${getHubId()}", 
-                           settings?.brokerUser, 
-                           settings?.brokerPassword, 
-                           lastWillTopic: "hubitat/${getHubId()}/LWT",
-                           lastWillQos: 0, 
-                           lastWillMessage: "offline", 
-                           lastWillRetain: true)
-       
-        // delay for connection
-        pauseExecution(1000)
-        
-    } catch(Exception e) {
-        log.error "In mqttConnectionAttempt: Error initializing."
-		if (!interfaces.mqtt.isConnected()) disconnected()
-		return;
-    }
+	if (!interfaces.mqtt.isConnected()) {
+		try {   
+			interfaces.mqtt.connect("tcp://${settings?.brokerIp}:${settings?.brokerPort}",
+							   "hubitat_${getHubId()}", 
+							   settings?.brokerUser, 
+							   settings?.brokerPassword, 
+							   lastWillTopic: "hubitat/${getHubId()}/LWT",
+							   lastWillQos: 0, 
+							   lastWillMessage: "offline", 
+							   lastWillRetain: true)
+
+			// delay for connection
+			pauseExecution(1000)
+
+		} catch(Exception e) {
+			log.error "In mqttConnectionAttempt: Error initializing."
+			if (!interfaces.mqtt.isConnected()) disconnected()
+		}
+	}
 
 	if (interfaces.mqtt.isConnected()) {
+		unschedule(connect)
+		runInMillis(5000, heartbeat)
 		connected()
-		subscribe("sendAll")
 	}
 }
 
@@ -148,26 +154,40 @@ def connected() {
     log.info "In connected: Connected to broker"
     sendEvent (name: "connectionState", value: "connected")
     publishLwt("online")
+	subscribe("+/+/set")
+	subscribe("sendAll")
 	runInMillis(5000, heartbeat)
 }
 
 def disconnect() {
 	unschedule(heartbeat)
-    publishLwt("offline")
-    try {
-        interfaces.mqtt.disconnect()
-    } catch(e) {
-        log.warn "Disconnection from broker failed."
-        if (interfaces.mqtt.isConnected()) connected()
-		return;
-    }
-    
-	if (!interfaces.mqtt.isConnected()) disconnected()
+
+	if (interfaces.mqtt.isConnected()) {
+		publishLwt("offline")
+		pauseExecution(1000)
+		try {
+			interfaces.mqtt.disconnect()
+		} catch(e) {
+			log.warn "Disconnection from broker failed."
+			if (interfaces.mqtt.isConnected()) {
+				connected()
+			}
+			else {
+				disconnected()
+			}
+			return;
+		}
+	} 
+	else {
+		disconnected()
+	}
 }
 
 def disconnected() {
 	log.info "In disconnected: Disconnected from broker"
     sendEvent (name: "connectionState", value: "disconnected")
+	
+	if (periodicConnectionRetry) runIn(60, connect)
 }
 
 def publishLwt(String status) {
