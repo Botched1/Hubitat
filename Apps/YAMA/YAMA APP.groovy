@@ -26,6 +26,7 @@
  *  V0.0.2 - 01/13/21 - Test release 2. fixed init after reboot, and a few other code cleanup items
  *  V0.0.3 - 01/13/21 - Added sendAll command support. Made init only do commands and subscriptions, but not re-publish all attributes.
  *  V0.0.4 - 01/13/21 - Added logic to remove mqttDriver from deviceList if it was selected
+ *  V0.0.5 - 01/20/21 - Added check for driver connection status 
  *
  */
 
@@ -103,6 +104,12 @@ def initialize()
 		deviceList.remove(deviceList.findIndexOf {it.name == mqttDriver.name})
 	}
 
+	// See if driver is connected to MQTT broker
+	if (mqttDriver.currentValue("connectionState") == "disconnected") {
+		log.debug "Error: Driver could not connect to MQTT broker! Could not Initialize app."
+		return;
+	}
+	
 	// Walk through selected devices to get commands and attributes
 	for(item in deviceList){
 		// Publish Commands
@@ -152,6 +159,12 @@ def sendAll()
 		deviceList.remove(deviceList.findIndexOf {it.name == mqttDriver.name})
 	}
 
+	// See if driver is connected to MQTT broker
+	if (mqttDriver.currentValue("connectionState") == "disconnected") {
+		log.debug "Error: Driver could not connect to MQTT broker! Could not Initialize app."
+		return;
+	}
+	
 	// Walk through selected devices to get commands and attributes
 	for(item in deviceList){
 		// Publish Commands
