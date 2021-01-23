@@ -26,7 +26,8 @@
  *  V0.0.2 - 01/13/21 - Test release 2. fixed init after reboot, and a few other code cleanup items
  *  V0.0.3 - 01/13/21 - Added sendAll command support. Made init only do commands and subscriptions, but not re-publish all attributes.
  *  V0.0.4 - 01/13/21 - Added logic to remove mqttDriver from deviceList if it was selected
- *  V0.0.5 - 01/20/21 - Added check for driver connection status 
+ *  V0.0.5 - 01/20/21 - Added check for driver connection status on init 
+ *  V0.0.6 - 01/23/21 - Added check for driver connection status before sending events to MQTT
  *
  */
 
@@ -251,7 +252,14 @@ def deviceEvent(evt)
 		
 	// Process incoming HUB DEVICE events, and publish to MQTT topics
 	if (evt.name != "mqtt") {
-		mqttDriver.publish("${evt.getDevice()}/${evt.name}/value","${evt.value}")
+		// See if driver is connected to MQTT broker
+		if (mqttDriver.currentValue("connectionState") == "disconnected") {
+			if (logEnable) log.debug "Error: App could not send MQTT event. Driver is not connected to MQTT broker!"
+			return;
+		}
+		else {
+			mqttDriver.publish("${evt.getDevice()}/${evt.name}/value","${evt.value}")
+		}
 	}
 	// Process incoming MQTT events from subscibed topics
 	else
