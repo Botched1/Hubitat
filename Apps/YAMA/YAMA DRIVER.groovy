@@ -254,4 +254,7 @@ def heartbeat() {
 
 def mqttClientStatus(status) {
      if (logEnable) log.debug "In mqttClientStatus: ${status}"
+     if (!interfaces.mqtt.isConnected()) {
+	disconnected()
+     }
 }
