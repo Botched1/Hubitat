@@ -167,6 +167,8 @@ def disconnect() {
 		pauseExecution(1000)
 		try {
 			interfaces.mqtt.disconnect()
+			pauseExecution(500)
+			disconnected()
 		} catch(e) {
 			log.warn "Disconnection from broker failed."
 			if (interfaces.mqtt.isConnected()) {
@@ -253,8 +255,8 @@ def heartbeat() {
 }
 
 def mqttClientStatus(status) {
-     if (logEnable) log.debug "In mqttClientStatus: ${status}"
-     if (!interfaces.mqtt.isConnected()) {
-	disconnected()
-     }
+    if (logEnable) log.debug "In mqttClientStatus: ${status}"
+    if (!interfaces.mqtt.isConnected()) {
+		  disconnected()
+	  }
 }
