@@ -29,6 +29,7 @@
  *  V0.0.5 - 01/18/21 - Removed atomicState as it was doing odd things on some hubs
  *  V0.0.6 - 01/20/21 - Fixed looping issue when broker disconnected from calling PublishLWT. Added subscribe to +/+/set and 
  *                      SendAll on connected status. Added periodic reconnect setting.
+ *  V0.0.7 - 01/24/21 - Added in PRs from kuzenkohome fixing disconnect and mqttstatus
  *
  */
 
@@ -255,8 +256,8 @@ def heartbeat() {
 }
 
 def mqttClientStatus(status) {
-    if (logEnable) log.debug "In mqttClientStatus: ${status}"
-    if (!interfaces.mqtt.isConnected()) {
-		  disconnected()
-	  }
+	if (logEnable) log.debug "In mqttClientStatus: ${status}"
+	if (!interfaces.mqtt.isConnected()) {
+		disconnected()
+	}
 }
