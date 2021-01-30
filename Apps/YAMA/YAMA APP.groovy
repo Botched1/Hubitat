@@ -28,6 +28,7 @@
  *  V0.0.4 - 01/13/21 - Added logic to remove mqttDriver from deviceList if it was selected
  *  V0.0.5 - 01/20/21 - Added check for driver connection status on init 
  *  V0.0.6 - 01/23/21 - Added check for driver connection status before sending events to MQTT
+ *  V0.0.7 - 01/30/21 - Split sendAll and Initialize methods apart. Delayed initialization code by 1s to prevent issues if the driver happens to send, or app sees, multiple "init" events.
  *
  */
 
@@ -81,25 +82,25 @@ def logsOff(){
 
 def initialize() 
 {
-	log.debug "initialize starting"
-	
-	// Set state so events that happen during init are ignored in the event handler
-	atomicState.initialized = false
-	
-	// Unsubscribe from all events
-	unsubscribe()
-	
-	// Subscribe to events form selected devices, and MQTT driver
-	subscribe(deviceList, deviceEvent, ["filterEvents": false])
-	subscribe(mqttDriver, "mqtt", deviceEvent, ["filterEvents": false])
-	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": false])
-	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": false])
-
 	if (logEnable) {
 		log.warn "Debug logging is enabled. Will be automatically turned off in 30 minutes."
 		runIn(1800,logsOff)
 	}
 
+	if (atomicState.initialized != "initializing") {
+		if (logEnable) log.debug "initialize starting"	
+		atomicState.initialized = "initializing"
+		runInMillis(1000,initializeMqtt);
+	}
+}
+
+def initializeMqtt() 
+{
+	if (logEnable) log.debug "initializeMqtt starting"
+	
+	// Unsubscribe from all events
+	unsubscribe()
+	
 	// Remove the MQTT Driver from the device list, if it was selected for publishing
 	if (deviceList.find {it.name == mqttDriver.name}) {
 		deviceList.remove(deviceList.findIndexOf {it.name == mqttDriver.name})
@@ -133,27 +134,41 @@ def initialize()
 		mqttDriver.subscribe("sendAll")
 	}
 
-	log.debug "initialize complete"
-	
-	// Set state so new events will get processed in that handler
-	atomicState.initialized = true
-}
-
-def sendAll() 
-{
-	log.debug "sendAll starting"
-	
-	// Set state so events that happen during init are ignored in the event handler
-	atomicState.initialized = false
-	
-	// Unsubscribe from all events
-	unsubscribe()
-	
 	// Subscribe to events form selected devices, and MQTT driver
 	subscribe(deviceList, deviceEvent, ["filterEvents": false])
 	subscribe(mqttDriver, "mqtt", deviceEvent, ["filterEvents": false])
 	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": false])
 	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": false])
+
+	if (logEnable) log.debug "initializeMqtt complete"
+	
+	// Set state so new events will get processed in that handler
+	atomicState.initialized = "completed"
+}
+
+def sendAll() 
+{
+	if (atomicState.initialized == "completed") {
+		if (logEnable) log.debug "sendAll starting"	
+		atomicState.initialized = "sendAll"
+		runInMillis(100,sendAllMqtt);
+	} 
+	else {
+		log.debug "sendAll aborted since initialized flag != completed"	
+	}
+}
+
+def sendAllMqtt() 
+{
+	if (logEnable) log.debug "sendAllMqtt starting"
+	
+	// Set state so events that happen during init are ignored in the event handler
+	//atomicState.initialized = "re-sending"
+	
+	// Unsubscribe from all events
+	unsubscribe()
+	
+
 
 	// Remove the MQTT Driver from the device list, if it was selected for publishing
 	if (deviceList.find {it.name == mqttDriver.name}) {
@@ -204,10 +219,16 @@ def sendAll()
 		}
 	}
 
-	log.debug "sendAll complete"
+	// Subscribe to events form selected devices, and MQTT driver
+	subscribe(deviceList, deviceEvent, ["filterEvents": false])
+	subscribe(mqttDriver, "mqtt", deviceEvent, ["filterEvents": false])
+	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": false])
+	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": false])
+	
+	if (logEnable) log.debug "sendAllMqtt complete"
 	
 	// Set state so new events will get processed in that handler
-	atomicState.initialized = true
+	atomicState.initialized = "completed"
 }
 
 def uninstalled() 
@@ -234,12 +255,16 @@ def deviceEvent(evt)
 	log.debug "deviceId: " + evt.getDeviceId()
     */
 
-	if (!atomicState.initialized) {
+	//log.debug "atomicState.initialized: " + atomicState.initialized
+	//log.debug "atomicState.initialized != completed: " + (atomicState.initialized != "completed")
+	
+	if (atomicState.initialized != "completed") {
 		return;
 	}
 	
     // If MQTT driver is init, then re-initialize app
 	if (evt.name == "init") {
+		//log.debug "Received init from the driver."
 		initialize()
 		return;
 	}
