@@ -96,7 +96,7 @@ def initialize()
 
 def initializeMqtt() 
 {
-	if (logEnable) log.debug "initializeMqtt starting"
+	log.debug "YAMA app initialization: Beginning"
 	
 	// Unsubscribe from all events
 	unsubscribe()
@@ -140,7 +140,7 @@ def initializeMqtt()
 	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": false])
 	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": false])
 
-	if (logEnable) log.debug "initializeMqtt complete"
+	log.debug "YAMA app initialization: Complete"
 	
 	// Set state so new events will get processed in that handler
 	atomicState.initialized = "completed"
@@ -160,7 +160,7 @@ def sendAll()
 
 def sendAllMqtt() 
 {
-	if (logEnable) log.debug "sendAllMqtt starting"
+	log.debug "YAMA app initialization: Beginning"
 	
 	// Set state so events that happen during init are ignored in the event handler
 	//atomicState.initialized = "re-sending"
@@ -225,7 +225,7 @@ def sendAllMqtt()
 	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": false])
 	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": false])
 	
-	if (logEnable) log.debug "sendAllMqtt complete"
+	log.debug "YAMA app initialization: Complete"
 	
 	// Set state so new events will get processed in that handler
 	atomicState.initialized = "completed"
