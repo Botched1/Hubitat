@@ -18,6 +18,7 @@
  *  2.2.0 (05/17/2020) - Updated step/duration description text
  *  2.3.0 (09/06/2020) - Made some states attributes
  *  2.3.1 (12/29/2020) - Unschedule logsOff if manually turn off debug logging
+ *  2.4.0 (01/30/2021) - Fixed paramMotionResetTimer. Thanks for the PR @kleung1
 */
 
 metadata {
@@ -582,7 +583,7 @@ def updated() {
 	if (paramMotionResetTimer==null) {
 		paramMotionResetTimer = 2
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionResetTimer.toInteger(), parameterNumber: 15, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionResetTimer.toInteger(), parameterNumber: 15, size: 2).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 15).format()
 
 	// Set Switch Mode
