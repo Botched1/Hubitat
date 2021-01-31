@@ -14,6 +14,7 @@
  *  2.1.0 (02/01/2020) - Added setLightTimeout and DebugLogging commands, added description logging, added state variables for operating mode and light timeout
  *  2.1.1 (02/01/2020) - Added digital/physical indication to event types
  *  2.2.0 (12/29/2020) - Unschedule logsOff if maually turning off debug logging
+ *  2.3.0 (01/30/2021) - Fixed paramMotionResetTimer. Thanks for the PR @kleung1
 */
 
 metadata {
