@@ -421,7 +421,7 @@ def updated() {
 	if (paramMotionResetTimer==null) {
 		paramMotionResetTimer = 2
 	}
-	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionResetTimer.toInteger(), parameterNumber: 15, size: 1).format()
+	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: paramMotionResetTimer.toInteger(), parameterNumber: 15, size: 2).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 15).format()
 
     // Association groups
