@@ -33,6 +33,7 @@
  *  V0.0.8 - 01/30/21 - Minor code cleanup
  *  V0.0.9 - 02/06/21 - Edited subscriptions to support new topic structure with /attributes/ and /commands/ 
  *  V0.1.0 - 02/06/21 - Changed periodic re-check logic a little to have method always run every 60s 
+ *  V0.1.1 - 02/06/21 - Fixed dumb periodic re-check scheduling mistake 
  *
  */
 
@@ -73,7 +74,8 @@ def installed() {
 def initialize() {
 	// log.debug "Initialize called in driver."
 	runIn(5, heartbeat)
-	runIn(60, periodicReconnect)
+	//runIn(60, periodicReconnect)
+	schedule('20 * * ? * *', periodicReconnect)
 	mqttConnectionAttempt()
 	sendEvent(name: "init", value: true, displayed: false)
 }
