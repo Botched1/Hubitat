@@ -73,7 +73,7 @@ def installed() {
 
 def initialize() {
 	// log.debug "Initialize called in driver."
-	schedule('0/5 0 0 ? * * *', heartbeat)
+	schedule('*/5 * * * * ? *', heartbeat)
 	schedule('20 * * ? * *', periodicReconnect)
 	mqttConnectionAttempt()
 	sendEvent(name: "init", value: true, displayed: false)
