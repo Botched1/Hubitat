@@ -31,6 +31,7 @@
  *                      SendAll on connected status. Added periodic reconnect setting.
  *  V0.0.7 - 01/24/21 - Added in PRs from kuzenkohome fixing disconnect and mqttstatus
  *  V0.0.8 - 01/30/21 - Minor code cleanup
+ *  V0.0.9 - 02/06/21 - Edited subscriptions to support new topic structure with /attributes/ and /commands/ 
  *
  */
 
@@ -158,7 +159,7 @@ def connected() {
     log.info "In connected: Connected to broker"
     sendEvent (name: "connectionState", value: "connected")
     publishLwt("online")
-	subscribe("+/+/set")
+	subscribe("+/+/+/set")
 	subscribe("sendAll")
 }
 
