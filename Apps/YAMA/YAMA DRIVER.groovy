@@ -33,7 +33,7 @@
  *  V0.0.8 - 01/30/21 - Minor code cleanup
  *  V0.0.9 - 02/06/21 - Edited subscriptions to support new topic structure with /attributes/ and /commands/ 
  *  V0.1.0 - 02/06/21 - Changed periodic re-check logic a little to have method always run every 60s 
- *  V0.1.1 - 02/06/21 - Fixed dumb periodic re-check scheduling mistake 
+ *  V0.1.1 - 02/06/21 - Fixed dumb periodic re-check scheduling mistake, changed heartbeat to schedule
  *
  */
 
@@ -73,8 +73,7 @@ def installed() {
 
 def initialize() {
 	// log.debug "Initialize called in driver."
-	runIn(5, heartbeat)
-	//runIn(60, periodicReconnect)
+	schedule('0/5 0 0 ? * * *', heartbeat)
 	schedule('20 * * ? * *', periodicReconnect)
 	mqttConnectionAttempt()
 	sendEvent(name: "init", value: true, displayed: false)
@@ -159,8 +158,7 @@ def connect() {
 }
 
 def connected() {
-	runIn(5, heartbeat)
-    log.info "In connected: Connected to broker"
+	log.info "In connected: Connected to broker"
     sendEvent (name: "connectionState", value: "connected")
     publishLwt("online")
 	subscribe("+/+/+/set")
@@ -195,8 +193,7 @@ def disconnect() {
 
 def disconnected() {
 	log.info "In disconnected: Disconnected from broker"
-	//if (settings?.periodicConnectionRetry) runIn(60, connect)
-    sendEvent (name: "connectionState", value: "disconnected")
+	sendEvent (name: "connectionState", value: "disconnected")
 }
 
 def publishLwt(String status) {
@@ -257,7 +254,6 @@ def getHubId() {
 def heartbeat() {
 	if (interfaces.mqtt.isConnected()) {
 		publishMqtt("heartbeat", now().toString())
-		runIn(5, heartbeat)
 	}				
 }
 
