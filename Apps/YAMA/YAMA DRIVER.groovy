@@ -214,7 +214,7 @@ def sendAll() {
 
 def parse(String event) {
     def message = interfaces.mqtt.parseMessage(event)  
-    def (name, hub, device, type) = message.topic.tokenize( '/' )
+    def (name, hub, device, branch, type) = message.topic.tokenize( '/' )
     
     if (logEnable) log.debug "In parse, received message: ${message}"
     
