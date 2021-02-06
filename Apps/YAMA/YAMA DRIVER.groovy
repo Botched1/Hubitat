@@ -32,6 +32,7 @@
  *  V0.0.7 - 01/24/21 - Added in PRs from kuzenkohome fixing disconnect and mqttstatus
  *  V0.0.8 - 01/30/21 - Minor code cleanup
  *  V0.0.9 - 02/06/21 - Edited subscriptions to support new topic structure with /attributes/ and /commands/ 
+ *  V0.1.0 - 02/06/21 - Changed periodic re-check logic a little to have method always run every 60s 
  *
  */
 
@@ -71,7 +72,8 @@ def installed() {
 
 def initialize() {
 	// log.debug "Initialize called in driver."
-	runInMillis(5000, heartbeat)
+	runIn(5, heartbeat)
+	runIn(60, periodicReconnect)
 	mqttConnectionAttempt()
 	sendEvent(name: "init", value: true, displayed: false)
 }
@@ -155,7 +157,7 @@ def connect() {
 }
 
 def connected() {
-	runInMillis(5000, heartbeat)
+	runIn(5, heartbeat)
     log.info "In connected: Connected to broker"
     sendEvent (name: "connectionState", value: "connected")
     publishLwt("online")
@@ -191,7 +193,7 @@ def disconnect() {
 
 def disconnected() {
 	log.info "In disconnected: Disconnected from broker"
-	if (settings?.periodicConnectionRetry) runIn(60, connect)
+	//if (settings?.periodicConnectionRetry) runIn(60, connect)
     sendEvent (name: "connectionState", value: "disconnected")
 }
 
@@ -253,8 +255,16 @@ def getHubId() {
 def heartbeat() {
 	if (interfaces.mqtt.isConnected()) {
 		publishMqtt("heartbeat", now().toString())
-		runInMillis(5000, heartbeat)
+		runIn(5, heartbeat)
 	}				
+}
+
+def periodicReconnect() {
+	if (settings?.periodicConnectionRetry) {
+		if (!interfaces.mqtt.isConnected()) {
+			connect()
+		}
+	}
 }
 
 def mqttClientStatus(status) {
