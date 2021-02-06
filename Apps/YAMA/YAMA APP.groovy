@@ -29,6 +29,7 @@
  *  V0.0.5 - 01/20/21 - Added check for driver connection status on init 
  *  V0.0.6 - 01/23/21 - Added check for driver connection status before sending events to MQTT
  *  V0.0.7 - 01/30/21 - Split sendAll and Initialize methods apart. Delayed initialization code by 1s to prevent issues if the driver happens to send, or app sees, multiple "init" events.
+ *  V0.0.8 - 02/06/21 - Changed topic structure, putting attributes in hubitat/hubName/deviceName/attributes/* and commands in hubitat/hubName/deviceName/commands/*
  *
  */
 
@@ -118,7 +119,7 @@ def initializeMqtt()
 		commandList = item.getSupportedCommands()
 
 		for(commandItem in commandList){
-			mqttDriver.publish("${item}/${commandItem}/set","")
+			mqttDriver.publish("${item}/commands/${commandItem}/set","")
 			pauseExecution(100)
 		}
 
@@ -127,7 +128,7 @@ def initializeMqtt()
 		pauseExecution(100)
 		
 		// MQTT Subscribe to all command sets
-		mqttDriver.subscribe("+/+/set")
+		mqttDriver.subscribe("+/+/+/set")
 		pauseExecution(100)
 		
 		// Subscribe to sendAll
@@ -187,7 +188,7 @@ def sendAllMqtt()
 		commandList = item.getSupportedCommands()
 
 		for(commandItem in commandList){
-			mqttDriver.publish("${item}/${commandItem}/set","")
+			mqttDriver.publish("${item}/commands/${commandItem}/set","")
 			pauseExecution(100)
 		}
 
@@ -196,7 +197,7 @@ def sendAllMqtt()
 		pauseExecution(100)
 		
 		// MQTT Subscribe to all command sets
-		mqttDriver.subscribe("+/+/set")
+		mqttDriver.subscribe("+/+/+/set")
 		pauseExecution(100)
 		
 		// Subscribe to sendAll
@@ -214,7 +215,7 @@ def sendAllMqtt()
 			} else {
 				curVal = curVal.toString()
 			}
-			mqttDriver.publish("${item}/${attributeItem}/value",curVal)
+			mqttDriver.publish("${item}/attributes/${attributeItem}/value",curVal)
 			pauseExecution(100)
 		}
 	}
@@ -283,7 +284,7 @@ def deviceEvent(evt)
 			return;
 		}
 		else {
-			mqttDriver.publish("${evt.getDevice()}/${evt.name}/value","${evt.value}")
+			mqttDriver.publish("${evt.getDevice()}/attributes/${evt.name}/value","${evt.value}")
 		}
 	}
 	// Process incoming MQTT events from subscibed topics
