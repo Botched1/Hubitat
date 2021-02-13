@@ -14,6 +14,7 @@
  *  2.1.0  (08/20/2020) - Fixed some command version issues
  *  2.2.0  (08/29/2020) - Added number of button config to configure
  *  2.3.0  (12/15/2020) - Added state for defaultDimmerLevel
+ *  2.4.0  (02/13/2021) - Added Alternate Exclusion mode to preferences.
 */
 
 import groovy.transform.Field
@@ -49,9 +50,10 @@ metadata {
         input name: "paramInverted", type: "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
         input name: "paramUpDownRate", type: "enum", title: "Adjust the speed at which the ramps to a specific value", multiple: false, options: ["0" : "Fast (default)", "1" : "Slow"], required: false, displayDuringSetup: true
         input name: "paramSwitchMode", type: "enum", title: "Turn your dimmer into an On/Off switch", multiple: false, options: ["0" : "OFF (default)", "1" : "ON"], required: false, displayDuringSetup: true
-        //input name: "paramMinDim", type: "number", title: "Minimum Dim Threshold", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
+		input name: "paramAlternateExclusion", type: "enum", title: "Enable alternate exclusion (2-ON, 2-OFF). NOTE: Turning this ON also makes device report status 2-3x faster (firmware bug?)!", multiple: false, options: ["0" : "OFF (default)", "1" : "ON"], required: false, displayDuringSetup: true
+		//input name: "paramMinDim", type: "number", title: "Minimum Dim Threshold", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
         //input name: "paramMaxDim", type: "number", title: "Maximum Dim Threshold", multiple: false, defaultValue: "99", range: "0..99", required: false, displayDuringSetup: true     
-        input name: "paramDefaultDim", type: "number", title: "Default ON % (Default=0=Last %)", multiple: false, defaultValue: "0", range: "0..99", required: false, displayDuringSetup: true     
+        input name: "paramDefaultDim", type: "number", title: "Default ON % (Default=0=Last %)", multiple: false, defaultValue: "0", range: "0..99", required: false, displayDuringSetup: true
         input name: "requestedGroup2", type: "text", title: "Association Group 2 Members (Max of 5):", required: false
         input name: "requestedGroup3", type: "text", title: "Association Group 3 Members (Max of 4):", required: false
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false	
@@ -383,6 +385,13 @@ def updated() {
 	cmds << secure(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramSwitchMode.toInteger(), parameterNumber: 16, size: 1).format())
 	cmds << secure(zwave.configurationV2.configurationGet(parameterNumber: 16).format())
 
+   	// Set Alternate Exclusion Mode
+	if (paramAlternateExclusion==null) {
+		paramAlternateExclusion = 0
+	}	
+	cmds << secure(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramAlternateExclusion.toInteger(), parameterNumber: 19, size: 1).format())
+	cmds << secure(zwave.configurationV2.configurationGet(parameterNumber: 19).format())
+	
     /* Comment out for now, as it is unclear how/if this actually works
    	// Set Minimum Dim %
 	if (paramMinDim==null) {
