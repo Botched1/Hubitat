@@ -11,6 +11,7 @@
  *  2.0.0f (08/13/2020) - Added S2 capability for Hubitat 2.2.3 and newer
  *  2.1.0  (08/20/2020) - Fixed some command version issues
  *  2.2.0 (08/29/2020) - Added number of button config to configure
+ *  2.3.0 (02/13/2021) - Added Alternate Exclusion mode to preferences.
 */
 
 import groovy.transform.Field
@@ -41,7 +42,8 @@ metadata {
  preferences {
         input name: "paramLED", type: "enum", title: "LED Indicator Behavior", multiple: false, options: ["0" : "LED ON When Switch OFF (default)", "1" : "LED ON When Switch ON", "2" : "LED Always OFF", "3" : "LED Always ON"], required: false, displayDuringSetup: true
         input name: "paramInverted", type: "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
-        input name: "requestedGroup2", type: "text", title: "Association Group 2 Members (Max of 5):", required: false
+		input name: "paramAlternateExclusion", type: "enum", title: "Enable alternate exclusion (2-ON, 2-OFF). NOTE: Turning this ON can make device report status faster (firmware bug?)!", multiple: false, options: ["0" : "OFF (default)", "1" : "ON"], required: false, displayDuringSetup: true
+	    input name: "requestedGroup2", type: "text", title: "Association Group 2 Members (Max of 5):", required: false
         input name: "requestedGroup3", type: "text", title: "Association Group 3 Members (Max of 4):", required: false
         input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false	
 	    input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true	
@@ -330,6 +332,13 @@ def updated() {
 	}
 	cmds << secure(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramInverted.toInteger(), parameterNumber: 4, size: 1).format())
 	cmds << secure(zwave.configurationV2.configurationGet(parameterNumber: 4).format())
+	
+   	// Set Alternate Exclusion Mode
+	if (paramAlternateExclusion==null) {
+		paramAlternateExclusion = 0
+	}	
+	cmds << secure(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramAlternateExclusion.toInteger(), parameterNumber: 19, size: 1).format())
+	cmds << secure(zwave.configurationV2.configurationGet(parameterNumber: 19).format())	
 	
     delayBetween(cmds, 250)
 }
