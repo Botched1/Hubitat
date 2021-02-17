@@ -20,6 +20,7 @@
  *  2.3.1 (12/29/2020) - Unschedule logsOff if manually turn off debug logging
  *  2.4.0 (01/30/2021) - Fixed paramMotionResetTimer. Thanks for the PR @kleung1
  *  2.5.1 (02/17/2021) - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status."
+ *  2.5.2 (02/17/2021) - Added blank selection option to commands to reduce confusion
 */
 
 metadata {
@@ -35,11 +36,11 @@ metadata {
 		capability "Light"
 		
 		command "setDefaultDimmerLevel", [[name:"Default Dimmer Level",type:"NUMBER", description:"Default Dimmer Level Used when Turning ON. (0=Last Dimmer Value)", range: "0..99"]]
-		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
+		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["", "5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
         command "Occupancy"
         command "Vacancy"
         command "Manual"
-		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "ON"]]]        
+		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["", "OFF", "ON"]]]        
         
         attribute "operatingMode", "string"
 		attribute "defaultDimmerLevel", "number"
