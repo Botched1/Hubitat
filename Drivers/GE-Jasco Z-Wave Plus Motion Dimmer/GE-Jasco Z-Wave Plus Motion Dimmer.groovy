@@ -545,6 +545,11 @@ def updated() {
     if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
     state.lastUpdated = now()
 
+	// Set Wait preference
+	if (paramWait4Report==null) {
+		paramWait4Report = false
+	}
+	
 	def cmds = []
 
 	// Set Light Timer param
