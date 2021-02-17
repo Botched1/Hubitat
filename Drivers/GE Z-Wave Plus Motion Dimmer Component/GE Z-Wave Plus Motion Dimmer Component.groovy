@@ -13,7 +13,8 @@
  *  1.2.3 (09/01/2020)  - Fixed redundant on/off events
  *  1.2.4 (10/17/2020)  - Added actuator capability so custom commands can be used in rule machine
  *  1.2.5 (10/27/2020)  - Fixed motion reset time parameter setting not working
- *  1.3.0 (02/17/2021)  - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status.", Fixed a level report timing issue when setting level to 0%.
+ *  1.3.0 (02/17/2021)  - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status."
+ *  1.3.1 (02/17/2021)  - Added blank selection option to commands to reduce confusion
 */
 
 metadata {
@@ -23,11 +24,11 @@ metadata {
 		capability "Actuator"
 		
 		command "setDefaultDimmerLevel", [[name:"Default Dimmer Level",type:"NUMBER", description:"Default Dimmer Level Used when Turning ON. (0=Last Dimmer Value)", range: "0..99"]]
-		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
+		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["", "5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
 		command "Occupancy"
 		command "Vacancy"
 		command "Manual"
-		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]        
+		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["", "OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]        
 
 		attribute "operatingMode", "string"
 		attribute "defaultDimmerLevel", "number"
