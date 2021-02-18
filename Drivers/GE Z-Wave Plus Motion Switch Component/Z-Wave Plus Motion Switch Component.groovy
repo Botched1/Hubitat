@@ -12,6 +12,7 @@
  *  1.1.3 (10/17/2020) - Added actuator capability so custom commands can be used in rule machine
  *  1.1.4 (10/27/2020) - Fixed motion reset time parameter setting not working
  *  1.2.0 (02/17/2021) - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status.", added blank selection option to commands to reduce confusion
+ *  1.2.1 (02/18/2021) - Fixed on/off reporting being broken in some reporting modes
 */
 
 metadata {
@@ -254,13 +255,11 @@ void componentRefresh(cd){
 
 void componentOn(cd){
 	if (logEnable) log.info "received on request from ${cd.displayName}"
-	state.eventType = -1
 	on(cd)
 }
 
 void componentOff(cd){
 	if (logEnable) log.info "received off request from ${cd.displayName}"
-	state.eventType = -1
 	off(cd)
 }
 
@@ -281,36 +280,46 @@ def fetchChild(String type){
 void on(cd) {
 	if (logEnable) log.debug "Turn device ON"
 
+	def cmds = []
+	cmds << zwave.switchBinaryV1.switchBinarySet(switchValue: 0xFF).format()
+	
 	List<Map> evts = []
 	if (!paramWait4Report) {
+		state.eventType = 0
 		// Make child events
 		evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
 	
 		// Send events to child
 		getChildDevice(cd.deviceNetworkId).parse(evts)
+	} 
+	else {
+		state.eventType = -1
+		cmds << zwave.switchBinaryV1.switchBinaryGet().format()
 	}
 	
-	def cmds = []
-	cmds << zwave.switchBinaryV1.switchBinarySet(switchValue: 0xFF).format()
-	cmds << zwave.switchBinaryV1.switchBinaryGet().format()
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void off(cd) {
 	if (logEnable) log.debug "Turn device OFF"
 
+	def cmds = []
+	cmds << zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format()
+
 	List<Map> evts = []
 	if (!paramWait4Report) {	
+		state.eventType = 0
 		// Make child events
 		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
 	
 		// Send events to child
 		getChildDevice(cd.deviceNetworkId).parse(evts)
 	}
+	else {
+		state.eventType = -1
+		cmds << zwave.switchBinaryV1.switchBinaryGet().format()
+	}
 	
-	def cmds = []
-	cmds << zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format()
-	cmds << zwave.switchBinaryV1.switchBinaryGet().format()
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
