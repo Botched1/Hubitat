@@ -11,6 +11,7 @@
  *  1.1.2 (08/31/2020) - Fixed attributes not populating correctly on install
  *  1.1.3 (10/17/2020) - Added actuator capability so custom commands can be used in rule machine
  *  1.1.4 (10/27/2020) - Fixed motion reset time parameter setting not working
+ *  1.2.0 (02/17/2021) - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status.", added blank selection option to commands to reduce confusion
 */
 
 metadata {
@@ -19,11 +20,11 @@ metadata {
 		capability "Refresh"
 		capability "Actuator"
 		
-		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
+		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["", "5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
 		command "Occupancy"
 		command "Vacancy"
 		command "Manual"
-		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]        
+		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["", "OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]        
 
 		attribute "operatingMode", "string"
 		attribute "lightTimeout", "string"
@@ -49,6 +50,7 @@ metadata {
 			type: "text",
 			required: false
 			)
+		input name: "paramWait4Report", type: "bool", title: "Wait for device report before updating status. Can help prevent status sync issues, but will make hub initiated command status slightly slower.", defaultValue: false
 		input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
 		input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true	
 	}
@@ -103,6 +105,28 @@ def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 	if (logEnable) log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
+
+	def cd = fetchChild("Switch")
+
+	if (!cd) {
+		log.warn "In BasicReport no switch child found with fetchChild"
+		return
+	}
+
+	List<Map> evts = []
+	
+	if (!cmd.value) {
+		evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: state.eventType ? "digital" : "physical"])
+	} 
+	else {
+		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: state.eventType ? "digital" : "physical"])
+	}
+	
+	// Reset type state
+	state.eventType = 0
+	
+	// Send events to child
+	cd.parse(evts)  
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
@@ -165,8 +189,8 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 		default:
 			break
 	}
-	result << createEvent([name: name, value: value, displayed: false])
-	return result
+
+	sendEvent([name: name, value: value])
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
@@ -182,11 +206,14 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	List<Map> evts = []
 	
 	if (cmd.value == 255) {
-		evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical"])
+		evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: state.eventType ? "digital" : "physical"])
 	} else if (cmd.value == 0) {
-		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical"])
+		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: state.eventType ? "digital" : "physical"])
 	}
-	    
+	
+	// Reset type state
+	state.eventType = 0
+	
 	// Send events to child
 	cd.parse(evts)  
 }
@@ -251,11 +278,13 @@ void componentRefresh(cd){
 
 void componentOn(cd){
 	if (logEnable) log.info "received on request from ${cd.displayName}"
+	state.eventType = -1
 	on(cd)
 }
 
 void componentOff(cd){
 	if (logEnable) log.info "received off request from ${cd.displayName}"
+	state.eventType = -1
 	off(cd)
 }
 
@@ -276,31 +305,36 @@ def fetchChild(String type){
 void on(cd) {
 	if (logEnable) log.debug "Turn device ON"
 
-	// Make child events
 	List<Map> evts = []
-	evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
+	if (!paramWait4Report) {
+		// Make child events
+		evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
 	
-	// Send events to child
-	getChildDevice(cd.deviceNetworkId).parse(evts)
+		// Send events to child
+		getChildDevice(cd.deviceNetworkId).parse(evts)
+	}
 	
 	def cmds = []
 	cmds << zwave.basicV1.basicSet(value: 0xFF).format()
-	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
+	cmds << zwave.basicV1.basicGet().format()
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 3000), hubitat.device.Protocol.ZWAVE))
 }
 
 void off(cd) {
 	if (logEnable) log.debug "Turn device OFF"
-	
-	// Make child events
+
 	List<Map> evts = []
-	evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
+	if (!paramWait4Report) {	
+		// Make child events
+		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
 	
-	// Send events to child
-	getChildDevice(cd.deviceNetworkId).parse(evts)
+		// Send events to child
+		getChildDevice(cd.deviceNetworkId).parse(evts)
+	}
 	
 	def cmds = []
 	cmds << zwave.basicV1.basicSet(value: 0x00).format()
+	cmds << zwave.basicV1.basicGet().format()
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 3000), hubitat.device.Protocol.ZWAVE))
 }
 
@@ -312,32 +346,44 @@ void setLightTimeout(value) {
 	switch (value) {
 		case "5 seconds":
 			state.lightTimeout = "5 seconds"
-			sendEvent([name:"lightTimeout", value: "5 seconds", displayed:true])
+			if (!paramWait4Report) {			
+				sendEvent([name:"lightTimeout", value: "5 seconds"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 0 , parameterNumber: 1, size: 1).format()
 			break
 		case "1 minute":
 			state.lightTimeout = "1 minute"
-			sendEvent([name:"lightTimeout", value: "1 minute", displayed:true])
+			if (!paramWait4Report) {			
+				sendEvent([name:"lightTimeout", value: "1 minute"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 1 , parameterNumber: 1, size: 1).format()
 			break
 		case "5 minutes (default)":
 			state.lightTimeout = "5 minutes (default)"
-			sendEvent([name:"lightTimeout", value: "5 minutes (default)", displayed:true])
+			if (!paramWait4Report) {			
+				sendEvent([name:"lightTimeout", value: "5 minutes (default)"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 5 , parameterNumber: 1, size: 1).format()
 			break
 		case "15 minutes":
 			state.lightTimeout = "15 minutes"
-			sendEvent([name:"lightTimeout", value: "15 minutes", displayed:true])
+			if (!paramWait4Report) {			
+				sendEvent([name:"lightTimeout", value: "15 minutes"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 15 , parameterNumber: 1, size: 1).format()
 			break
 		case "30 minutes":
 			state.lightTimeout = "30 minutes"
-			sendEvent([name:"lightTimeout", value: "30 minutes", displayed:true])
+			if (!paramWait4Report) {			
+				sendEvent([name:"lightTimeout", value: "30 minutes"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 30 , parameterNumber: 1, size: 1).format()
 			break
 		case "disabled":
 			state.lightTimeout = "disabled"
-			sendEvent([name:"lightTimeout", value: "disabled", displayed:true])
+			if (!paramWait4Report) {			
+				sendEvent([name:"lightTimeout", value: "disabled"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 255 , parameterNumber: 1, size: 1).format()
 			break
 		default:
@@ -349,7 +395,9 @@ void setLightTimeout(value) {
 
 void Occupancy() {
 	state.operatingMode = "Occupancy (default)"
-	sendEvent([name:"operatingMode", value: "Occupancy (default)", displayed:true])
+	if (!paramWait4Report) {
+		sendEvent([name:"operatingMode", value: "Occupancy (default)"])
+	}
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -358,7 +406,9 @@ void Occupancy() {
 
 void Vacancy() {
 	state.operatingMode = "Vacancy"
-	sendEvent([name:"operatingMode", value: "Vacancy", displayed:true])
+	if (!paramWait4Report) {			
+		sendEvent([name:"operatingMode", value: "Vacancy"])
+	}
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -367,7 +417,9 @@ void Vacancy() {
 
 void Manual() {
 	state.operatingMode = "Manual"
-	sendEvent([name:"operatingMode", value: "Manual", displayed:true])
+	if (!paramWait4Report) {
+		sendEvent([name:"operatingMode", value: "Manual"])
+	}						
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -409,6 +461,10 @@ void updated() {
 	if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
 	state.lastUpdated = now()
 
+	// Set Wait preference
+	if (paramWait4Report==null) {
+		paramWait4Report = false
+	}
 	def cmds = []
 
 	// See if Child Devices are Created, if not then create them
