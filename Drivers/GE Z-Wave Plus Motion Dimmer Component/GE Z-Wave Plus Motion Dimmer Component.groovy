@@ -14,7 +14,7 @@
  *  1.2.4 (10/17/2020)  - Added actuator capability so custom commands can be used in rule machine
  *  1.2.5 (10/27/2020)  - Fixed motion reset time parameter setting not working
  *  1.3.0 (02/17/2021)  - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status."
- *  1.3.1 (02/17/2021)  - Added blank selection option to commands to reduce confusion
+ *  1.3.1 (02/17/2021)  - Forgot to add the "Wasit for device report" to everything other than on/off/level
 */
 
 metadata {
@@ -477,7 +477,9 @@ void setDefaultDimmerLevel(value) {
 	
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	state.defaultDimmerLevel = value
-	sendEvent([name:"defaultDimmerLevel", value: value, displayed:true])
+	if (!paramWait4Report) {
+		sendEvent([name:"defaultDimmerLevel", value: value, displayed:true])
+	}
 	
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
@@ -513,32 +515,44 @@ void setLightTimeout(value) {
 	switch (value) {
 		case "5 seconds":
 			state.lightTimeout = "5 seconds"
-			sendEvent([name:"lightTimeout", value: "5 seconds", displayed:true])
+			if (!paramWait4Report) {
+					sendEvent([name:"lightTimeout", value: "5 seconds"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 0 , parameterNumber: 1, size: 1).format()
 			break
 		case "1 minute":
 			state.lightTimeout = "1 minute"
-			sendEvent([name:"lightTimeout", value: "1 minute", displayed:true])
+			if (!paramWait4Report) {
+				sendEvent([name:"lightTimeout", value: "1 minute"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 1 , parameterNumber: 1, size: 1).format()
 			break
 		case "5 minutes (default)":
 			state.lightTimeout = "5 minutes (default)"
-			sendEvent([name:"lightTimeout", value: "5 minutes (default)", displayed:true])
+			if (!paramWait4Report) {
+				sendEvent([name:"lightTimeout", value: "5 minutes (default)"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 5 , parameterNumber: 1, size: 1).format()
 			break
 		case "15 minutes":
 			state.lightTimeout = "15 minutes"
-			sendEvent([name:"lightTimeout", value: "15 minutes", displayed:true])
+			if (!paramWait4Report) {
+				sendEvent([name:"lightTimeout", value: "15 minutes"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 15 , parameterNumber: 1, size: 1).format()
 			break
 		case "30 minutes":
 			state.lightTimeout = "30 minutes"
-			sendEvent([name:"lightTimeout", value: "30 minutes", displayed:true])
+			if (!paramWait4Report) {
+				sendEvent([name:"lightTimeout", value: "30 minutes"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 30 , parameterNumber: 1, size: 1).format()
 			break
 		case "disabled":
 			state.lightTimeout = "disabled"
-			sendEvent([name:"lightTimeout", value: "disabled", displayed:true])
+			if (!paramWait4Report) {
+				sendEvent([name:"lightTimeout", value: "disabled"])
+			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 255 , parameterNumber: 1, size: 1).format()
 			break
 		default:
@@ -550,7 +564,9 @@ void setLightTimeout(value) {
 
 void Occupancy() {
 	state.operatingMode = "Occupancy (default)"
-	sendEvent([name:"operatingMode", value: "Occupancy (default)", displayed:true])
+	if (!paramWait4Report) {
+		sendEvent([name:"operatingMode", value: "Occupancy (default)", displayed:true])
+	}
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -559,7 +575,9 @@ void Occupancy() {
 
 void Vacancy() {
 	state.operatingMode = "Vacancy"
-	sendEvent([name:"operatingMode", value: "Vacancy", displayed:true])
+	if (!paramWait4Report) {
+		sendEvent([name:"operatingMode", value: "Vacancy", displayed:true])
+	}
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -568,7 +586,9 @@ void Vacancy() {
 
 void Manual() {
 	state.operatingMode = "Manual"
-	sendEvent([name:"operatingMode", value: "Manual", displayed:true])
+	if (!paramWait4Report) {
+		sendEvent([name:"operatingMode", value: "Manual", displayed:true])
+	}
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
