@@ -16,6 +16,7 @@
  *  2.2.0 (12/29/2020) - Unschedule logsOff if maually turning off debug logging
  *  2.3.0 (01/30/2021) - Fixed paramMotionResetTimer. Thanks for the PR @kleung1
  *  2.4.0 (02/17/2021) - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status.", added blank selection option to commands to reduce confusion. Granular debug command time options.
+ *  2.4.1 (02/18/2021) - Fixed some reporting errors, and synced the code with the component switch driver
 */
 
 metadata {
@@ -177,12 +178,12 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	def desc
 	
 	if (cmd.value == 255) {
-		desc = "Switch turned on"
-        if (logDesc) log.info "$device.displayName was turned on"
+		desc = "$device.displayName was turned on"
+        if (logDesc) log.info desc
 	}
 	else if (cmd.value == 0) {
-		desc = "Switch turned off"
-        if (logDesc) log.info "$device.displayName was turned off"
+		desc = "$device.displayName was turned off"
+        if (logDesc) log.info desc
 	}
     
 	sendEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: state.eventType ? "digital" : "physical"])
@@ -236,30 +237,40 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def on() {
 	if (logEnable) log.debug "Turn device ON"
-	state.eventType = -1
+
+	def cmds = []
+	cmds << zwave.switchBinaryV1.switchBinarySet(switchValue: 0xFF).format()
 
 	if (!paramWait4Report) {
-		sendEvent([name: "switch", value: "on", descriptionText: "Switch turned on", type: "digital"])
+		state.eventType = 0
+		sendEvent([name: "switch", value: "on", descriptionText: "$device.displayName was turned on", type: "digital"])
+		if (logDesc) log.info "$device.displayName was turned on"
 	}
-	
-	delayBetween([
-		zwave.switchBinaryV1.switchBinarySet(switchValue: 0xFF).format(),
-		zwave.switchBinaryV1.switchBinaryGet().format()
-	],500)
+	else {
+		state.eventType = -1
+		cmds << zwave.switchBinaryV1.switchBinaryGet().format()
+	}
+
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 def off() {
 	if (logEnable) log.debug "Turn device OFF"
-	state.eventType = -1
 
+	def cmds = []
+	cmds << zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format()
+	
 	if (!paramWait4Report) {
-		sendEvent([name: "switch", value: "off", descriptionText: "Switch turned off", type: "digital"])
+		state.eventType = 0
+		sendEvent([name: "switch", value: "off", descriptionText: "$device.displayName was turned off", type: "digital"])
+		if (logDesc) log.info "$device.displayName was turned off"
 	}
-				   
-	delayBetween([
-		zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format(),
-		zwave.switchBinaryV1.switchBinaryGet().format()
-	],500)
+	else {
+		state.eventType = -1
+		cmds << zwave.switchBinaryV1.switchBinaryGet().format()
+	}
+
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))	
 }
 
 def setLightTimeout(value) {
