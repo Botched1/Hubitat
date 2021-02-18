@@ -105,28 +105,6 @@ def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 	if (logEnable) log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
-
-	def cd = fetchChild("Switch")
-
-	if (!cd) {
-		log.warn "In BasicReport no switch child found with fetchChild"
-		return
-	}
-
-	List<Map> evts = []
-	
-	if (!cmd.value) {
-		evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: state.eventType ? "digital" : "physical"])
-	} 
-	else {
-		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: state.eventType ? "digital" : "physical"])
-	}
-	
-	// Reset type state
-	state.eventType = 0
-	
-	// Send events to child
-	cd.parse(evts)  
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
@@ -194,12 +172,12 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
-	if (logEnable) log.debug "---SWITCH BINARY V1--- ${device.displayName} sent ${cmd}"
+	if (logEnable) log.debug "---SWITCH BINARY REPORT V1--- ${device.displayName} sent ${cmd}"
 
 	def cd = fetchChild("Switch")
 
 	if (!cd) {
-		log.warn "In BasicSet no switch child found with fetchChild"
+		log.warn "In SwitchBinaryReport no switch child found with fetchChild"
 		return
 	}
 
@@ -315,9 +293,9 @@ void on(cd) {
 	}
 	
 	def cmds = []
-	cmds << zwave.basicV1.basicSet(value: 0xFF).format()
-	cmds << zwave.basicV1.basicGet().format()
-	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 3000), hubitat.device.Protocol.ZWAVE))
+	cmds << zwave.switchBinaryV1.switchBinarySet(switchValue: 0xFF).format()
+	cmds << zwave.switchBinaryV1.switchBinaryGet().format()
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void off(cd) {
@@ -333,9 +311,9 @@ void off(cd) {
 	}
 	
 	def cmds = []
-	cmds << zwave.basicV1.basicSet(value: 0x00).format()
-	cmds << zwave.basicV1.basicGet().format()
-	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 3000), hubitat.device.Protocol.ZWAVE))
+	cmds << zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format()
+	cmds << zwave.switchBinaryV1.switchBinaryGet().format()
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
 }
 
 void setLightTimeout(value) {
