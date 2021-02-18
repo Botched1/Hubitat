@@ -13,6 +13,7 @@
  *  1.1.4 (10/27/2020) - Fixed motion reset time parameter setting not working
  *  1.2.0 (02/17/2021) - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status.", added blank selection option to commands to reduce confusion
  *  1.2.1 (02/18/2021) - Fixed on/off reporting being broken in some reporting modes
+ *  1.2.2 (02/18/2021) - Fixed repeated physical events not making events.
 */
 
 metadata {
@@ -183,9 +184,9 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	List<Map> evts = []
 	
 	if (cmd.value == 255) {
-		evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: state.eventType ? "digital" : "physical"])
+		evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: state.eventType ? "digital" : "physical", isStateChange: state.eventType ? false : true])
 	} else if (cmd.value == 0) {
-		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: state.eventType ? "digital" : "physical"])
+		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: state.eventType ? "digital" : "physical", isStateChange: state.eventType ? false : true])
 	}
 	
 	// Reset type state
