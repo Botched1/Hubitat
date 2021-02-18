@@ -187,12 +187,7 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
         if (logDesc) log.info desc
 	}
     
-	if (!state.eventType) {
-		sendEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: "physical", isStateChange: true])
-	}
-	else {
-		sendEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: "digital"])
-	}
+	sendEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: state.eventType ? "digital" : "physical", isStateChange: state.eventType ? false : true])
 	
 	// Reset type state
 	state.eventType = 0
