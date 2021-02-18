@@ -14,7 +14,8 @@
  *  1.2.4 (10/17/2020)  - Added actuator capability so custom commands can be used in rule machine
  *  1.2.5 (10/27/2020)  - Fixed motion reset time parameter setting not working
  *  1.3.0 (02/17/2021)  - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status."
- *  1.3.1 (02/17/2021)  - Forgot to add the "Wasit for device report" to everything other than on/off/level
+ *  1.3.1 (02/17/2021)  - Added blank selection option to commands to reduce confusion
+ *  1.3.2 (02/17/2021)  - Forgot to add the "Wait for device report" to everything other than on/off/level
 */
 
 metadata {
