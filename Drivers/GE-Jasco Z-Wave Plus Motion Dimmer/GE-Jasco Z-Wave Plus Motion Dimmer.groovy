@@ -21,6 +21,7 @@
  *  2.4.0 (01/30/2021) - Fixed paramMotionResetTimer. Thanks for the PR @kleung1
  *  2.5.1 (02/17/2021) - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status."
  *  2.5.2 (02/17/2021) - Added blank selection option to commands to reduce confusion
+ *  2.5.3 (02/17/2021) - Granular debug logging options.
 */
 
 metadata {
@@ -40,7 +41,7 @@ metadata {
         command "Occupancy"
         command "Vacancy"
         command "Manual"
-		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["", "OFF", "ON"]]]        
+		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["", "OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]
         
         attribute "operatingMode", "string"
 		attribute "defaultDimmerLevel", "number"
@@ -746,21 +747,62 @@ private parseAssocGroupList(list, group) {
     return nodes
 }
 
-def DebugLogging(value) {
+void DebugLogging(value) {
 	if (value=="OFF") {
 		unschedule(logsOff)
-		logsoff
-	}
-	
-    	if (value=="ON") {
+		logsOff()
+	} else
+
+	if (value=="30m") {
+		unschedule(logsOff)
 		log.debug "debug logging is enabled."
 		device.updateSetting("logEnable",[value:"true",type:"bool"])
-		runIn(1800,logsOff)
+		runIn(1800,logsOff)		
+	} else
+
+	if (value=="1h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(3600,logsOff)		
+	} else
+
+	if (value=="3h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(10800,logsOff)		
+	} else
+
+	if (value=="6h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(21699,logsOff)		
+	} else
+
+	if (value=="12h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(43200,logsOff)		
+	} else
+
+	if (value=="24h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(86400,logsOff)		
+	} else
+		
+	if (value=="ON") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
 	}
-	
 }
 
-def logsOff(){
-    log.warn "debug logging disabled..."
-    device.updateSetting("logEnable",[value:"false",type:"bool"])
+void logsOff(){
+	log.warn "debug logging disabled..."
+	device.updateSetting("logEnable",[value:"false",type:"bool"])
 }
