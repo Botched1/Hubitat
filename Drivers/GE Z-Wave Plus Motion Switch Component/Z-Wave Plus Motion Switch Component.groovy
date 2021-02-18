@@ -137,12 +137,10 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 		case 1:
 			name = "lightTimeout"
 			value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == 255 ? "disabled" : "error"
-			sendEvent([name:"lightTimeout", value: value, displayed:true])
 			break
 		case 3:
 			name = "operatingMode"
 			value = reportValue == 1 ? "Manual" : reportValue == 2 ? "Vacancy" : reportValue == 3 ? "Occupancy (default)": "error"
-			sendEvent([name:"operatingMode", value: value, displayed:true])
 			break
 		case 5:
 			name = "Invert Buttons"
