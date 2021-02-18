@@ -17,6 +17,7 @@
  *  2.3.0 (01/30/2021) - Fixed paramMotionResetTimer. Thanks for the PR @kleung1
  *  2.4.0 (02/17/2021) - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status.", added blank selection option to commands to reduce confusion. Granular debug command time options.
  *  2.4.1 (02/18/2021) - Fixed some reporting errors, and synced the code with the component switch driver
+ *  2.4.2 (02/18/2021) - Fixed repeated physical events not making events.
 */
 
 metadata {
@@ -186,7 +187,12 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
         if (logDesc) log.info desc
 	}
     
-	sendEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: state.eventType ? "digital" : "physical"])
+	if (!state.eventType) {
+		sendEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: "physical", isStateChange: true])
+	}
+	else {
+		sendEvent([name: "switch", value: cmd.value ? "on" : "off", descriptionText: "$desc", type: "digital"])
+	}
 	
 	// Reset type state
 	state.eventType = 0
