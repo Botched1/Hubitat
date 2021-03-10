@@ -15,6 +15,7 @@
  *  2.2.0  (08/29/2020) - Added number of button config to configure
  *  2.3.0  (12/15/2020) - Added state for defaultDimmerLevel
  *  2.4.0  (02/13/2021) - Added Alternate Exclusion mode to preferences.
+ *  2.5.0  (03/10/2021) - Fixed redundant ON events when changing dimmer level
 */
 
 import groovy.transform.Field
@@ -172,6 +173,13 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 	state.bin = 0
 	
 	if (cmd.value) {
+		// Set switch status
+        if (device.currentValue("switch") == "off") {
+			if (logDesc) log.info "$device.displayName was turned on [$newType]"
+			sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on [$newType]", type: "$newType")
+		}
+
+		// Send level event
 		sendEvent(name: "level", value: cmd.value, unit: "%", descriptionText: "$device.displayName is " + cmd.value + "%", type: "$newType")
 
 		// Update state.level
@@ -180,9 +188,6 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 		// info logging
 		if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
 
-		// Set switch status
-        if (logDesc) log.info "$device.displayName was turned on [$newType]"
-		sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on [$newType]", type: "$newType")
 	} else {
 		sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off [$newType]", type: "$newType")
 		if (logDesc) log.info "$device.displayName was turned off [$newType]"
