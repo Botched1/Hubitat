@@ -16,6 +16,7 @@
  *  1.3.0 (02/17/2021)  - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status."
  *  1.3.1 (02/17/2021)  - Added blank selection option to commands to reduce confusion
  *  1.3.2 (02/17/2021)  - Forgot to add the "Wait for device report" to everything other than on/off/level
+ *  1.3.3 (03/31/2021)  - Fixed small issue where on/off states weren't made in rare situations
 */
 
 metadata {
@@ -297,7 +298,7 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
-	if (logEnable) log.debug "SwitchMultilevelReport"
+	if (logEnable) log.debug "SwitchMultilevelReport v3"
 	
 	def cd = fetchChild("Dimmer")
 	String cv = ""
@@ -312,7 +313,7 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 	List<Map> evts = []
 
     if (cmd.value) {
-		if (cv == "off") {
+		if (cv == "off" || !cv) {
 			//log.warn "In multilevel turning on"
 			//log.warn "eventType: " + state.eventType
 			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: state.eventType ? "digital" : "physical"])
@@ -321,7 +322,7 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 		// Send events to child
 		cd.parse(evts)
 	} else {
-		if (cv == "on") {
+		if (cv == "on" || !cv) {
 			//log.warn "In multilevel turning off"
 			//log.warn "eventType: " + state.eventType
 			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: state.eventType ? "digital" : "physical"])
