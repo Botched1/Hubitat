@@ -17,6 +17,7 @@
  *  1.3.1 (02/17/2021)  - Added blank selection option to commands to reduce confusion
  *  1.3.2 (02/17/2021)  - Forgot to add the "Wait for device report" to everything other than on/off/level
  *  1.3.3 (03/31/2021)  - Fixed small issue where on/off states weren't made in rare situations
+ *  1.3.4 (04/15/2021)  - Fixed defaultDimmerLevel state not populating
 */
 
 metadata {
@@ -228,7 +229,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 			value = reportValue == 0 ? "Disabled (default)" : reportValue == 1 ? "Enabled" : "error"
 			break
 		case 17:
-			name = "Default Dimmer Level"
+			name = "defaultDimmerLevel"
 			value = reportValue
 			break
 		case 18:
