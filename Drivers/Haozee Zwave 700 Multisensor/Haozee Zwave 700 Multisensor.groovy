@@ -4,7 +4,7 @@
  *  Haozee / NEO Coolcam Zwave 700 Multisensor
  *
  *  1.0.0 (05/22/2021) - Initial Version
- *  1.0.1 (05/24/2021) - Fixed incorrect text on low battery event. MAde motion event text more consistent.
+ *  1.0.1 (05/24/2021) - Fixed incorrect text on low battery event. Made motion event text more consistent.
  */
 
 import groovy.transform.Field
