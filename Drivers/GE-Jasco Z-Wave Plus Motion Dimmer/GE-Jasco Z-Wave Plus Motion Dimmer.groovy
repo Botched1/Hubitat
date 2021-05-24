@@ -22,6 +22,7 @@
  *  2.5.1 (02/17/2021) - Removed erroneous duplicate event recording. Added new preference "Wait for device report before updating status."
  *  2.5.2 (02/17/2021) - Added blank selection option to commands to reduce confusion
  *  2.5.3 (02/17/2021) - Granular debug logging options.
+ *  2.5.4 (05/24/2021) - Fixed error when setting light timeout to disabled
 */
 
 metadata {
@@ -169,7 +170,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
     switch (cmd.parameterNumber) {
         case 1:
 			name = "lightTimeout"
-			value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == 255 ? "disabled" : "error"
+			value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == -1 ? "disabled" : "error"
 		    break
         case 3:
 			name = "operatingMode"
