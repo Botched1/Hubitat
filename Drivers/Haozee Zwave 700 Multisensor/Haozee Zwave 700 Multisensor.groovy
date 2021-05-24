@@ -5,6 +5,7 @@
  *
  *  1.0.0 (05/22/2021) - Initial Version
  *  1.0.1 (05/24/2021) - Fixed incorrect text on low battery event. Made motion event text more consistent.
+ *  1.0.2 (05/24/2021) - Fixed a parsing error when sending preferences to device
  */
 
 import groovy.transform.Field
@@ -290,8 +291,12 @@ def updateConfig() {
 	if (paramTEMPOFFSET==null) {
 		paramTEMPOFFSET = 0
 	}
-	// Parameter units are 0.1 deg, so adjust the user value
-	paramTEMPOFFSET = Math.round(paramTEMPOFFSET * 10)
+	/// Parameter units are 0.1 deg, so adjust the user value
+	if (paramTEMPOFFSET instanceof String) {
+		paramTEMPOFFSET = Math.round(Float.parseFloat(paramTEMPOFFSET) * 10)
+	} else {
+		paramTEMPOFFSET = Math.round(paramTEMPOFFSET * 10)
+	}
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramTEMPOFFSET.toInteger(), parameterNumber: 7, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 7).format())
 
@@ -300,7 +305,11 @@ def updateConfig() {
 		paramHUMIDITYOFFSET = 0
 	}
 	// Parameter units are 0.1 %, so adjust the user value
-	paramHUMIDITYOFFSET = Math.round(paramHUMIDITYOFFSET * 10)
+	if (paramHUMIDITYOFFSET instanceof String) {
+		paramHUMIDITYOFFSET = Math.round(Float.parseFloat(paramHUMIDITYOFFSET) * 10)
+	} else {
+		paramHUMIDITYOFFSET = Math.round(paramHUMIDITYOFFSET * 10)
+	}
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramHUMIDITYOFFSET.toInteger(), parameterNumber: 8, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 8).format())
 	
@@ -309,7 +318,11 @@ def updateConfig() {
 		paramTEMPREPORT = 10
 	}
 	// Parameter units are 0.1 deg, so adjust the user value
-	paramTEMPREPORT = Math.round(paramTEMPREPORT * 10)
+	if (paramTEMPREPORT instanceof String) {
+		paramTEMPREPORT = Math.round(Float.parseFloat(paramTEMPREPORT) * 10)
+	} else {
+		paramTEMPREPORT = Math.round(paramTEMPREPORT * 10)
+	}
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramTEMPREPORT.toInteger(), parameterNumber: 9, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 9).format())
 	
@@ -318,7 +331,11 @@ def updateConfig() {
 		paramHUMIDITYREPORT = 20
 	}
 	// Parameter units are 0.1 %, so adjust the user value
-	paramHUMIDITYREPORT = Math.round(paramHUMIDITYREPORT * 10)
+	if (paramHUMIDITYREPORT instanceof String) {
+		paramHUMIDITYREPORT = Math.round(Float.parseFloat(paramHUMIDITYREPORT) * 10)
+	} else {
+		paramHUMIDITYREPORT = Math.round(paramHUMIDITYREPORT * 10)
+	}
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramHUMIDITYREPORT.toInteger(), parameterNumber: 10, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 10).format())
 
