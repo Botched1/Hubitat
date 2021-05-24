@@ -361,7 +361,7 @@ def updateConfig() {
 	// If on battery
 	if (getDataValue("inClusters").contains("0x80") || getDataValue("secureInClusters").contains("0x80")) {
 		// Wakeup Interval
-		cmds.add(zwave.wakeUpV1.wakeUpIntervalSet(seconds: 43200, nodeid:zwaveHubNodeId).format())
+		cmds.add(zwave.wakeUpV2.wakeUpIntervalSet(seconds: 43200, nodeid:zwaveHubNodeId).format())
 		// Get a battery Update
 		cmds.add(zwave.batteryV1.batteryGet().format())
 		// Send No More Information
