@@ -130,7 +130,7 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd)
             if (logDesc) log.info "$device.displayName tamper detected"
 			sendEvent(name: "tamper", value: "detected", descriptionText: "$device.displayName tamper detected", type: "physical")
 		} else if (cmd.event == 0x08) {
-            if (logDesc) log.info "$device.displayName detected motion"
+            if (logDesc) log.info "$device.displayName motion detected"
 			sendEvent(name: "motion", value: "active", descriptionText: "$device.displayName motion detected", type: "physical")
 		} 
 	} 
