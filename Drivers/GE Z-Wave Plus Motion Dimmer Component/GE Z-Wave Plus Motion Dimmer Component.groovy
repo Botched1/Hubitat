@@ -18,6 +18,7 @@
  *  1.3.2 (02/17/2021)  - Forgot to add the "Wait for device report" to everything other than on/off/level
  *  1.3.3 (03/31/2021)  - Fixed small issue where on/off states weren't made in rare situations
  *  1.3.4 (04/15/2021)  - Fixed defaultDimmerLevel state not populating
+ *  1.3.5 (05/24/2021) - Fixed error when setting light timeout to disabled
 */
 
 metadata {
@@ -182,7 +183,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	switch (cmd.parameterNumber) {
 		case 1:
 			name = "lightTimeout"
-			value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == 255 ? "disabled" : "error"
+			value = reportValue == 0 ? "5 seconds" : reportValue == 1 ? "1 minute" : reportValue == 5 ? "5 minutes (default)" : reportValue == 15 ? "15 minutes" : reportValue == 30 ? "30 minutes" : reportValue == -1 ? "disabled" : "error"
 		    break
 		case 3:
 			name = "operatingMode"
