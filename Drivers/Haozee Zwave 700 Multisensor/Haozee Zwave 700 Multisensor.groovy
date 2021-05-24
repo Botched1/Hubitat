@@ -32,21 +32,14 @@ metadata {
 	definition (name: "Haozee Zwave 700 Multisensor", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Actuator"
 		capability "Battery"
-		//capability "Configuration"
 		capability "Illuminance Measurement"
 		capability "Motion Sensor"
-		//capability "Initialize"
-		//capability "Refresh"
 		capability "Relative Humidity Measurement"
 		capability "Sensor"
 		capability "TamperAlert"
 		capability "Temperature Measurement"
 
 		fingerprint mfr:"0258", prod:"0020", deviceId:"0718", inClusters:"0x5E,0x98,0x9F,0x6C,0x55", deviceJoinName: "Haozee Zwave 700 Multisensor"
-		
-		//fingerprint mfr:"0086", prod:"0002"
-    	//fingerprint deviceId: "100", inClusters: "0x5E, 0x86, 0x72, 0x59, 0x85, 0x73, 0x71, 0x84, 0x80, 0x30, 0x31, 0x70, 0x7A, 0x5A"
-    	//fingerprint deviceId: "100", inClusters: "0x5E, 0x98, 0x84, 0x5A"	
 	}
 
 	preferences {
@@ -122,16 +115,7 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.sensorbinaryv2.SensorBinaryReport cmd) {
 	if (logEnable) log.debug "---SensorBinaryReport--- ${device.displayName} sent ${cmd}"
-
-	/*
-	if (cmd.sensorValue) {
-		sendEvent(name: "motion", value: "active", descriptionText: "$device.displayName detected motion", type: "physical")
-	} else {
-		sendEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion has stopped", type: "physical")
-	}
-    */
 }
-
 
 def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd)
 {
