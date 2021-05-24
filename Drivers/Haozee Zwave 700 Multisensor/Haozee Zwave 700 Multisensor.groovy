@@ -342,7 +342,8 @@ def updateConfig() {
 	// Set ILLUMINANCEREPORT param
 	if (paramILLUMINANCEREPORT==null) {
 		paramILLUMINANCEREPORT = 50
-	}	
+	}
+	paramILLUMINANCEREPORT = Math.round(paramILLUMINANCEREPORT)
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramILLUMINANCEREPORT.toInteger(), parameterNumber: 11, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 11).format())
 
