@@ -125,15 +125,15 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd)
 
 	if (cmd.notificationType == 0x07) {
 		if ((cmd.event == 0x00)) {
-            if (logDesc) log.info "$device.displayName motion stopped"
-			sendEvent(name: "tamper", value: "clear", descriptionText: "$device.displayName tamper cleared", type: "physical")
-			sendEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion stopped", type: "physical")
+            if (logDesc) log.info "$device.displayName motion inactive"
+			sendEvent(name: "tamper", value: "cleared", descriptionText: "$device.displayName tamper cleared", type: "physical")
+			sendEvent(name: "motion", value: "inactive", descriptionText: "$device.displayName motion inactive", type: "physical")
 		} else if (cmd.event == 0x03) {
             if (logDesc) log.info "$device.displayName tamper detected"
 			sendEvent(name: "tamper", value: "detected", descriptionText: "$device.displayName tamper detected", type: "physical")
 		} else if (cmd.event == 0x08) {
-            if (logDesc) log.info "$device.displayName motion detected"
-			sendEvent(name: "motion", value: "active", descriptionText: "$device.displayName motion detected", type: "physical")
+            if (logDesc) log.info "$device.displayName motion active"
+			sendEvent(name: "motion", value: "active", descriptionText: "$device.displayName motion active", type: "physical")
 		} 
 	} 
 }
