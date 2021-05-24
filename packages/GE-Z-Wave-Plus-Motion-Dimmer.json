@@ -1,7 +1,7 @@
 {
   "packageName": "GE Z-Wave Plus Motion Dimmer",
   "author": "Botched1 (Jason Bottjen)",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "minimumHEVersion": "0.0",
   "dateReleased": "2020-12-29",
   "drivers": [
