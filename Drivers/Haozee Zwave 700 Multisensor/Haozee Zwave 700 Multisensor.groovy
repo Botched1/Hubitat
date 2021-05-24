@@ -276,7 +276,7 @@ def updateConfig() {
 	
 	// Param 4 = Enable minimum LUX for Motion reporting 
 	
-	// Param 5 = Binary Sensor reports on motion
+	// Param 5 = Binary Sensor reports on motion. Value=0 disables these redundant reports and saves battery.
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: 0, parameterNumber: 5, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 5).format())
 	
