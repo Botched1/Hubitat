@@ -1,7 +1,7 @@
 {
   "packageName": "GE Z-Wave Plus Motion Switch Component",
   "author": "Botched1 (Jason Bottjen)",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "minimumHEVersion": "0.0",
   "dateReleased": "2020-10-27",
   "drivers": [
