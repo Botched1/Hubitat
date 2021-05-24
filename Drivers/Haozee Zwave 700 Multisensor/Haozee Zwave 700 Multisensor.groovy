@@ -291,12 +291,8 @@ def updateConfig() {
 	if (paramTEMPOFFSET==null) {
 		paramTEMPOFFSET = 0
 	}
-	/// Parameter units are 0.1 deg, so adjust the user value
-	if (paramTEMPOFFSET instanceof String) {
-		paramTEMPOFFSET = Math.round(Float.parseFloat(paramTEMPOFFSET) * 10)
-	} else {
-		paramTEMPOFFSET = Math.round(paramTEMPOFFSET * 10)
-	}
+	// Parameter units are 0.1 deg, so adjust the user value
+	paramTEMPOFFSET = Math.round(paramTEMPOFFSET.toDouble() * 10)
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramTEMPOFFSET.toInteger(), parameterNumber: 7, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 7).format())
 
@@ -305,11 +301,7 @@ def updateConfig() {
 		paramHUMIDITYOFFSET = 0
 	}
 	// Parameter units are 0.1 %, so adjust the user value
-	if (paramHUMIDITYOFFSET instanceof String) {
-		paramHUMIDITYOFFSET = Math.round(Float.parseFloat(paramHUMIDITYOFFSET) * 10)
-	} else {
-		paramHUMIDITYOFFSET = Math.round(paramHUMIDITYOFFSET * 10)
-	}
+	paramHUMIDITYOFFSET = Math.round(paramHUMIDITYOFFSET.toDouble() * 10)
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramHUMIDITYOFFSET.toInteger(), parameterNumber: 8, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 8).format())
 	
@@ -318,11 +310,7 @@ def updateConfig() {
 		paramTEMPREPORT = 10
 	}
 	// Parameter units are 0.1 deg, so adjust the user value
-	if (paramTEMPREPORT instanceof String) {
-		paramTEMPREPORT = Math.round(Float.parseFloat(paramTEMPREPORT) * 10)
-	} else {
-		paramTEMPREPORT = Math.round(paramTEMPREPORT * 10)
-	}
+	paramTEMPREPORT = Math.round(paramTEMPREPORT.toDouble() * 10)
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramTEMPREPORT.toInteger(), parameterNumber: 9, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 9).format())
 	
@@ -331,11 +319,7 @@ def updateConfig() {
 		paramHUMIDITYREPORT = 20
 	}
 	// Parameter units are 0.1 %, so adjust the user value
-	if (paramHUMIDITYREPORT instanceof String) {
-		paramHUMIDITYREPORT = Math.round(Float.parseFloat(paramHUMIDITYREPORT) * 10)
-	} else {
-		paramHUMIDITYREPORT = Math.round(paramHUMIDITYREPORT * 10)
-	}
+	paramHUMIDITYREPORT = Math.round(paramHUMIDITYREPORT.toDouble() * 10)
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramHUMIDITYREPORT.toInteger(), parameterNumber: 10, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 10).format())
 
@@ -343,7 +327,7 @@ def updateConfig() {
 	if (paramILLUMINANCEREPORT==null) {
 		paramILLUMINANCEREPORT = 50
 	}
-	paramILLUMINANCEREPORT = Math.round(paramILLUMINANCEREPORT)
+	paramILLUMINANCEREPORT = Math.round(paramILLUMINANCEREPORT.toDouble())
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramILLUMINANCEREPORT.toInteger(), parameterNumber: 11, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 11).format())
 
