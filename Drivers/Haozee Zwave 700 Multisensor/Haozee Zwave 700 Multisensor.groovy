@@ -246,9 +246,6 @@ def updateConfig() {
     log.info "Updating Configuration..."
 
 	List<String> cmds = []
-
-	// Wakeup Interval
-	cmds.add(zwave.wakeUpV1.wakeUpIntervalSet(seconds: 43200, nodeid:zwaveHubNodeId).format())
 	
 	// Associations    
 	cmds.add(zwave.associationV2.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId).format())
@@ -363,6 +360,8 @@ def updateConfig() {
 
 	// If on battery
 	if (getDataValue("inClusters").contains("0x80") || getDataValue("secureInClusters").contains("0x80")) {
+		// Wakeup Interval
+		cmds.add(zwave.wakeUpV1.wakeUpIntervalSet(seconds: 43200, nodeid:zwaveHubNodeId).format())
 		cmds.add(zwave.batteryV1.batteryGet().format())
 		cmds.add(zwave.wakeUpV2.wakeUpNoMoreInformation().format())
 	}
