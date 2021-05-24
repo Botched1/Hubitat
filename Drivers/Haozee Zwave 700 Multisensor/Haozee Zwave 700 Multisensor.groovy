@@ -60,7 +60,7 @@ metadata {
 		// Param 14 = Basic Set Off Time
 		input name: "paramMOTIONCLEAR", type: "number", title: "Motion Clear Time (s)", multiple: false, defaultValue: "30", range: "1..30000", required: false, displayDuringSetup: true
 		// Param 16 = Luminance Threshold for Associated
-		input name: "paramSENSORREPORT", type: "number", title: "Sensor Report Interval Time (s)", multiple: false, defaultValue: "180", range: "0..30000", required: false, displayDuringSetup: true
+		input name: "paramSENSORREPORT", type: "number", title: "Sensor Check Interval Time (s)", multiple: false, defaultValue: "180", range: "0..30000", required: false, displayDuringSetup: true
 		// Param 18 is Lux calibration
 		input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false	
 		input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true	
