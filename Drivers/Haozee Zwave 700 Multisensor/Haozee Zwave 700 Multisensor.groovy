@@ -4,6 +4,7 @@
  *  Haozee / NEO Coolcam Zwave 700 Multisensor
  *
  *  1.0.0 (05/22/2021) - Initial Version
+ *  1.0.1 (05/24/2021) - Fixed incorrect text on low battery event. MAde motion event text more consistent.
  */
 
 import groovy.transform.Field
@@ -163,8 +164,8 @@ def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
 	def result = []
 
 	if (cmd.batteryLevel == 0xFF) {
-		if (logDesc) log.info "$device.displayName humidity is " + humidityInt + "%"	
-		sendEvent(name: "battery", value: 1, descriptionText: "$device.displayName has Low Battery", type: "physical", isStateChange: true)
+		if (logDesc) log.info "$device.displayName battery is low"	
+		sendEvent(name: "battery", value: 1, descriptionText: "$device.displayName battery is low", type: "physical", isStateChange: true)
 	} else {
 		if (logDesc) log.info "$device.displayName battery is ${cmd.batteryLevel}%"
 		sendEvent(name: "battery", value: cmd.batteryLevel, descriptionText: "$device.displayName battery is ${cmd.batteryLevel}%",type: "physical", isStateChange: true)
@@ -293,7 +294,7 @@ def updateConfig() {
 		paramTEMPOFFSET = 0
 	}
 	// Parameter units are 0.1 deg, so adjust the user value
-	paramTEMPOFFSET = paramTEMPOFFSET * 10
+	paramTEMPOFFSET = Math.round(paramTEMPOFFSET * 10)
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramTEMPOFFSET.toInteger(), parameterNumber: 7, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 7).format())
 
@@ -302,7 +303,7 @@ def updateConfig() {
 		paramHUMIDITYOFFSET = 0
 	}
 	// Parameter units are 0.1 %, so adjust the user value
-	paramHUMIDITYOFFSET = paramHUMIDITYOFFSET * 10
+	paramHUMIDITYOFFSET = Math.round(paramHUMIDITYOFFSET * 10)
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramHUMIDITYOFFSET.toInteger(), parameterNumber: 8, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 8).format())
 	
@@ -311,7 +312,7 @@ def updateConfig() {
 		paramTEMPREPORT = 10
 	}
 	// Parameter units are 0.1 deg, so adjust the user value
-	paramTEMPREPORT = paramTEMPREPORT * 10
+	paramTEMPREPORT = Math.round(paramTEMPREPORT * 10)
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramTEMPREPORT.toInteger(), parameterNumber: 9, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 9).format())
 	
@@ -320,7 +321,7 @@ def updateConfig() {
 		paramHUMIDITYREPORT = 20
 	}
 	// Parameter units are 0.1 %, so adjust the user value
-	paramHUMIDITYREPORT = paramHUMIDITYREPORT * 10
+	paramHUMIDITYREPORT = Math.round(paramHUMIDITYREPORT * 10)
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramHUMIDITYREPORT.toInteger(), parameterNumber: 10, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 10).format())
 
