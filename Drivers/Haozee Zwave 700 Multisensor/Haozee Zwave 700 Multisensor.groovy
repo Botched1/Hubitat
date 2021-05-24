@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/Haozee%20Zwave%20700%20Multisensor/Haozee%20Zwave%20700%20Multisensor.groovy
  *
  *  Haozee / NEO Coolcam Zwave 700 Multisensor
  *
