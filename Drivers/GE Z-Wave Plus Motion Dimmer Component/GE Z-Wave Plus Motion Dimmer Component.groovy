@@ -19,6 +19,7 @@
  *  1.3.3 (03/31/2021)  - Fixed small issue where on/off states weren't made in rare situations
  *  1.3.4 (04/15/2021)  - Fixed defaultDimmerLevel state not populating
  *  1.3.5 (05/24/2021) - Fixed error when setting light timeout to disabled
+ *  1.3.6 (06/09/2021) - Attempt to allow multiple physical button presses registering
 */
 
 metadata {
@@ -315,19 +316,19 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 	List<Map> evts = []
 
     if (cmd.value) {
-		if (cv == "off" || !cv) {
+		if (cv == "off" || !cv || !state.eventType) {
 			//log.warn "In multilevel turning on"
 			//log.warn "eventType: " + state.eventType
-			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: state.eventType ? "digital" : "physical"])
+			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: state.eventType ? "digital" : "physical", isStateChange: state.eventType ? false : true])
 		}
 		evts.add([name:"level", value: cmd.value, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: state.eventType ? "digital" : "physical"])
 		// Send events to child
 		cd.parse(evts)
 	} else {
-		if (cv == "on" || !cv) {
+		if (cv == "on" || !cv || !state.eventType) {
 			//log.warn "In multilevel turning off"
 			//log.warn "eventType: " + state.eventType
-			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: state.eventType ? "digital" : "physical"])
+			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: state.eventType ? "digital" : "physical", isStateChange: state.eventType ? false : true])
 			// Send events to child
 			cd.parse(evts)
 		}
