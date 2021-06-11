@@ -20,7 +20,7 @@
  *  1.3.4 (04/15/2021)  - Fixed defaultDimmerLevel state not populating
  *  1.3.5 (05/24/2021) - Fixed error when setting light timeout to disabled
  *  1.3.6 (06/09/2021) - Attempt to allow multiple physical button presses registering
- *  1.4.0 (06/11/2021) - Fixed multiple physical events, removed "Wait for Paraemter" all updates wait for the report back from the device
+ *  1.4.0 (06/11/2021) - Fixed multiple physical events, removed "Wait for Parameter" all updates wait for the report back from the device
 */
 
 metadata {
