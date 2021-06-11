@@ -20,6 +20,7 @@
  *  1.3.4 (04/15/2021)  - Fixed defaultDimmerLevel state not populating
  *  1.3.5 (05/24/2021) - Fixed error when setting light timeout to disabled
  *  1.3.6 (06/09/2021) - Attempt to allow multiple physical button presses registering
+ *  1.4.0 (06/11/2021) - Fixed multiple physical events, removed "Wait for Paraemter" all updates wait for the report back from the device
 */
 
 metadata {
@@ -69,7 +70,6 @@ metadata {
 			type: "text",
 			required: false
 			)
-		input name: "paramWait4Report", type: "bool", title: "Wait for device report before updating status. Can help prevent status sync issues, but will make hub initiated command status slightly slower.", defaultValue: false
 		input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
 		input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true	
 	}
@@ -110,7 +110,7 @@ def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 	// Notification = 113 decimal
 	// Manufacturer Specific = 114 decimal
 	// Association = 133 decimal
-	if (cmd.commandClass == 38) {newVersion = 3}
+	if (cmd.commandClass == 38) {newVersion = 2}
 	if (cmd.commandClass == 112) {newVersion = 2}
 	if (cmd.commandClass == 113) {newVersion = 3}
 	if (cmd.commandClass == 114) {newVersion = 2}								 
@@ -126,12 +126,35 @@ def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 	log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
+
+	def cd = fetchChild("Dimmer")
+	String cv = ""
+
+	if (cd) {
+		cv = cd.currentValue("switch")
+	} else {
+		log.warn "In BasicSet no dimmer child found with fetchChild"
+		return
+	}
+	
+	List<Map> evts = []
+	
+	if (state.eventBasicType == "ON") {
+		evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
+	} else {
+		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
+	}
+	
+	state.eventBasicType = ""
+	
+	// Send events to child
+	cd.parse(evts)
+	
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
 
-	/*
 	def cd = fetchChild("Dimmer")
 	String cv = ""
 
@@ -145,18 +168,37 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	List<Map> evts = []
 
 	if (cmd.value == 255) {
-		if (cv == "off") {
-			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical"])
-		}
+		evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical", isStateChange: true])
 	} else if (cmd.value == 0) {
-		if (cv == "on") {
-			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical"])
-		}
+		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical", isStateChange: true])
 	}
-    		
+    
 	// Send events to child
 	cd.parse(evts)
-	*/
+}
+
+def zwaveEvent(hubitat.zwave.commands.switchmultilevelv2.SwitchMultilevelReport cmd) {
+	if (logEnable) log.debug "---SwitchMultilevelReport v2---"
+	
+	def cd = fetchChild("Dimmer")
+	String cv = ""
+
+	if (cd) {
+		cv = cd.currentValue("switch")
+	} else {
+		log.warn "In SwitchMultilevelReport no dimmer child found with fetchChild"
+		return
+	}
+	
+	List<Map> evts = []
+
+    if (cmd.value) {
+		evts.add([name:"level", value: cmd.value, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: state.eventLevelType ? "digital" : "physical"])
+		// Send events to child
+		cd.parse(evts)
+	}
+	
+	state.eventLevelType = 0
 }
 
 def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
@@ -300,45 +342,7 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
 	}
 }
 
-def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
-	if (logEnable) log.debug "SwitchMultilevelReport v3"
-	
-	def cd = fetchChild("Dimmer")
-	String cv = ""
-
-	if (cd) {
-		cv = cd.currentValue("switch")
-	} else {
-		log.warn "In SwitchMultilevelReport no dimmer child found with fetchChild"
-		return
-	}
-	
-	List<Map> evts = []
-
-    if (cmd.value) {
-		if (cv == "off" || !cv || !state.eventType) {
-			//log.warn "In multilevel turning on"
-			//log.warn "eventType: " + state.eventType
-			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: state.eventType ? "digital" : "physical", isStateChange: state.eventType ? false : true])
-		}
-		evts.add([name:"level", value: cmd.value, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: state.eventType ? "digital" : "physical"])
-		// Send events to child
-		cd.parse(evts)
-	} else {
-		if (cv == "on" || !cv || !state.eventType) {
-			//log.warn "In multilevel turning off"
-			//log.warn "eventType: " + state.eventType
-			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: state.eventType ? "digital" : "physical", isStateChange: state.eventType ? false : true])
-			// Send events to child
-			cd.parse(evts)
-		}
-	}
-	//log.warn "setting state.eventType to zero in multilevel"
-	state.eventType = 0
-	//log.warn "eventType: " + state.eventType
-}
-
-def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd) {
+def zwaveEvent(hubitat.zwave.commands.switchmultilevelv2.SwitchMultilevelSet cmd) {
 	log.warn "SwitchMultilevelSet Called. This doesn't do anything right now in this driver."
 }
 
@@ -353,21 +357,20 @@ void componentRefresh(cd){
 void componentOn(cd){
 	if (logEnable) log.info "received on request from ${cd.displayName}"
 	//log.warn "componentOn setting state.eventType to -1"
-	state.eventType = -1
+	state.eventLevelType = -1
 	on(cd)
 }
 
 void componentOff(cd){
 	if (logEnable) log.info "received off request from ${cd.displayName}"
 	//log.warn "componentOff setting state.eventType to -1"
-	state.eventType = -1
 	off(cd)
 }
 
 void componentSetLevel(cd, level,transitionTime = null) {
 	if (logEnable) log.info "received setLevel(${level}, ${transitionTime}) request from ${cd.displayName}"
 	//log.warn "componentSetLevel setting state.eventType to -1"
-	state.eventType = -1
+	state.eventLevelType = -1
 	
 	if (transitionTime == null) {
 		setLevel(cd,level,0)
@@ -402,16 +405,16 @@ void on(cd) {
 	if (logEnable) log.debug "Turn device ON"
 
 	List<Map> evts = []
-	if (!paramWait4Report) {
-		// Make child events
-		evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
-
-		// Send events to child
-		getChildDevice(cd.deviceNetworkId).parse(evts)
-	}
+	
+	state.eventBasicType = "ON"
 	
 	def cmds = []
 	cmds << zwave.basicV1.basicSet(value: 0xFF).format()
+	cmds << zwave.basicV1.basicGet().format()
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 250), hubitat.device.Protocol.ZWAVE))
+	
+	cmds = []
+	cmds << "delay 10"
 	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 3000), hubitat.device.Protocol.ZWAVE))
 }
@@ -421,18 +424,12 @@ void off(cd) {
 
 	List<Map> evts = []
 	
-	if (!paramWait4Report) {
-		// Make child events
-		evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
-
-		// Send events to child
-		getChildDevice(cd.deviceNetworkId).parse(evts)
-	}
+	state.eventBasicType = "OFF"
 	
 	def cmds = []
 	cmds << zwave.basicV1.basicSet(value: 0x00).format()
-	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
-	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 3000), hubitat.device.Protocol.ZWAVE))
+	cmds << zwave.basicV1.basicGet().format()
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 250), hubitat.device.Protocol.ZWAVE))
 }
 
 void setLevel(cd, value, duration=null) {
@@ -454,20 +451,6 @@ void setLevel(cd, value, duration=null) {
 	}
 	
 	List<Map> evts = []
-	if (!paramWait4Report) {
-		// Create child events
-		if (value) {
-			evts.add([name:"level", value: value, descriptionText:"${cd.displayName} level was set to ${value}%", unit: "%", type: "digital"])
-			if (cv == "off") {
-				evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
-			}
-		} else if (value == 0 && cv == "on") {
-			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
-		}
-
-		// Send events to child
-		getChildDevice(cd.deviceNetworkId).parse(evts)
-	}
 	
 	if (logEnable) log.debug "setLevel(value, duration) >> value: ${value}, duration: ${duration}, delay: ${getStatusDelay}"
 	
@@ -482,10 +465,7 @@ void setDefaultDimmerLevel(value) {
 	
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	state.defaultDimmerLevel = value
-	if (!paramWait4Report) {
-		sendEvent([name:"defaultDimmerLevel", value: value, displayed:true])
-	}
-	
+
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 17).format()
@@ -520,44 +500,26 @@ void setLightTimeout(value) {
 	switch (value) {
 		case "5 seconds":
 			state.lightTimeout = "5 seconds"
-			if (!paramWait4Report) {
-					sendEvent([name:"lightTimeout", value: "5 seconds"])
-			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 0 , parameterNumber: 1, size: 1).format()
 			break
 		case "1 minute":
 			state.lightTimeout = "1 minute"
-			if (!paramWait4Report) {
-				sendEvent([name:"lightTimeout", value: "1 minute"])
-			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 1 , parameterNumber: 1, size: 1).format()
 			break
 		case "5 minutes (default)":
 			state.lightTimeout = "5 minutes (default)"
-			if (!paramWait4Report) {
-				sendEvent([name:"lightTimeout", value: "5 minutes (default)"])
-			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 5 , parameterNumber: 1, size: 1).format()
 			break
 		case "15 minutes":
 			state.lightTimeout = "15 minutes"
-			if (!paramWait4Report) {
-				sendEvent([name:"lightTimeout", value: "15 minutes"])
-			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 15 , parameterNumber: 1, size: 1).format()
 			break
 		case "30 minutes":
 			state.lightTimeout = "30 minutes"
-			if (!paramWait4Report) {
-				sendEvent([name:"lightTimeout", value: "30 minutes"])
-			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 30 , parameterNumber: 1, size: 1).format()
 			break
 		case "disabled":
 			state.lightTimeout = "disabled"
-			if (!paramWait4Report) {
-				sendEvent([name:"lightTimeout", value: "disabled"])
-			}
 			cmds << zwave.configurationV2.configurationSet(scaledConfigurationValue: 255 , parameterNumber: 1, size: 1).format()
 			break
 		default:
@@ -569,9 +531,6 @@ void setLightTimeout(value) {
 
 void Occupancy() {
 	state.operatingMode = "Occupancy (default)"
-	if (!paramWait4Report) {
-		sendEvent([name:"operatingMode", value: "Occupancy (default)", displayed:true])
-	}
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [3] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -580,9 +539,6 @@ void Occupancy() {
 
 void Vacancy() {
 	state.operatingMode = "Vacancy"
-	if (!paramWait4Report) {
-		sendEvent([name:"operatingMode", value: "Vacancy", displayed:true])
-	}
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [2] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -591,9 +547,6 @@ void Vacancy() {
 
 void Manual() {
 	state.operatingMode = "Manual"
-	if (!paramWait4Report) {
-		sendEvent([name:"operatingMode", value: "Manual", displayed:true])
-	}
 	def cmds = []
 	cmds << zwave.configurationV2.configurationSet(configurationValue: [1] , parameterNumber: 3, size: 1).format()
 	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
@@ -643,11 +596,6 @@ void updated() {
 	if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
 	state.lastUpdated = now()
 
-	// Set Wait preference
-	if (paramWait4Report==null) {
-		paramWait4Report = false
-	}
-	
 	def cmds = []
 
 	// See if Child Devices are Created, if not then create them
