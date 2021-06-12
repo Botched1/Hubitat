@@ -1,16 +1,17 @@
 {
   "packageName": "Haozee Zwave 700 Multisensor",
   "author": "Botched1 (Jason Bottjen)",
-  "version": "1.0.2",
+  "version": "1.0",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2021-05-24",
+  "dateReleased": "2021-06-12",
   "drivers": [
     {
-      "id": "4c223456-ab43-49f7-93af-fbdfd2f64ef2",
+      "id": "585f053d-bc3d-40c5-a073-ec707f701978",
       "name": "Haozee Zwave 700 Multisensor",
       "namespace": "Botched1",
       "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/Haozee%20Zwave%20700%20Multisensor/Haozee%20Zwave%20700%20Multisensor.groovy",
-      "required": true
+      "required": true,
+      "version": "1.0.2"
     }
   ]
 }
