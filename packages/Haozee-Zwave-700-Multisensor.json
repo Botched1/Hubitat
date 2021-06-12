@@ -10,8 +10,7 @@
       "name": "Haozee Zwave 700 Multisensor",
       "namespace": "Botched1",
       "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/Haozee%20Zwave%20700%20Multisensor/Haozee%20Zwave%20700%20Multisensor.groovy",
-      "required": true,
-      "version": "1.0.2"
+      "required": true
     }
   ]
 }
