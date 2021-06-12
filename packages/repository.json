@@ -82,6 +82,16 @@
         "Lights & Switches"
       ]
     },
+       {
+      "id": "4c26a059-ab43-49f7-93af-fbdfd2f64ef2",
+      "name": "GE Z-Wave Plus Motion Dimmer Combo Driver",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Combo%20Driver/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Combo%20Driver.groovy",
+      "description": "Combo Driver for GE Motion Dimmer",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
     {
       "id": "ea92d9f5-aa56-468a-83f0-c485175b7f1c",
       "name": "Vivint CT200 Thermostat",
