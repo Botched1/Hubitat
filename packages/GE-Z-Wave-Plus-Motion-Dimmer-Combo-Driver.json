@@ -7,7 +7,7 @@
   "drivers": [
     {
       "id": "4c26a059-ab43-49f7-93af-fbdfd2f64ef2",
-      "name": "GE Z-Wave Plus Motion Dimmer Comnbo Driver",
+      "name": "GE Z-Wave Plus Motion Dimmer Combo Driver",
       "namespace": "Botched1",
       "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Combo%20Driver/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Combo%20Driver.groovy",
       "required": true
