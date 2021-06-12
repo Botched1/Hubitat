@@ -91,7 +91,20 @@
       "tags": [
         "Climate Control"
       ]
+    },
+    {
+      "id": "cf32b271-faab-47bf-8193-7255cf9fb245",
+      "name": "GE Z-Wave Plus Motion Dimmer Combo Driver",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/GE-Z-Wave-Plus-Motion-Dimmer-Combo-Driver.json",
+      "description": "Combo Driver for GE Z-Wavbe Plus Motion Dimmer"
+    },
+    {
+      "id": "e1ccd97c-3188-4798-bf3b-f23ec1715584",
+      "name": "Haozee Zwave 700 Multisensor",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/Haozee-Zwave-700-Multisensor.json",
+      "description": "Haozee Zwave 700 Multisensor"
     }
   ]
 }
-
