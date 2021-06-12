@@ -83,7 +83,7 @@
       ]
     },
     {
-      "id": "4c26a059-ab43-49f7-93af-fbdfd2f64ef2",
+      "id": "7254aca9-8d6b-42c7-8c9a-4f4dae7d1f2a",
       "name": "GE Z-Wave Plus Motion Dimmer Combo Driver",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Combo%20Driver/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Combo%20Driver.groovy",
@@ -93,7 +93,7 @@
       ]
     },
     {
-      "id": "4c223456-ab43-49f7-93af-fbdfd2f64ef2",
+      "id": "2254dcab-8d6b-42c7-8c9a-4f4dae7d1f2a",
       "name": "Haozee Zwave 700 Multisensor",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/Haozee%20Zwave%20700%20Multisensor/Haozee%20Zwave%20700%20Multisensor.groovy",
