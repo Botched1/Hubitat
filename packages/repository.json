@@ -83,26 +83,6 @@
       ]
     },
     {
-      "id": "7254aca9-8d6b-42c7-8c9a-4f4dae7d1f2a",
-      "name": "GE Z-Wave Plus Motion Dimmer Combo Driver",
-      "category": "Integrations",
-      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Combo%20Driver/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Combo%20Driver.groovy",
-      "description": "Combo Driver for GE Motion Dimmer",
-      "tags": [
-        "Lights & Switches"
-      ]
-    },
-    {
-      "id": "2254dcab-8d6b-42c7-8c9a-4f4dae7d1f2a",
-      "name": "Haozee Zwave 700 Multisensor",
-      "category": "Integrations",
-      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/Haozee%20Zwave%20700%20Multisensor/Haozee%20Zwave%20700%20Multisensor.groovy",
-      "description": "Driver for Haozee Zwave 700 Multisensor",
-      "tags": [
-        "Multi Sensors"
-      ]
-    },
-    {
       "id": "ea92d9f5-aa56-468a-83f0-c485175b7f1c",
       "name": "Vivint CT200 Thermostat",
       "category": "Integrations",
