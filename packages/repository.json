@@ -98,7 +98,7 @@
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/GE-Z-Wave-Plus-Motion-Dimmer-Combo-Driver.json",
       "description": "Combo Driver for GE Z-Wavbe Plus Motion Dimmer",
-            "tags": [
+      "tags": [
         "Lights & Switches"
       ]
     },
@@ -108,8 +108,18 @@
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/Haozee-Zwave-700-Multisensor.json",
       "description": "Haozee Zwave 700 Multisensor",
-            "tags": [
+      "tags": [
         "Multi Sensors"
+      ]
+    },
+    {
+      "id": "3b207ae8-96a2-464d-ae63-8cd76bf07972",
+      "name": "GE Z-Wave Plus Motion Switch Combo Driver",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/Botched1/Hubitat/master/packages/GE-Z-Wave-Plus-Motion-Switch-Combo-Driver.json",
+      "description": "Combo Driver for GE Z-Wavbe Plus Motion Switch",
+      "tags": [
+        "Lights & Switches"
       ]
     }
   ]
