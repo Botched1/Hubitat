@@ -40,7 +40,7 @@ metadata {
 		capability "Switch"
 		capability "Light"		
 		
-		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["", "5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
+		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["", "5 seconds", "1 minute", "5 minutes", "15 minutes", "30 minutes", "disabled"]]]
 		command "Occupancy"
 		command "Vacancy"
 		command "Manual"
