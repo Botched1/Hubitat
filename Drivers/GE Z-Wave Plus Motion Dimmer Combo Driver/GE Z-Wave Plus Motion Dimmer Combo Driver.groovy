@@ -5,6 +5,7 @@
  *  Driver for GE Z-Wave Plus Motion Dimmer (26933) that can be all-in-one or expose the dimmer and motion sensor part of a GE Motion Dimmer device as separate child devices
  *
  *  1.0.0 (06/12/2021) - First version
+ *  1.0.1 (06/12/2021) - Removed a (default) text I missed
  */
 
 import groovy.transform.Field
@@ -44,7 +45,7 @@ metadata {
 		
 		
 		command "setDefaultDimmerLevel", [[name:"Default Dimmer Level",type:"NUMBER", description:"Default Dimmer Level Used when Turning ON. (0=Last Dimmer Value)", range: "0..99"]]
-		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["", "5 seconds", "1 minute", "5 minutes (default)", "15 minutes", "30 minutes", "disabled"]]]
+		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["", "5 seconds", "1 minute", "5 minutes", "15 minutes", "30 minutes", "disabled"]]]
 		command "Occupancy"
 		command "Vacancy"
 		command "Manual"
