@@ -6,6 +6,7 @@
  *
  *  1.0.0 (06/12/2021) - First version
  *  1.0.1 (06/12/2021) - Removed a (default) text I missed
+ *  1.0.2 (06/14/2021) - Modified some of the current value checking, as it would throw errors in some situations.
  */
 
 import groovy.transform.Field
@@ -134,7 +135,9 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 
 	if (useChildren) {
 		def cd = fetchChild("Dimmer")
-		String cv = ""
+		
+        /*
+        String cv = ""
 
 		if (cd) {
 			cv = cd.currentValue("switch")
@@ -142,7 +145,12 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 			log.warn "In BasicSet no dimmer child found with fetchChild"
 			return
 		}
-
+        */
+		if (!cd) {
+			log.warn "In BasicSet no dimmer child found with fetchChild"
+			return
+		}
+        
 		List<Map> evts = []
 
 		if (state.eventBasicType == "ON") {
@@ -172,7 +180,9 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 
 	if (useChildren) {
 		def cd = fetchChild("Dimmer")
-		String cv = ""
+		
+        /*
+        String cv = ""
 
 		if (cd) {
 			cv = cd.currentValue("switch")
@@ -181,6 +191,12 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 			return
 		}
 
+        */
+		if (!cd) {
+            log.warn "In BasicSet no dimmer child found with fetchChild"
+			return
+		}
+        
 		List<Map> evts = []
 
 		if (cmd.value == 255) {
@@ -207,7 +223,8 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv2.SwitchMultilevelReport 
 
 	if (useChildren) {
 		def cd = fetchChild("Dimmer")
-		String cv = ""
+		/*
+        String cv = ""
 
 		if (cd) {
 			cv = cd.currentValue("switch")
@@ -215,7 +232,12 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv2.SwitchMultilevelReport 
 			log.warn "In SwitchMultilevelReport no dimmer child found with fetchChild"
 			return
 		}
-
+        */
+		if (!cd) {
+			log.warn "In SwitchMultilevelReport no dimmer child found with fetchChild"
+			return
+		}
+        
 		List<Map> evts = []
 
 		if (cmd.value) {
@@ -500,14 +522,18 @@ void setLevel(value, duration=null, cd=null) {
 
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 
+    /*
+    String cv = "off"
+    
 	if (useChildren) {
-		String cv = cd.currentValue("switch")
+		cv = cd.currentValue("switch")
 	} else {
-		String cv = device.currentValue("switch")
+		cv = device.currentValue("switch")
 	}
-
+    */
+    
 	// Update getStatusDelay calc for OFF - it takes longer to report.
-	if (value == 0 && cv == "on") {
+	if (value == 0) {
 		getStatusDelay += 2000
 	}
 	
