@@ -254,7 +254,7 @@ def updateConfig() {
 	cmds.add(zwave.wakeUpV2.wakeUpIntervalSet(seconds: 43200, nodeid:zwaveHubNodeId).format())
 	
 	// Get current sensor state
-	cmds.add(zwave.notificationV8.notificationGet(notificationType: 5, v1AlarmType: 0).format())
+	cmds.add(zwave.notificationV8.notificationGet(notificationType: 5, event: 0, v1AlarmType: 0).format())
 
 	// Get a battery Update
 	cmds.add(zwave.batteryV1.batteryGet().format())
