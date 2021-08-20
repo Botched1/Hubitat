@@ -4,6 +4,7 @@
  *  Zooz ZSE41 OPEN CLOSE XS SENSOR
  *
  *  1.0.0 (08/16/2021) - Initial Version
+ *  1.0.1 (08/20/2021) - Fixed typo on closed event
  */
 
 import groovy.transform.Field
@@ -103,7 +104,7 @@ def zwaveEvent(hubitat.zwave.commands.notificationv8.NotificationReport cmd)
 			sendEvent(name: "contact", value: "open", descriptionText: "$device.displayName is open", type: "physical")
 		} else if (cmd.event == 0x17) {
             if (logDesc) log.info "$device.displayName is closed"
-			sendEvent(name: "contact", value: "close", descriptionText: "$device.displayName is closed", type: "physical")
+			sendEvent(name: "contact", value: "closed", descriptionText: "$device.displayName is closed", type: "physical")
 		} 
     } else {
         log.debug "Unhandled notification: Type ${cmd.notificationType}, Event ${cmd.event}"
