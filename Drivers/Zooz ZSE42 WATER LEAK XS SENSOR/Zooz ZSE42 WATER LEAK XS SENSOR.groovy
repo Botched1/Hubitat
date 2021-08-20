@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: 
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/Zooz%20ZSE42%20WATER%20LEAK%20XS%20SENSOR/Zooz%20ZSE42%20WATER%20LEAK%20XS%20SENSOR.groovy
  *
  *  Zooz ZSE42 WATER LEAK XS SENSOR
  *
