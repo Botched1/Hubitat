@@ -1,5 +1,5 @@
 /**
- *  IMPORT URL: 
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/Zooz%20ZSE41%20OPEN%20CLOSE%20XS%20SENSOR/Zooz%20ZSE41%20OPEN%20CLOSE%20XS%20SENSOR.groovy
  *
  *  Zooz ZSE41 OPEN CLOSE XS SENSOR
  *
