@@ -4,6 +4,7 @@
  *  Zooz ZSE42 WATER LEAK XS SENSOR
  *
  *  1.0.0 (08/16/2021) - Initial Version
+ *  1.0.1 (08/21/2021) - Removed redundant battery report on wakeup
  */
 
 import groovy.transform.Field
@@ -168,7 +169,7 @@ void zwaveEvent(hubitat.zwave.commands.wakeupv2.WakeUpNotification cmd) {
 		state.queuedConfig = false
 		updateConfig()
 	} else {
-		sendToDevice(zwave.batteryV1.batteryGet().format())
+		//sendToDevice(zwave.batteryV1.batteryGet().format())
 	}
 }
 
