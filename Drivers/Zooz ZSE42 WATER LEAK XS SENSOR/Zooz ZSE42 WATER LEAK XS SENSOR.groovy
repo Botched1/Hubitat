@@ -5,6 +5,7 @@
  *
  *  1.0.0 (08/16/2021) - Initial Version
  *  1.0.1 (08/21/2021) - Removed redundant battery report on wakeup
+ *  1.1.0 (09/07/2021) - Added debug logging command and firmware version retrieval on parameter update
  */
 
 import groovy.transform.Field
@@ -38,6 +39,8 @@ metadata {
 		capability "Sensor"
 		capability "TamperAlert"
         capability "WaterSensor"
+
+        command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["", "OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]        
 
 		fingerprint  mfr:"027A", prod:"7000", deviceId:"E002", inClusters:"0x5E,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x73,0x80,0x9F,0x71,0x87,0x30,0x70,0x84,0x6C,0x7A" 
 	}
@@ -132,12 +135,6 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	if (logEnable) log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
 }
 
-def zwaveEvent(hubitat.zwave.commands.versionv3.VersionReport cmd) {
-	def fw = "${cmd.applicationVersion}.${cmd.applicationSubVersion}"
-	updateDataValue("fw", fw)
-	if (logEnable) log.debug "---VERSION REPORT V3--- ${device.displayName} is running firmware version: $fw, Z-Wave version: ${cmd.zWaveProtocolVersion}.${cmd.zWaveProtocolSubVersion}"
-}
-
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.DeviceSpecificReport cmd) {
     if (logEnable) log.debug "---Device Specific Report: ${cmd}---"
     switch (cmd.deviceIdType) {
@@ -171,6 +168,13 @@ void zwaveEvent(hubitat.zwave.commands.wakeupv2.WakeUpNotification cmd) {
 	} else {
 		//sendToDevice(zwave.batteryV1.batteryGet().format())
 	}
+}
+
+void zwaveEvent(hubitat.zwave.commands.versionv3.VersionReport cmd) {
+    if (logEnable) log.debug "---Version Report: ${cmd}"
+    device.updateDataValue("firmwareVersion", "${cmd.firmware0Version}.${cmd.firmware0SubVersion}")
+    device.updateDataValue("protocolVersion", "${cmd.zWaveProtocolVersion}.${cmd.zWaveProtocolSubVersion}")
+    device.updateDataValue("hardwareVersion", "${cmd.hardwareVersion}")
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
@@ -259,7 +263,12 @@ def updateConfig() {
 
 	// Get a battery Update
 	cmds.add(zwave.batteryV1.batteryGet().format())
-	
+
+    // Get version info
+    cmds.add(new hubitat.zwave.commands.versionv3.VersionGet().format())
+    //cmds.add(zwave.versionV3.versionGet().format())
+
+    
 	// Send No More Information
 	cmds.add(zwave.wakeUpV2.wakeUpNoMoreInformation().format())
 	
@@ -316,6 +325,61 @@ private parseAssocGroupList(list, group) {
         }
     }  
     return nodes
+}
+
+void DebugLogging(value) {
+	if (value=="OFF") {
+		unschedule(logsOff)
+		logsOff()
+	} else
+
+	if (value=="30m") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(1800,logsOff)		
+	} else
+
+	if (value=="1h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(3600,logsOff)		
+	} else
+
+	if (value=="3h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(10800,logsOff)		
+	} else
+
+	if (value=="6h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(21699,logsOff)		
+	} else
+
+	if (value=="12h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(43200,logsOff)		
+	} else
+
+	if (value=="24h") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+		runIn(86400,logsOff)		
+	} else
+		
+	if (value=="ON") {
+		unschedule(logsOff)
+		log.debug "debug logging is enabled."
+		device.updateSetting("logEnable",[value:"true",type:"bool"])
+	}
 }
 
 def logsOff(){
