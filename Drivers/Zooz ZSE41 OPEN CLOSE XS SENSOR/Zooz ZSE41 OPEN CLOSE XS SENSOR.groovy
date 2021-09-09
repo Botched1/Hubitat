@@ -7,6 +7,7 @@
  *  1.0.1 (08/20/2021) - Fixed typo on closed event
  *  1.0.2 (08/21/2021) - Removed redundant battery report on wakeup
  *  1.1.0 (09/07/2021) - Added debug logging command and firmware version retrieval on parameter update
+ *  1.1.1 (09/07/2021) - Added IndicatorReport handler to prevent errors
  */
 
 import groovy.transform.Field
@@ -113,6 +114,10 @@ def zwaveEvent(hubitat.zwave.commands.notificationv8.NotificationReport cmd)
     } else {
         log.debug "Unhandled notification: Type ${cmd.notificationType}, Event ${cmd.event}"
     }
+}
+
+def zwaveEvent(hubitat.zwave.commands.indicatorv3.IndicatorReport cmd) {
+	if (logEnable) log.debug "---IndicatorReport REPORT V3--- ${device.displayName} sent ${cmd}"
 }
 
 def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
