@@ -6,6 +6,7 @@
  *  1.0.0 (08/16/2021) - Initial Version
  *  1.0.1 (08/21/2021) - Removed redundant battery report on wakeup
  *  1.1.0 (09/07/2021) - Added debug logging command and firmware version retrieval on parameter update
+ *  1.1.1 (09/16/2021) - Fixed bug that qould throw an error if LED parameter wasn't set in preferences.
  */
 
 import groovy.transform.Field
@@ -222,7 +223,7 @@ def updateConfig() {
 	
 	// Set LED param
 	if (paramLEDIndicatorMode==null) {
-		paramLED = 1
+		paramLEDIndicatorMode = 1
 	}
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramLEDIndicatorMode.toInteger(), parameterNumber: 1, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 1).format())
