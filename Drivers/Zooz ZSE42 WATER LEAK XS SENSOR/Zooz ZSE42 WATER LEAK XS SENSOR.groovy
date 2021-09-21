@@ -7,6 +7,7 @@
  *  1.0.1 (08/21/2021) - Removed redundant battery report on wakeup
  *  1.1.0 (09/07/2021) - Added debug logging command and firmware version retrieval on parameter update
  *  1.1.1 (09/16/2021) - Fixed bug that qould throw an error if LED parameter wasn't set in preferences.
+ *  1.2.0 (09/21/2021) - Moved wakeup interval setting to then of updates, and changed delay from 300 to 500ms to try and made updating the config more reliable. 
  */
 
 import groovy.transform.Field
@@ -255,9 +256,6 @@ def updateConfig() {
 	}	
 	cmds.add(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramGroup2Behavior.toInteger(), parameterNumber: 5, size: 1).format())
 	cmds.add(zwave.configurationV2.configurationGet(parameterNumber: 5).format())
-
-	// Wakeup Interval
-	cmds.add(zwave.wakeUpV2.wakeUpIntervalSet(seconds: 43200, nodeid:zwaveHubNodeId).format())
 	
 	// Get current sensor state
 	cmds.add(zwave.notificationV8.notificationGet(notificationType: 5, event: 0, v1AlarmType: 0).format())
@@ -265,10 +263,11 @@ def updateConfig() {
 	// Get a battery Update
 	cmds.add(zwave.batteryV1.batteryGet().format())
 
-    // Get version info
-    cmds.add(new hubitat.zwave.commands.versionv3.VersionGet().format())
-    //cmds.add(zwave.versionV3.versionGet().format())
-
+	// Get version info
+	cmds.add(new hubitat.zwave.commands.versionv3.VersionGet().format())
+	
+	// Wakeup Interval
+	cmds.add(zwave.wakeUpV2.wakeUpIntervalSet(seconds: 43200, nodeid:zwaveHubNodeId).format())
     
 	// Send No More Information
 	cmds.add(zwave.wakeUpV2.wakeUpNoMoreInformation().format())
