@@ -274,7 +274,7 @@ def updateConfig() {
 	
 	// Send Commands
 	log.info "Sending configuration parameters to the device..."
-	sendToDevice(cmds)
+	sendToDevice(cmds,500)
 }
 
 def updated() {
