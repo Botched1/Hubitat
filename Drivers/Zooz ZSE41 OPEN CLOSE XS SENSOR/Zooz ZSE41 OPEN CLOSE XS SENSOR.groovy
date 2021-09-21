@@ -8,7 +8,7 @@
  *  1.0.2 (08/21/2021) - Removed redundant battery report on wakeup
  *  1.1.0 (09/07/2021) - Added debug logging command and firmware version retrieval on parameter update
  *  1.1.1 (09/07/2021) - Added IndicatorReport handler to prevent errors
- *  1.1.2 (09/16/2021) - Fixed bug that qould throw an error if LED parameter wasn't set in preferences.
+ *  1.1.2 (09/16/2021) - Fixed bug that would throw an error if LED parameter wasn't set in preferences.
  *  1.2.0 (09/21/2021) - Moved wakeup interval setting to then of updates, and changed delay from 300 to 500ms to try and made updating the config more reliable. 
  */
 
