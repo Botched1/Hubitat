@@ -8,6 +8,7 @@
  *  1.1.0 (09/07/2021) - Added debug logging command and firmware version retrieval on parameter update
  *  1.1.1 (09/16/2021) - Fixed bug that would throw an error if LED parameter wasn't set in preferences.
  *  1.2.0 (09/21/2021) - Moved wakeup interval setting to the end of updates, and changed delay from 300 to 500ms to try and make updating the config more reliable. 
+ *  1.2.1 (09/22/2021) - Changed DebugLogging command to not have a blank field as 1st enum to fix rendering issues
  */
 
 import groovy.transform.Field
@@ -42,7 +43,7 @@ metadata {
 		capability "TamperAlert"
         capability "WaterSensor"
 
-        command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["", "OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]        
+        command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["-", "OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]        
 
 		fingerprint  mfr:"027A", prod:"7000", deviceId:"E002", inClusters:"0x5E,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x73,0x80,0x9F,0x71,0x87,0x30,0x70,0x84,0x6C,0x7A" 
 	}
