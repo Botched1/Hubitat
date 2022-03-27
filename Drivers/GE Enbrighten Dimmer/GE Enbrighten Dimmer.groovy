@@ -16,6 +16,7 @@
  *  2.3.0  (12/15/2020) - Added state for defaultDimmerLevel
  *  2.4.0  (02/13/2021) - Added Alternate Exclusion mode to preferences.
  *  2.5.0  (03/10/2021) - Fixed redundant ON events when changing dimmer level
+ *  2.5.1  (03/08/2022) - Added setIndicatorBehavior command. Now users can control LED indicator behavior through custom actions.
 */
 
 import groovy.transform.Field
@@ -44,6 +45,7 @@ metadata {
 		capability "Light"
 
 		command "setDefaultDimmerLevel", [[name:"Default ON %",type:"NUMBER", description:"Default Dimmer Level Used when Turning ON. (0=Last Dimmer Value)", range: "0..99"]]
+		command "setIndicatorBehavior", [[name:"LED Indicator Behavior", type: "ENUM", description: "", constraints: ["LED ON When Switch OFF", "LED ON When Switch ON", "LED Always OFF", "LED Always ON", "0", "1", "2", "3"] ] ]
 	}
 
  preferences {
@@ -449,6 +451,36 @@ def configure() {
 	state.currentGroup3 = settings.requestedGroup3
 
 	delayBetween(cmds, 500)
+}
+
+def setIndicatorBehavior(param) {
+    log.info "setting indicator behavior to ${param}"
+	def paramValue = 0
+    switch (param) {
+        case "LED ON When Switch OFF":
+            paramValue = 0
+            break
+        case "LED ON When Switch ON":
+            paramValue = 1
+            break
+        case "LED Always OFF":
+            paramValue = 2
+            break
+        case "LED Always ON":
+            paramValue = 3
+            break
+        case "0":
+        case "1":
+        case "2":
+        case "3":
+            paramValue = param.toInteger()
+            break
+    }
+    device.updateSetting("paramLED", [type: "enum", value: paramValue.toString()])
+	delayBetween([
+        secure(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramValue, parameterNumber: 3, size: 1).format()),
+        secure(zwave.configurationV2.configurationGet(parameterNumber: 3).format())
+    ], 250)
 }
 
 private parseAssocGroupList(list, group) {

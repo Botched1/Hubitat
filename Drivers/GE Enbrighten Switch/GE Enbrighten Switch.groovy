@@ -12,6 +12,7 @@
  *  2.1.0  (08/20/2020) - Fixed some command version issues
  *  2.2.0 (08/29/2020) - Added number of button config to configure
  *  2.3.0 (02/13/2021) - Added Alternate Exclusion mode to preferences.
+ *  2.3.1 (03/08/2022) - Added setIndicatorBehavior command. Now users can control LED indicator behavior through custom actions.
 */
 
 import groovy.transform.Field
@@ -37,6 +38,7 @@ metadata {
 		capability "Sensor"
 		capability "Switch"
 		capability "Light"
+	command "setIndicatorBehavior", [[name:"LED Indicator Behavior", type: "ENUM", description: "", constraints: ["LED ON When Switch OFF", "LED ON When Switch ON", "LED Always OFF", "LED Always ON", "0", "1", "2", "3"] ] ]
 	}
 
  preferences {
@@ -368,6 +370,36 @@ def configure() {
 	state.currentGroup3 = settings.requestedGroup3
 	
 	delayBetween(cmds, 250)
+}
+
+def setIndicatorBehavior(param) {
+    log.info "setting indicator behavior to ${param}"
+	def paramValue = 0
+    switch (param) {
+        case "LED ON When Switch OFF":
+            paramValue = 0
+            break
+        case "LED ON When Switch ON":
+            paramValue = 1
+            break
+        case "LED Always OFF":
+            paramValue = 2
+            break
+        case "LED Always ON":
+            paramValue = 3
+            break
+        case "0":
+        case "1":
+        case "2":
+        case "3":
+            paramValue = param.toInteger()
+            break
+    }
+    device.updateSetting("paramLED", [type: "enum", value: paramValue.toString()])
+	delayBetween([
+        secure(zwave.configurationV2.configurationSet(scaledConfigurationValue: paramValue, parameterNumber: 3, size: 1).format()),
+        secure(zwave.configurationV2.configurationGet(parameterNumber: 3).format())
+    ], 250)
 }
 
 private parseAssocGroupList(list, group) {
