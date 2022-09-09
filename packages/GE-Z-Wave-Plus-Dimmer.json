@@ -1,9 +1,9 @@
 {
   "packageName": "GE Z-Wave Plus Dimmer",
   "author": "Botched1 (Jason Bottjen)",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2020-11-28",
+  "dateReleased": "2022-09-09",
   "drivers": [
     {
       "id": "1812a08e-b658-454a-8717-4af18f4c55ec",
