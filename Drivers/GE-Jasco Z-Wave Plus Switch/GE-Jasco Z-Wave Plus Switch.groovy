@@ -23,6 +23,7 @@
  *  2.2.0 (06/15/2019) - Added numberOfButtons event
  *  2.3.0 (12/07/2019) - Tweaks to Association Setting
  *  2.4.0 (11/28/2020) - Modified on/off events to create a new event event when already on/off
+ *  2.5.0 (09/09/2022) - Added push and doubletap commands to ensure driver doesn't throw an error if the commands are triggered. Required from change in Hubitat 2.2.6 update.
  */
 
 metadata {
@@ -266,6 +267,14 @@ def off() {
 		zwave.switchBinaryV1.switchBinarySet(switchValue: 0x00).format(),
 		zwave.switchBinaryV1.switchBinaryGet().format()
 	],500)
+}
+
+def push(BigDecimal buttonId) {
+	log.info "Push command does nothing in this driver."
+}
+
+def doubleTap(BigDecimal buttonId) {
+	log.info "Doubletap command does nothing in this driver."
 }
 
 def refresh() {
