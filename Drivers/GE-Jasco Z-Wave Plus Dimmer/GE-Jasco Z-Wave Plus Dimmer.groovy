@@ -27,6 +27,7 @@
  *  2.4.0 (12/07/2019) - Tweaks to Association code
  *  2.5.0 (05/17/2020) - Updated text of steps/duration
  *  2.6.0 (11/28/2020) - Modified on/off events to create a new event event when already on/off
+ *  2.7.0 (09/09/2022) - Added push and doubletap commands to ensure driver doesn't throw an error if the commands are triggered. Required from change in Hubitat 2.2.6 update.
  */
 
 metadata {
@@ -352,6 +353,14 @@ def refresh() {
 
 def installed() {
 	configure()
+}
+
+def push(BigDecimal buttonId) {
+	log.info "Push command does nothing in this driver."
+}
+
+def doubleTap(BigDecimal buttonId) {
+	log.info "Doubletap command does nothing in this driver."
 }
 
 def updated() {
