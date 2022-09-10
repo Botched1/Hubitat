@@ -28,12 +28,13 @@
  *  2.5.0 (05/17/2020) - Updated text of steps/duration
  *  2.6.0 (11/28/2020) - Modified on/off events to create a new event event when already on/off
  *  2.7.0 (09/09/2022) - Added push and doubletap commands to ensure driver doesn't throw an error if the commands are triggered. Required from change in Hubitat 2.2.6 update.
- */
+ *  2.8.0 (09/10/2022) - Fixed issues with digital on/off reporting (no functional change), removed PushableButton capability, made digital doubletap commands create events.
+*/
 
 metadata {
 	definition (name: "GE Z-Wave Plus Dimmer", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Actuator"
-		capability "PushableButton"
+		//capability "PushableButton"
 		capability "DoubleTapableButton"
 		capability "Configuration"
 		capability "Refresh"
@@ -162,12 +163,12 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	def result = []
 	
 	if (cmd.value == 255) {
-		if (logEnable) log.debug "Double Up Triggered"
+		if (logEnable) log.debug "Doubletap Up Triggered"
 		if (logDesc) log.info "$device.displayName had Doubletap up (button 1) [physical]"
 		result << createEvent([name: "doubleTapped", value: 1, descriptionText: "$device.displayName had Doubletap up (button 1) [physical]", type: "physical", isStateChange: true])
     }
 	else if (cmd.value == 0) {
-		if (logEnable) log.debug "Double Down Triggered"
+		if (logEnable) log.debug "Doubletap Down Triggered"
 		if (logDesc) log.info "$device.displayName had Doubletap down (button 2) [physical]"
 		result << createEvent([name: "doubleTapped", value: 2, descriptionText: "$device.displayName had Doubletap down (button 2) [physical]", type: "physical", isStateChange: true])
     }
@@ -188,7 +189,6 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
         }
     }
 }
-
 
 def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	if (logEnable) log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
@@ -264,13 +264,14 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport 
 		// Update state.level
 		state.level = cmd.value
 
-		// info logging
-		if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
-
 		// Set switch status
 		//if (device.currentValue("switch") == "off") {
 			sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on [$newType]", type: "$newType", isStateChange: true)
 			if (logDesc) log.info "$device.displayName was turned on [$newType]"
+
+		// info logging
+		if (logDesc) log.info "$device.displayName is " + cmd.value + "%"
+
 		//}
 	} else {
 		//if (device.currentValue("switch") == "on") {
@@ -299,7 +300,9 @@ def on() {
 	if (state.level == 0 || state.level == "") {state.level=99}
 	//setLevel(state.level, 0)
 	sendEvent(name: "switch", value: "on", descriptionText: "$device.displayName was turned on [digital]", type: "digital", isStateChange: true)
-   	result = zwave.basicV1.basicSet(value: 0xFF).format()
+	if (logDesc) log.info "$device.displayName was turned on [digital]"
+	if (logDesc) log.info "$device.displayName is " + state.level + "%"
+	result = zwave.basicV1.basicSet(value: 0xFF).format()
 }
 
 def off() {
@@ -307,7 +310,8 @@ def off() {
 	//state.bin = -1
 	//setLevel(0, 0)
 	sendEvent(name: "switch", value: "off", descriptionText: "$device.displayName was turned off [digital]", type: "digital", isStateChange: true)
-    	result = zwave.basicV1.basicSet(value: 0x00).format()
+    if (logDesc) log.info "$device.displayName was turned off [digital]"
+	result = zwave.basicV1.basicSet(value: 0x00).format()
 }
 
 def setLevel(value) {
@@ -355,12 +359,23 @@ def installed() {
 	configure()
 }
 
-def push(BigDecimal buttonId) {
-	log.info "Push command does nothing in this driver."
-}
+//def push(BigDecimal buttonId) {
+//	log.info "Push command does nothing in this driver."
+//}
 
 def doubleTap(BigDecimal buttonId) {
-	log.info "Doubletap command does nothing in this driver."
+	//log.info "Doubletap command does nothing in this driver."
+	if (buttonId == 1) {
+		if (logEnable) log.debug "Doubletap Up Triggered"
+		if (logDesc) log.info "$device.displayName had Doubletap up (button 1) [digital]"
+	}
+
+	if (buttonId == 2) {
+		if (logEnable) log.debug "Doubletap Down Triggered"
+		if (logDesc) log.info "$device.displayName had Doubletap down (button 2) [digital]"
+	}
+
+	
 }
 
 def updated() {
