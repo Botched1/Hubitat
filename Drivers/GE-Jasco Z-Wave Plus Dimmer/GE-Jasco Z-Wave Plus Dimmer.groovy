@@ -29,12 +29,13 @@
  *  2.6.0 (11/28/2020) - Modified on/off events to create a new event event when already on/off
  *  2.7.0 (09/09/2022) - Added push and doubletap commands to ensure driver doesn't throw an error if the commands are triggered. Required from change in Hubitat 2.2.6 update.
  *  2.8.0 (09/10/2022) - Fixed issues with digital on/off reporting (no functional change), removed PushableButton capability, made digital doubletap commands create events.
+ *  2.8.1 (09/12/2022) - Re-added PushableButton capability, as it broke things I didn't consder
 */
 
 metadata {
 	definition (name: "GE Z-Wave Plus Dimmer", namespace: "Botched1", author: "Jason Bottjen") {
 		capability "Actuator"
-		//capability "PushableButton"
+		capability "PushableButton"
 		capability "DoubleTapableButton"
 		capability "Configuration"
 		capability "Refresh"
@@ -44,9 +45,9 @@ metadata {
 		capability "Light"
 		
         fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.26", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
-	    fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.27", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
-	    fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.28", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
-	    fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.29", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
+	fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.27", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
+	fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.28", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
+	fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.29", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
         fingerprint mfr:"0063", prod:"4944", model:"3039", ver: "5.19", deviceJoinName: "GE Z-Wave Plus 1000W Wall Dimmer"
         fingerprint mfr:"0063", prod:"4944", model:"3130", ver: "5.21", deviceJoinName: "GE Z-Wave Plus Toggle Dimmer"
         fingerprint mfr:"0063", prod:"4944", model:"3135", ver: "5.26", deviceJoinName: "Jasco Z-Wave Plus Wall Dimmer"
@@ -359,9 +360,9 @@ def installed() {
 	configure()
 }
 
-//def push(BigDecimal buttonId) {
-//	log.info "Push command does nothing in this driver."
-//}
+def push(BigDecimal buttonId) {
+	//log.info "Push command does nothing in this driver."
+}
 
 def doubleTap(BigDecimal buttonId) {
 	//log.info "Doubletap command does nothing in this driver."
