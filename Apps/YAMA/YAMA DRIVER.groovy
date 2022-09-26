@@ -219,7 +219,7 @@ def sendAll() {
 }
 	
 def parentComplete() {
-	if (logEnable) log.debug "In sendAll"
+	if (logEnable) log.debug "In parentComplete"
 	sendEvent(name: "parentComplete", value: true, displayed: false)	
 }
 
