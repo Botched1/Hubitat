@@ -30,7 +30,8 @@
  *  V0.0.6 - 01/23/21 - Added check for driver connection status before sending events to MQTT
  *  V0.0.7 - 01/30/21 - Split sendAll and Initialize methods apart. Delayed initialization code by 1s to prevent issues if the driver happens to send, or app sees, multiple "init" events.
  *  V0.0.8 - 02/06/21 - Changed topic structure, putting attributes in hubitat/hubName/deviceName/attributes/* and commands in hubitat/hubName/deviceName/commands/*
- *
+ *  V0.0.9 - 08/08/22 - Removed all ["filterEvents": false] from subscriptions as a test.
+ *  V0.1.0 - 09/26/22 - Fixed a number of initialization issues.
  */
 
 import groovy.json.JsonSlurper
@@ -64,16 +65,17 @@ def pageConfig()
 
 def installed() 
 {
-	//log.debug "----- in installed -----"	
+	log.debug "----- in YAMA App installed -----"	
 	if (logEnable) log.debug "installed"
 	initialize()
 }
 
 def updated()
 {
-	//log.debug "----- in updated -----"
-	if (logEnable) log.debug "updated"
-	initialize()
+	log.debug "----- in YAMA App updated -----"
+	//if (logEnable) log.debug "updated"
+	atomicState.initialized = "begin"
+    initialize()
 }
 
 def logsOff(){
@@ -88,10 +90,13 @@ def initialize()
 		runIn(1800,logsOff)
 	}
 
+	subscribe(mqttDriver, "parentComplete", deviceEvent, ["filterEvents": true])
+	
+	log.warn "YAMA App State: " + atomicState.initialized
 	if (atomicState.initialized != "initializing") {
-		if (logEnable) log.debug "initialize starting"	
+		if (logEnable) log.debug "YAMA App initialize starting"	
 		atomicState.initialized = "initializing"
-		runInMillis(1000,initializeMqtt);
+		runInMillis(1000, initializeMqtt);
 	}
 }
 
@@ -109,7 +114,8 @@ def initializeMqtt()
 
 	// See if driver is connected to MQTT broker
 	if (mqttDriver.currentValue("connectionState") == "disconnected") {
-		log.debug "Error: Driver could not connect to MQTT broker! Could not Initialize app."
+		mqttDriver.connect()
+        log.debug "Error: Driver could not connect to MQTT broker! Could not Initialize app."
 		return;
 	}
 	
@@ -136,11 +142,12 @@ def initializeMqtt()
 	}
 
 	// Subscribe to events form selected devices, and MQTT driver
-	subscribe(deviceList, deviceEvent, ["filterEvents": false])
-	subscribe(mqttDriver, "mqtt", deviceEvent, ["filterEvents": false])
-	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": false])
-	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": false])
-
+	subscribe(deviceList, deviceEvent, ["filterEvents": true])
+	subscribe(mqttDriver, "mqtt", deviceEvent, ["filterEvents": true])
+	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": true])
+	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": true])
+	subscribe(mqttDriver, "parentComplete", deviceEvent, ["filterEvents": true])
+	
 	log.debug "YAMA app initialization: Complete"
 	
 	// Set state so new events will get processed in that handler
@@ -169,8 +176,6 @@ def sendAllMqtt()
 	// Unsubscribe from all events
 	unsubscribe()
 	
-
-
 	// Remove the MQTT Driver from the device list, if it was selected for publishing
 	if (deviceList.find {it.name == mqttDriver.name}) {
 		deviceList.remove(deviceList.findIndexOf {it.name == mqttDriver.name})
@@ -188,22 +193,11 @@ def sendAllMqtt()
 		commandList = item.getSupportedCommands()
 
 		for(commandItem in commandList){
+			log.debug "Setting ${item}/commands/${commandItem}/set"
 			mqttDriver.publish("${item}/commands/${commandItem}/set","")
 			pauseExecution(100)
 		}
 
-		// Publish sendAll command
-		mqttDriver.publish("sendAll","")
-		pauseExecution(100)
-		
-		// MQTT Subscribe to all command sets
-		mqttDriver.subscribe("+/+/+/set")
-		pauseExecution(100)
-		
-		// Subscribe to sendAll
-		mqttDriver.subscribe("sendAll")
-		pauseExecution(100)
-		
 		// Publish Attributes
 		attributeList = item.getSupportedAttributes()
 		
@@ -220,11 +214,24 @@ def sendAllMqtt()
 		}
 	}
 
+	// Publish sendAll command
+	mqttDriver.publish("sendAll","")
+	pauseExecution(100)
+		
+	// MQTT Subscribe to all command sets
+	mqttDriver.subscribe("+/+/+/set")
+	pauseExecution(100)
+		
+	// Subscribe to sendAll
+	mqttDriver.subscribe("sendAll")
+	pauseExecution(100)
+	
 	// Subscribe to events form selected devices, and MQTT driver
-	subscribe(deviceList, deviceEvent, ["filterEvents": false])
-	subscribe(mqttDriver, "mqtt", deviceEvent, ["filterEvents": false])
-	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": false])
-	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": false])
+	subscribe(deviceList, deviceEvent, ["filterEvents": true])
+	subscribe(mqttDriver, "mqtt", deviceEvent, ["filterEvents": true])
+	subscribe(mqttDriver, "init", deviceEvent, ["filterEvents": true])
+	subscribe(mqttDriver, "sendAll", deviceEvent, ["filterEvents": true])
+	subscribe(mqttDriver, "parentComplete", deviceEvent, ["filterEvents": true])
 	
 	log.debug "YAMA app initialization: Complete"
 	
@@ -256,10 +263,18 @@ def deviceEvent(evt)
 	log.debug "deviceId: " + evt.getDeviceId()
     */
 
-	//log.debug "atomicState.initialized: " + atomicState.initialized
-	//log.debug "atomicState.initialized != completed: " + (atomicState.initialized != "completed")
+	log.debug "atomicState.initialized: " + atomicState.initialized
+	log.debug "atomicState.initialized != completed: " + (atomicState.initialized != "completed")
+
+    // MQTT driverparentComplete
+	if (evt.name == "parentComplete") {
+		log.debug "Setting atomicState.initialized = completed"
+		atomicState.initialized = "completed"
+		return;
+	}
 	
 	if (atomicState.initialized != "completed") {
+		log.debug "Aborting since atomicState.initialized != completed"
 		return;
 	}
 	
