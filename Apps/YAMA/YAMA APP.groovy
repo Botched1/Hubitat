@@ -67,14 +67,14 @@ def installed()
 {
 	log.debug "----- in YAMA App installed -----"	
 	if (logEnable) log.debug "installed"
+	atomicState.initialized = "installed"
 	initialize()
 }
 
 def updated()
 {
 	log.debug "----- in YAMA App updated -----"
-	//if (logEnable) log.debug "updated"
-	atomicState.initialized = "begin"
+	atomicState.initialized = "updated"
     initialize()
 }
 
@@ -114,9 +114,10 @@ def initializeMqtt()
 
 	// See if driver is connected to MQTT broker
 	if (mqttDriver.currentValue("connectionState") == "disconnected") {
+		log.debug "Error: YAMA Driver is not connected to MQTT broker! Will retry Initialize in 10s."
 		mqttDriver.connect()
-        log.debug "Error: Driver could not connect to MQTT broker! Could not Initialize app."
-		return;
+        runInMillis(10000, initializeMqtt);
+        return;
 	}
 	
 	// Walk through selected devices to get commands and attributes
