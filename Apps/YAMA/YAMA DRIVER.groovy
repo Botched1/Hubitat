@@ -34,6 +34,7 @@
  *  V0.0.9 - 02/06/21 - Edited subscriptions to support new topic structure with /attributes/ and /commands/ 
  *  V0.1.0 - 02/06/21 - Changed periodic re-check logic a little to have method always run every 60s 
  *  V0.1.1 - 02/06/21 - Fixed dumb periodic re-check scheduling mistake, changed heartbeat to schedule
+ *  V0.2.0 - 09/26/22 - Fixed a number of initialization issues.
  *
  */
 
@@ -61,6 +62,7 @@ metadata {
 		command "connect"
 		command "disconnect"
 		command "sendAll"
+		command "parentComplete"
 		
 		attribute "connectionState", "string"
 		//attribute "init", boolean
@@ -80,7 +82,7 @@ def initialize() {
 }
 
 def mqttConnectionAttempt() {
-	if (logEnable) log.debug "MQTT Connection Attempt"
+	if (logEnable) log.debug "In mqttConnectionAttempt"
  
 	if (!interfaces.mqtt.isConnected()) {
 		try {   
@@ -95,17 +97,24 @@ def mqttConnectionAttempt() {
 
 			// delay for connection
 			pauseExecution(1000)
-
+            
 		} catch(Exception e) {
 			log.error "In mqttConnectionAttempt: Error initializing."
 			if (!interfaces.mqtt.isConnected()) disconnected()
 		}
 	}
 
+    //if (logEnable) log.debug "In mqttConnectionAttempt: Success connecting."
+    //if (logEnable) log.debug "In mqttConnectionAttempt: interfaces.mqtt.isConnected = " + interfaces.mqtt.isConnected()
+    
 	if (interfaces.mqtt.isConnected()) {
+        if (logEnable) log.debug "In mqttConnectionAttempt: Success connecting."
 		unschedule(connect)
 		connected()
-	}
+    } else {
+        if (logEnable) log.debug "In mqttConnectionAttempt: Failure connecting."
+        disconnected()
+    }
 }
 
 def updated() {
@@ -209,6 +218,12 @@ def sendAll() {
 	sendEvent(name: "sendAll", value: true, displayed: false)	
 }
 	
+def parentComplete() {
+	if (logEnable) log.debug "In sendAll"
+	sendEvent(name: "parentComplete", value: true, displayed: false)	
+}
+
+
 /////////////////////////////////////////////////////////////////////
 // Parse
 /////////////////////////////////////////////////////////////////////
@@ -267,7 +282,10 @@ def periodicReconnect() {
 
 def mqttClientStatus(status) {
 	if (logEnable) log.debug "In mqttClientStatus: ${status}"
-	if (!interfaces.mqtt.isConnected()) {
-		disconnected()
-	}
+    
+    if (status.substring(0,6) != "Status") {
+        if (logEnable) log.debug "In mqttClientStatus: Error."
+    } else {
+        if (logEnable) log.debug "In mqttClientStatus: Success."    
+    }
 }
