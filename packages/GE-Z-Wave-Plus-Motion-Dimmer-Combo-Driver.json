@@ -1,9 +1,9 @@
 {
   "packageName": "GE Z-Wave Plus Motion Dimmer Combo Driver",
   "author": "Botched1 (Jason Bottjen)",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2021-06-12",
+  "dateReleased": "2022-10-07",
   "drivers": [
     {
       "id": "738ba1c1-5c3c-4461-9f77-048f401a1b44",
