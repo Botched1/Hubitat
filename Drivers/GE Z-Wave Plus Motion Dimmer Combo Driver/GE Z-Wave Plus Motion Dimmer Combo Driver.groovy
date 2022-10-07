@@ -7,6 +7,7 @@
  *  1.0.0 (06/12/2021) - First version
  *  1.0.1 (06/12/2021) - Removed a (default) text I missed
  *  1.0.2 (06/14/2021) - Modified some of the current value checking, as it would throw errors in some situations.
+ *  1.0.3 (10/07/2022) - Added better logic for digital on/off handling
  */
 
 import groovy.transform.Field
@@ -535,12 +536,17 @@ void setLevel(value, duration=null, cd=null) {
 	// Update getStatusDelay calc for OFF - it takes longer to report.
 	if (value == 0) {
 		getStatusDelay += 2000
-	}
+        sendEvent(name:"switch", value:"off", descriptionText:"${device.displayName} was turned off", type: "digital", isStateChange: false)
+	
+    } else {
+        sendEvent(name:"switch", value:"on", descriptionText:"${device.displayName} was turned on", type: "digital", isStateChange: false)
+    }
 	
 	List<String> cmds = []
 	
 	if (logEnable) log.debug "setLevel(value, duration) >> value: ${value}, duration: ${duration}, delay: ${getStatusDelay}"
-	
+    
+    
 	cmds.add(zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format())
 	cmds.add(zwave.switchMultilevelV2.switchMultilevelGet().format())
 	// Send Commands
