@@ -21,6 +21,7 @@
  *  1.3.5 (05/24/2021) - Fixed error when setting light timeout to disabled
  *  1.3.6 (06/09/2021) - Attempt to allow multiple physical button presses registering
  *  1.4.0 (06/11/2021) - Fixed multiple physical events, removed "Wait for Parameter" all updates wait for the report back from the device
+ *  1.4.1 (03/18/2023) - Fixed BasicReport logging when debug logging is off 
 */
 
 metadata {
@@ -125,7 +126,7 @@ def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
-	log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
+	if (logEnable) log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
 
 	def cd = fetchChild("Dimmer")
 	String cv = ""
