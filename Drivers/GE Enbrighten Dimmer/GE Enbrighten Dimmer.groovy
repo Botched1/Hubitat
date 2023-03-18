@@ -17,7 +17,7 @@
  *  2.4.0  (02/13/2021) - Added Alternate Exclusion mode to preferences.
  *  2.5.0  (03/10/2021) - Fixed redundant ON events when changing dimmer level
  *  2.5.1  (03/08/2022) - Added setIndicatorBehavior command. Now users can control LED indicator behavior through custom actions.
- *  2.6.0  (03/18/2023) - Change on/off behavior to match physical switch on/off behavior. Thanks to user michacago on the Hubitat forum.
+ *  2.6.0  (03/18/2023) - Change on/off behavior to match physical switch on/off behavior. Thanks to user michicago on the Hubitat forum.
 */
 
 import groovy.transform.Field
