@@ -17,6 +17,7 @@
  *  2.4.0  (02/13/2021) - Added Alternate Exclusion mode to preferences.
  *  2.5.0  (03/10/2021) - Fixed redundant ON events when changing dimmer level
  *  2.5.1  (03/08/2022) - Added setIndicatorBehavior command. Now users can control LED indicator behavior through custom actions.
+ *  2.6.0  (03/18/2023) - Change on/off behavior to match physical switch on/off behavior. Thanks to user michacago on the Hubitat forum.
 */
 
 import groovy.transform.Field
@@ -280,16 +281,19 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 // Driver Commands / Functions
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 def on() {
-	if (logEnable) log.debug "Turn device ON"
-	if (logEnable) log.debug "state.level is $state.level"
-	if (state.level == 0 || state.level == "" || state.level == null) {state.level=99}
-	setLevel(state.level, 0)
-    
+//	if (logEnable) log.debug "Turn device ON"
+//	if (logEnable) log.debug "state.level is $state.level"
+//	if (state.level == 0 || state.level == "" || state.level == null) {state.level=99}
+//	setLevel(state.level, 0)
+    if (logEnable) log.debug "Turn device ON"
+    zwave.basicV1.basicSet(value: 0xFF).format()
 }
 
 def off() {
-	if (logEnable) log.debug "Turn device OFF"
-	setLevel(0, 0)
+//	if (logEnable) log.debug "Turn device OFF"
+//	setLevel(0, 0)
+    if (logEnable) log.debug "Turn device OFF"
+    zwave.basicV1.basicSet(value: 0x00).format()
 }
 
 def setLevel(value) {
