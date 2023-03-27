@@ -8,6 +8,7 @@
  *  1.0.1 (06/12/2021) - Removed a (default) text I missed
  *  1.0.2 (06/14/2021) - Modified some of the current value checking, as it would throw errors in some situations.
  *  1.0.3 (10/07/2022) - Added better logic for digital on/off handling
+ *  1.1.0 (03/27/2023) - Fixed setLevel duration conversion, thanks to user jpt1081 on hubitat forum for the idea/example code
  */
 
 import groovy.transform.Field
@@ -17,7 +18,7 @@ import groovy.transform.Field
 	 0x26: 2  //COMMAND_CLASS_SWITCH_MULTILEVEL
 	,0x27: 1  //COMMAND_CLASS_SWITCH_ALL (obsoleted)
 	,0x2B: 1  //COMMAND_CLASS_SCENE_ACTIVATION
-    ,0x2C: 1  //COMMAND_CLASS_SCENE_ACTUATOR_CONF
+	,0x2C: 1  //COMMAND_CLASS_SCENE_ACTUATOR_CONF
 	,0x56: 1  //COMMAND_CLASS_CRC_16_ENCAP (deprecated)
 	,0x59: 1  //COMMAND_CLASS_ASSOCIATION_GRP_INFO
 	,0x5A: 1  //COMMAND_CLASS_DEVICE_RESET_LOCALLY
@@ -519,8 +520,21 @@ void setLevel(value, duration=null, cd=null) {
 		duration=0
 	}
 
-	def getStatusDelay = (duration * 1000 + 1000).toInteger()	
-
+	//def getStatusDelay = (duration * 1000 + 1000).toInteger()	
+	def getStatusDelay
+    
+    	// Clip to 7620s max on duration to stay within zwave parameter max value of 254
+    	duration = Math.min(duration.toInteger(), 7620)
+    
+	//Convert seconds to minutes when duration is above 120s
+	if (duration > 120) {
+		duration = Math.round(duration / 60) + 127
+		getStatusDelay = ((duration - 127) * 60 * 1000 + 1000).toInteger()	    
+	} else {
+		getStatusDelay = (duration * 1000 + 1000).toInteger()	
+	}
+    
+	// Clip value to min/max of zwave spec
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 
     /*
@@ -545,7 +559,6 @@ void setLevel(value, duration=null, cd=null) {
 	List<String> cmds = []
 	
 	if (logEnable) log.debug "setLevel(value, duration) >> value: ${value}, duration: ${duration}, delay: ${getStatusDelay}"
-    
     
 	cmds.add(zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format())
 	cmds.add(zwave.switchMultilevelV2.switchMultilevelGet().format())
