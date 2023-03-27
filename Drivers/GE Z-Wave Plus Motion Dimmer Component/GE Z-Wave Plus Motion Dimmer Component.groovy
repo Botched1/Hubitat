@@ -22,6 +22,7 @@
  *  1.3.6 (06/09/2021) - Attempt to allow multiple physical button presses registering
  *  1.4.0 (06/11/2021) - Fixed multiple physical events, removed "Wait for Parameter" all updates wait for the report back from the device
  *  1.4.1 (03/18/2023) - Fixed BasicReport logging when debug logging is off 
+ *  1.5.0 (03/27/2023) - Fixed setLevel duration conversion, thanks to user jpt1081 on hubitat forum for the idea/example code
 */
 
 metadata {
@@ -440,8 +441,20 @@ void setLevel(cd, value, duration=null) {
 		duration=0
 	}
 
-	def getStatusDelay = (duration * 1000 + 1000).toInteger()	
-
+	def getStatusDelay
+    
+    // Clip to 7620s max on duration to stay within zwave parameter max value of 254
+    duration = Math.min(duration.toInteger(), 7620)
+    
+    //Convert seconds to minutes when duration is above 120s
+    if (duration > 120) {
+        duration = Math.round(duration / 60) + 127
+        getStatusDelay = ((duration - 127) * 60 * 1000 + 1000).toInteger()	    
+    } else {
+        getStatusDelay = (duration * 1000 + 1000).toInteger()	
+    }
+    
+    // Clip value to min/max of zwave spec
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 
 	String cv = cd.currentValue("switch")
