@@ -18,6 +18,7 @@
  *  2.5.0  (03/10/2021) - Fixed redundant ON events when changing dimmer level
  *  2.5.1  (03/08/2022) - Added setIndicatorBehavior command. Now users can control LED indicator behavior through custom actions.
  *  2.6.0  (03/18/2023) - Change on/off behavior to match physical switch on/off behavior. Thanks to user michicago on the Hubitat forum.
+ *  2.7.0  (03/27/2023) - Fixed setLevel duration conversion, thanks to user jpt1081 on hubitat forum for the idea/example code
 */
 
 import groovy.transform.Field
