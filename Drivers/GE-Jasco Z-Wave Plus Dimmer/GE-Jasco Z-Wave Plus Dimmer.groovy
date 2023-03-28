@@ -30,6 +30,7 @@
  *  2.7.0 (09/09/2022) - Added push and doubletap commands to ensure driver doesn't throw an error if the commands are triggered. Required from change in Hubitat 2.2.6 update.
  *  2.8.0 (09/10/2022) - Fixed issues with digital on/off reporting (no functional change), removed PushableButton capability, made digital doubletap commands create events.
  *  2.8.1 (09/12/2022) - Re-added PushableButton capability, as it broke things I didn't consder
+ *  2.9.0 (03/27/2023) - Fixed setLevel duration conversion, thanks to user jpt1081 on hubitat forum for the idea/example code
 */
 
 metadata {
@@ -322,15 +323,30 @@ def setLevel(value) {
 
 def setLevel(value, duration) {
 	if (logEnable) log.debug "setLevel($value, $duration)"
-	def delay = (duration * 1000 + 1000).toInteger()
+	//def delay = (duration * 1000 + 1000).toInteger()
 	state.bin = -1
+
+	def getStatusDelay
+    
+    	// Clip to 7620s max on duration to stay within zwave parameter max value of 254
+    	duration = Math.min(duration.toInteger(), 7620)
+    
+	//Convert seconds to minutes when duration is above 120s
+	if (duration > 120) {
+		duration = Math.round(duration / 60) + 127
+		getStatusDelay = ((duration - 127) * 60 * 1000 + 1000).toInteger()	    
+	} else {
+		getStatusDelay = (duration * 1000 + 1000).toInteger()	
+	}
+    
+	// Clip value to min/max of zwave spec
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	
 	if (value) {
 		state.level = value
-		if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $delay"
+		if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration, delay: $getStatusDelay"
 		delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format(),
-				   zwave.switchMultilevelV1.switchMultilevelGet().format()], delay)
+				   zwave.switchMultilevelV2.switchMultilevelGet().format()], getStatusDelay)
 	} else {
 		//if (!value) {delay += 2000}
 		off()
