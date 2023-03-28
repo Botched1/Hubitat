@@ -304,15 +304,30 @@ def setLevel(value) {
 def setLevel(value, duration) {
 	if (logEnable) log.debug "setLevel($value, $duration)"
 	def result = []
-    state.bin = -1
+	state.bin = -1
+	
+	def getStatusDelay
+    
+    	// Clip to 7620s max on duration to stay within zwave parameter max value of 254
+    	duration = Math.min(duration.toInteger(), 7620)
+    
+	//Convert seconds to minutes when duration is above 120s
+	if (duration > 120) {
+		duration = Math.round(duration / 60) + 127
+		getStatusDelay = ((duration - 127) * 60 * 1000 + 1000).toInteger()	    
+	} else {
+		getStatusDelay = (duration * 1000 + 1000).toInteger()	
+	}
+    
+	// Clip value to min/max of zwave spec
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	
 	if (value) {state.level = value}
 
 	if (logEnable) log.debug "setLevel(value, duration) >> value: $value, duration: $duration"
 
-    return delayBetween([
-            secure(zwave.switchMultilevelV3.switchMultilevelSet(value: value, dimmingDuration: duration))
+	return delayBetween([
+		secure(zwave.switchMultilevelV3.switchMultilevelSet(value: value, dimmingDuration: duration))
         ] , 250)
 }
 
