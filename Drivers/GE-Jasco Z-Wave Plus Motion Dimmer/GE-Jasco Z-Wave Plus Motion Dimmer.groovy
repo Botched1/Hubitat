@@ -23,6 +23,7 @@
  *  2.5.2 (02/17/2021) - Added blank selection option to commands to reduce confusion
  *  2.5.3 (02/17/2021) - Granular debug logging options.
  *  2.5.4 (05/24/2021) - Fixed error when setting light timeout to disabled
+ *  2.6.0 (03/27/2023) - Fixed setLevel duration conversion, thanks to user jpt1081 on hubitat forum for the idea/example code
 */
 
 metadata {
@@ -398,7 +399,21 @@ def setLevel(value) {
 def setLevel(value, duration) {
 	if (logEnable) log.debug "setLevel($value, $duration)"
 	def currval = device.currentValue("switch")
-	def getStatusDelay = (duration * 1000 + 1000).toInteger()
+	
+	def getStatusDelay
+    
+    	// Clip to 7620s max on duration to stay within zwave parameter max value of 254
+    	duration = Math.min(duration.toInteger(), 7620)
+    
+	//Convert seconds to minutes when duration is above 120s
+	if (duration > 120) {
+		duration = Math.round(duration / 60) + 127
+		getStatusDelay = ((duration - 127) * 60 * 1000 + 1000).toInteger()	    
+	} else {
+		getStatusDelay = (duration * 1000 + 1000).toInteger()	
+	}
+    
+	// Clip value to min/max of zwave spec
 	value = Math.max(Math.min(value.toInteger(), 99), 0)
 	
 	state.level = value
