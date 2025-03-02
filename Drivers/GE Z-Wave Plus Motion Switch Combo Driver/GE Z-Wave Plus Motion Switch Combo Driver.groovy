@@ -5,6 +5,7 @@
  *  Driver for GE Z-Wave Plus Motion Switch (26931) that can be all-in-one or expose the switch and motion sensor part of a GE Motion Switch device as separate child devices
  *
  *  1.0.0 (06/12/2021) - First version
+ *  1.0.1 (03/02/2025) - Fix basic report quirk with alternate zwave stack
  */
 
 import groovy.transform.Field
@@ -14,7 +15,7 @@ import groovy.transform.Field
 	 0x25: 1  //COMMAND_CLASS_SWITCH_BINARY
 	,0x27: 1  //COMMAND_CLASS_SWITCH_ALL (obsoleted)
 	,0x2B: 1  //COMMAND_CLASS_SCENE_ACTIVATION
-    ,0x2C: 1  //COMMAND_CLASS_SCENE_ACTUATOR_CONF
+	,0x2C: 1  //COMMAND_CLASS_SCENE_ACTUATOR_CONF
 	,0x56: 1  //COMMAND_CLASS_CRC_16_ENCAP (deprecated)
 	,0x59: 1  //COMMAND_CLASS_ASSOCIATION_GRP_INFO
 	,0x5A: 1  //COMMAND_CLASS_DEVICE_RESET_LOCALLY
@@ -132,7 +133,7 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 
 		if (state.eventBasicType == "ON") {
 			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
-		} else {
+		} else if (state.eventBasicType == "OFF") {
 			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
 		}
 		
@@ -142,7 +143,7 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 		if (state.eventBasicType == "ON") {
 			if (logDesc) log.info "${device.displayName} was turned on"
 			sendEvent(name:"switch", value:"on", descriptionText:"${device.displayName} was turned on", type: "digital")
-		} else {
+		} else if (state.eventBasicType == "OFF") {
 			if (logDesc) log.info "${device.displayName} was turned off"
 			sendEvent(name:"switch", value:"off", descriptionText:"${device.displayName} was turned off", type: "digital")
 		}
