@@ -6,6 +6,7 @@
  *
  *  1.0.0 (06/12/2021) - First version
  *  1.0.1 (03/02/2025) - Fix basic report quirk with alternate zwave stack
+ *  1.0.2 (03/02/2025) - Fixed missing event issue
  */
 
 import groovy.transform.Field
@@ -247,27 +248,36 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
-	if (logEnable) log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} sent ${cmd}"
+	if (logEnable) log.debug "---SWITCH BINARY REPORT V1--- ${device.displayName} sent ${cmd}"
 
     if (useChildren) {
 		def cd = fetchChild("Switch")
-		String cv = ""
 
-		if (cd) {
-			cv = cd.currentValue("switch")
-		} else {
-			log.warn "In BasicSet no switch child found with fetchChild"
+        if (!cd) {
+			log.warn "In SwitchBinaryReport no Switch child found with fetchChild"
 			return
-		}
+		}		
 
-		List<Map> evts = []
-
+        List<Map> evts = []
+        
 		if (cmd.value == 255) {
-			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical", isStateChange: true])
+			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical", isStateChange: false])
+            cd.parse(evts)
 		} else if (cmd.value == 0) {
-			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical", isStateChange: true])
-		}
+			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical", isStateChange: false])
+            cd.parse(evts)
+        }
     }
+
+    // In all cases, send the event to the parent
+    if (cmd.value == 255) {
+        if (logDesc) log.info "${device.displayName} was turned on"
+        sendEvent(name:"switch", value:"on", descriptionText:"${device.displayName} was turned on", type: "physical", isStateChange: false)
+    } else if (cmd.value == 0) {
+        if (logDesc) log.info "${device.displayName} was turned off"
+        sendEvent(name:"switch", value:"off", descriptionText:"${device.displayName} was turned off", type: "physical", isStateChange: false)
+    }
+
 }
 
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
@@ -318,17 +328,19 @@ def zwaveEvent(hubitat.zwave.commands.notificationv4.NotificationReport cmd) {
 				cd.parse(evts)  
 			} 
 		}
-	} //else {
-		if (cmd.notificationType == 0x07) {
-			if ((cmd.event == 0x00)) {
-				if (logDesc) log.info "${device.displayName} motion inactive"
-				sendEvent(name:"motion", value:"inactive", descriptionText:"${device.displayName} motion inactive", type: "physical")
-			} else if (cmd.event == 0x08) {
-				if (logDesc) log.info "${device.displayName} motion active"
-				sendEvent(name:"motion", value:"active", descriptionText:"${device.displayName} motion active", type: "physical")
-			}
-		}
-	//}
+	}
+
+    // In all cases, send the event to the parent
+    if (cmd.notificationType == 0x07) {
+        if ((cmd.event == 0x00)) {
+            if (logDesc) log.info "${device.displayName} motion inactive"
+            sendEvent(name:"motion", value:"inactive", descriptionText:"${device.displayName} motion inactive", type: "physical")
+        } else if (cmd.event == 0x08) {
+            if (logDesc) log.info "${device.displayName} motion active"
+            sendEvent(name:"motion", value:"active", descriptionText:"${device.displayName} motion active", type: "physical")
+        }
+    }
+
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv2.SwitchMultilevelSet cmd) {
