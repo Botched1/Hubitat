@@ -10,7 +10,8 @@
  *  1.0.3 (10/07/2022) - Added better logic for digital on/off handling
  *  1.1.0 (03/27/2023) - Fixed setLevel duration conversion, thanks to user jpt1081 on hubitat forum for the idea/example code
  *  1.1.1 (03/02/2025) - Change to fix basic report issue on alternate zwave stack
- */
+ *  1.1.2 (03/09/2025) - Fixed physical off event not creating a hub event
+*/
 
 import groovy.transform.Field
 
@@ -184,17 +185,6 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
 	if (useChildren) {
 		def cd = fetchChild("Dimmer")
 		
-        /*
-        String cv = ""
-
-		if (cd) {
-			cv = cd.currentValue("switch")
-		} else {
-			log.warn "In BasicSet no dimmer child found with fetchChild"
-			return
-		}
-
-        */
 		if (!cd) {
             log.warn "In BasicSet no dimmer child found with fetchChild"
 			return
@@ -226,17 +216,8 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv2.SwitchMultilevelReport 
 
 	if (useChildren) {
 		def cd = fetchChild("Dimmer")
-		/*
-        String cv = ""
 
-		if (cd) {
-			cv = cd.currentValue("switch")
-		} else {
-			log.warn "In SwitchMultilevelReport no dimmer child found with fetchChild"
-			return
-		}
-        */
-		if (!cd) {
+        if (!cd) {
 			log.warn "In SwitchMultilevelReport no dimmer child found with fetchChild"
 			return
 		}
@@ -245,15 +226,20 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv2.SwitchMultilevelReport 
 
 		if (cmd.value) {
 			evts.add([name:"level", value: cmd.value, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: state.eventLevelType ? "digital" : "physical"])
-			// Send events to child
-			cd.parse(evts)
-		}
+        } else if (cmd.value == 0) {
+			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical", isStateChange: true])
+        }
+		// Send events to child
+		cd.parse(evts)
 	} //else {
-		if (cmd.value) {
-			if (logDesc) log.info "${device.displayName} level was set to ${cmd.value}%"
-			sendEvent(name:"level", value: cmd.value, descriptionText:"${device.displayName} level was set to ${cmd.value}%", unit: "%", type: state.eventLevelType ? "digital" : "physical")
-		}
-	//}
+		
+    if (cmd.value) {
+		if (logDesc) log.info "${device.displayName} level was set to ${cmd.value}%"
+		sendEvent(name:"level", value: cmd.value, descriptionText:"${device.displayName} level was set to ${cmd.value}%", unit: "%", type: state.eventLevelType ? "digital" : "physical")
+    } else if (cmd.value == 0) {
+		if (logDesc) log.info "${device.displayName} was turned off"
+		sendEvent(name:"switch", value:"off", descriptionText:"${device.displayName} was turned off", type: "physical", isStateChange: true)
+	}
 	
 	state.eventLevelType = 0
 }
