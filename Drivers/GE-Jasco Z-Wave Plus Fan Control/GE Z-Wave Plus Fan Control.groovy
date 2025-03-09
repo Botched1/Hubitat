@@ -9,6 +9,7 @@
  *  VERSION HISTORY
  *  1.0.0 (04/06/2019) - Initial Version
  *  1.0.1 (04/07/2019) - Fixed issue where "speed" wasn't calculated when speed changed from physical switch.
+ *  1.1.0 (03/09/2025) - Major rev
  */
 
 metadata {
@@ -19,10 +20,10 @@ metadata {
 		capability "Configuration"
 		capability "Refresh"
 		capability "Switch"
-		capability "SwitchLevel"
+		//capability "SwitchLevel"
 		capability "FanControl"
 		
-		attribute "speed", "enum", ["low","medium-low","medium","medium-high","high","on","off","auto"]
+		attribute "speed", "enum", ["low","medium""high","on","off"]
 	}
 
  preferences {
@@ -35,11 +36,6 @@ metadata {
         )
 
 	    input "paramInverted", "enum", title: "Fan Buttons Direction", multiple: false, options: ["0" : "Normal (default)", "1" : "Inverted"], required: false, displayDuringSetup: true
-		input "paramLOW", "number", title: "Low Speed Fan %", multiple: false, defaultValue: "20",  range: "1..99", required: false, displayDuringSetup: true
-		input "paramMEDLOW", "number", title: "Medium-Low Speed Fan %", multiple: false, defaultValue: "40",  range: "1..99", required: false, displayDuringSetup: true
-		input "paramMED", "number", title: "Medium Speed Fan %", multiple: false, defaultValue: "60",  range: "1..99", required: false, displayDuringSetup: true
-		input "paramMEDHIGH", "number", title: "Medium-High Speed Fan %", multiple: false, defaultValue: "80",  range: "1..99", required: false, displayDuringSetup: true
-		input "paramHIGH", "number", title: "High Speed Fan %", multiple: false, defaultValue: "99",  range: "1..99", required: false, displayDuringSetup: true
 			
         input (
             type: "paragraph",
@@ -251,7 +247,7 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 def on() {
 	if (logEnable) log.debug "Turn device ON"
 	def cmds = []
-    def currlevel = device.currentValue("level")
+	def currlevel = device.currentValue("level")
 	sendEvent(name: "switch", value: "on", isStateChange: true, descriptionText: "$device.displayName is on")
 	if (logDesc) log.info "$device.displayName is on"
 	
@@ -279,10 +275,11 @@ def off() {
 	def cmds = []
 	sendEvent(name: "switch", value: "off", isStateChange: true, descriptionText: "$device.displayName is off")
 	if (logDesc) log.info "$device.displayName is off"
-    cmds << zwave.basicV1.basicSet(value: 0x00).format()
+	cmds << zwave.basicV1.basicSet(value: 0x00).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
 	delayBetween(cmds, 3000)}
 
+/*
 def setLevel(value) {
 	def valueaux = value as Integer
 	def level = Math.max(Math.min(valueaux, 99), 0)
@@ -307,6 +304,7 @@ def setLevel(value) {
         zwave.switchMultilevelV1.switchMultilevelGet().format()
     ], 3000 )
 }
+*/
 
 def setLevel(value, duration) {
 	setLevel(value)
@@ -322,35 +320,21 @@ def setSpeed(fanspeed) {
         case "low":
 			if (logEnable) log.debug "fanspeed low detected"	
 			sendEvent([name: "speed", value: "low", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
-			if (paramLOW==null) {paramLOW = 20}	
+			if (paramLOW==null) {paramLOW = 25}	
 			value = paramLOW
             setLevel(value)
 			break
-		case "medium-low":
-			if (logEnable) log.debug "fanspeed medium-low detected"	
-			sendEvent([name: "speed", value: "medium-low", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
-			if (paramMEDLOW==null) {paramMEDLOW = 40}	
-			value = paramMEDLOW
-			setLevel(value)
-            break
 		case "medium":
 			if (logEnable) log.debug "fanspeed medium detected"	
 			sendEvent([name: "speed", value: "medium", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
-			if (paramMED==null) {paramMED = 60}	
+			if (paramMED==null) {paramMED = 50}	
 			value = paramMED
-			setLevel(value)
-            break
-		case "medium-high":
-			if (logEnable) log.debug "fanspeed medium-high detected"	
-			sendEvent([name: "speed", value: "medium-high", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
-			if (paramMEDHIGH==null) {paramMEDHIGH = 80}	
-			value = paramMEDHIGH
 			setLevel(value)
             break
 		case "high":
 			if (logEnable) log.debug "fanspeed high detected"	
 			sendEvent([name: "speed", value: "high", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
-			if (paramHIGH==null) {paramHIGH = 99}	
+			if (paramHIGH==null) {paramHIGH = 75}	
 			value = paramHIGH
 			setLevel(value)
             break
@@ -364,12 +348,6 @@ def setSpeed(fanspeed) {
 			//sendEvent([name: "speed", value: "on", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
 			on()
 			break
-		case "auto":
-			//if (logEnable) log.debug "speed auto detected"	
-			//sendEvent([name: "speed", value: "on", displayed: true, descriptionText: "fan speed set to $fanspeed"])		
-			//on()
-			log.warn "Speed AUTO requested. This doesn't do anything in this driver right now."
-			break
 		default:
             break
     }
@@ -382,7 +360,7 @@ def refresh() {
 	def cmds = []
 	cmds << zwave.switchBinaryV1.switchBinaryGet().format()
 	cmds << zwave.switchMultilevelV1.switchMultilevelGet().format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 4).format()
+	cmds << zwave.configurationV1.configurationGet(parameterNumber: 4).format()
 	cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
 	if (getDataValue("MSR") == null) {
 		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
