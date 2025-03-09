@@ -23,7 +23,7 @@ metadata {
 		//capability "SwitchLevel"
 		capability "FanControl"
 		
-		attribute "speed", "enum", ["low","medium""high","on","off"]
+		attribute "speed", "enum", ["low","medium","high","on","off"]
 	}
 
  preferences {
