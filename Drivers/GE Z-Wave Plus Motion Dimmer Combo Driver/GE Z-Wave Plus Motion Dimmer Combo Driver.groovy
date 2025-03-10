@@ -11,6 +11,7 @@
  *  1.1.0 (03/27/2023) - Fixed setLevel duration conversion, thanks to user jpt1081 on hubitat forum for the idea/example code
  *  1.1.1 (03/02/2025) - Change to fix basic report issue on alternate zwave stack
  *  1.1.2 (03/09/2025) - Fixed physical off event not creating a hub event
+ *  1.1.3 (03/09/2025) - Fixed physical on event not creating a hub event
 */
 
 import groovy.transform.Field
@@ -226,6 +227,7 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv2.SwitchMultilevelReport 
 
 		if (cmd.value) {
 			evts.add([name:"level", value: cmd.value, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: state.eventLevelType ? "digital" : "physical"])
+			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical", isStateChange: false])
         } else if (cmd.value == 0) {
 			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical", isStateChange: true])
         }
@@ -236,6 +238,8 @@ def zwaveEvent(hubitat.zwave.commands.switchmultilevelv2.SwitchMultilevelReport 
     if (cmd.value) {
 		if (logDesc) log.info "${device.displayName} level was set to ${cmd.value}%"
 		sendEvent(name:"level", value: cmd.value, descriptionText:"${device.displayName} level was set to ${cmd.value}%", unit: "%", type: state.eventLevelType ? "digital" : "physical")
+		if (logDesc) log.info "${device.displayName} was turned on"
+		sendEvent(name:"switch", value:"on", descriptionText:"${device.displayName} was turned on", type: "physical", isStateChange: false)
     } else if (cmd.value == 0) {
 		if (logDesc) log.info "${device.displayName} was turned off"
 		sendEvent(name:"switch", value:"off", descriptionText:"${device.displayName} was turned off", type: "physical", isStateChange: true)
