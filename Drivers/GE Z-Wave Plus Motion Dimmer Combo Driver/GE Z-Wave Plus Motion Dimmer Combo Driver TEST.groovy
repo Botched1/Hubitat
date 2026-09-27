@@ -1,0 +1,901 @@
+/*
+ *  IMPORT URL: https://raw.githubusercontent.com/Botched1/Hubitat/master/Drivers/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Combo%20Driver/GE%20Z-Wave%20Plus%20Motion%20Dimmer%20Combo%20Driver.groovy
+ *
+ *  GE Z-Wave Plus Motion Dimmer Combo Driver
+ *  Driver for GE Z-Wave Plus Motion Dimmer (26933) that can be all-in-one or expose the dimmer and motion sensor part of a GE Motion Dimmer device as separate child devices
+ *
+ *  1.0.0 (06/12/2021) - First version
+ *  1.0.1 (06/12/2021) - Removed a (default) text I missed
+ *  1.0.2 (06/14/2021) - Modified some of the current value checking, as it would throw errors in some situations.
+ *  1.0.3 (10/07/2022) - Added better logic for digital on/off handling
+ *  1.1.0 (03/27/2023) - Fixed setLevel duration conversion, thanks to user jpt1081 on hubitat forum for the idea/example code
+ *  1.1.1 (03/02/2025) - Change to fix basic report issue on alternate zwave stack
+ *  1.1.2 (03/09/2025) - Fixed physical off event not creating a hub event
+ *  1.1.3 (03/09/2025) - Fixed physical on event not creating a hub event
+ *  1.2.0 (09/27/2026) - Code review pass:
+ *                          - Fixed invalid associationV2.associationSetRemove() call (typo for
+ *                            associationRemove) that could silently abort an entire preferences
+ *                            save once Association Group 3 members were configured.
+ *                          - Cleaned up the parent/child dual-event-firing in Basic/SwitchMultilevel/
+ *                            Notification handlers - now clearly commented instead of relying on a
+ *                            commented-out "else" branch.
+ *                          - Configuration report values now map to properly declared camelCase
+ *                            attributes instead of ad-hoc space-containing event names.
+ *                          - Deduplicated association-group setup shared by configure()/updated().
+ *                          - Collapsed setLightTimeout()/DebugLogging() into lookup tables (also
+ *                            fixes a "6h" timer typo: 21699s -> 21600s).
+ *                          - Added setOperatingMode(enum) command; Occupancy()/Vacancy()/Manual()
+ *                            kept as thin wrappers for backward compatibility.
+ *                          - installed() now pushes full preference configuration and does an
+ *                            initial refresh, instead of leaving the device unconfigured until the
+ *                            user manually saves preferences once.
+ *                          - Removed unused switchBinaryGet() poll in refresh() (its report was
+ *                            already discarded), dead state variables, and leftover commented-out
+ *                            code.
+*/
+
+import groovy.transform.Field
+
+@Field static Map commandClassVersions =
+[
+	 0x26: 2  //COMMAND_CLASS_SWITCH_MULTILEVEL
+	,0x27: 1  //COMMAND_CLASS_SWITCH_ALL (obsoleted)
+	,0x2B: 1  //COMMAND_CLASS_SCENE_ACTIVATION
+	,0x2C: 1  //COMMAND_CLASS_SCENE_ACTUATOR_CONF
+	,0x56: 1  //COMMAND_CLASS_CRC_16_ENCAP (deprecated)
+	,0x59: 1  //COMMAND_CLASS_ASSOCIATION_GRP_INFO
+	,0x5A: 1  //COMMAND_CLASS_DEVICE_RESET_LOCALLY
+	,0x5E: 2  //COMMAND_CLASS_ZWAVEPLUS_INFO
+	,0x60: 4  //COMMAND_CLASS_MULTI_CHANNEL
+	,0x70: 1  //COMMAND_CLASS_CONFIGURATION
+	,0x71: 4  //COMMAND_CLASS_NOTIFICATION
+	,0x72: 2  //COMMAND_CLASS_MANUFACTURER_SPECIFIC
+	,0x73: 1  //COMMAND_CLASS_POWERLEVEL
+	,0x7A: 2  //COMMAND_CLASS_FIRMWARE_UPDATE_MD
+	,0x85: 2  //COMMAND_CLASS_ASSOCIATION
+	,0x86: 2  //COMMAND_CLASS_VERSION
+	,0x8E: 3  //COMMAND_CLASS_MULTI_CHANNEL_ASSOCIATION
+]
+
+metadata {
+	definition (name: "GE Z-Wave Plus Motion Dimmer Combo Driver", namespace: "Botched1", author: "Jason Bottjen") {
+		capability "Configuration"
+		capability "Refresh"
+		capability "Actuator"
+
+		capability "Motion Sensor"
+		capability "Sensor"
+		capability "Switch"
+		capability "Switch Level"
+		capability "Light"
+
+
+		command "setDefaultDimmerLevel", [[name:"Default Dimmer Level",type:"NUMBER", description:"Default Dimmer Level Used when Turning ON. (0=Last Dimmer Value)", range: "0..99"]]
+		command "setLightTimeout", [[name:"Light Timeout",type:"ENUM", description:"Time before light turns OFF on no motion - only applies in Occupancy and Vacancy modes.", constraints: ["", "5 seconds", "1 minute", "5 minutes", "15 minutes", "30 minutes", "disabled"]]]
+		command "setOperatingMode", [[name:"Operating Mode",type:"ENUM", description:"Set light operating mode", constraints: ["Manual", "Vacancy", "Occupancy"]]]
+		command "Occupancy"
+		command "Vacancy"
+		command "Manual"
+		command "DebugLogging", [[name:"Debug Logging",type:"ENUM", description:"Turn Debug Logging OFF/ON", constraints:["", "OFF", "30m", "1h", "3h", "6h", "12h", "24h", "ON"]]]
+
+		attribute "operatingMode", "string"
+		attribute "defaultDimmerLevel", "number"
+		attribute "lightTimeout", "string"
+		attribute "invertButtons", "string"
+		attribute "motionSensorEnabled", "string"
+		attribute "zwaveDimmingSteps", "number"
+		attribute "zwaveDimmingDuration", "number"
+		attribute "physicalDimmingSteps", "number"
+		attribute "physicalDimmingDuration", "number"
+		attribute "motionSensitivity", "string"
+		attribute "lightSensingEnabled", "string"
+		attribute "motionResetTimer", "string"
+		attribute "switchModeEnabled", "string"
+		attribute "dimUpRate", "string"
+
+		fingerprint mfr:"0063", prod:"494D", deviceId:"3034", inClusters:"0x5E,0x72,0x5A,0x73,0x26,0x27,0x2B,0x2C,0x70,0x86,0x71,0x60,0x8E,0x85,0x59,0x7A,0x56", deviceJoinName: "GE-Jasco Motion Dimmer"
+	}
+
+	preferences {
+		input "paramInverted", "enum", title: "Switch Buttons Direction", multiple: false, options: ["0" : "Normal", "1" : "Inverted"], required: false, displayDuringSetup: true
+		input "paramMotionEnabled", "enum", title: "Motion Sensor", description: "Enable/Disable Motion Sensor.", options: ["0" : "Disable","1" : "Enable"], required: false
+		input "paramMotionSensitivity", "enum", title: "Motion Sensitivity", options: ["1" : "High", "2" : "Medium", "3" : "Low"], required: false, displayDuringSetup: true
+		input "paramLightSense", "enum", title: "Light Sensing", description: "If enabled, Occupancy mode will only turn light on if it is dark", options: ["0" : "Disabled","1" : "Enabled"], required: false, displayDuringSetup: true
+		input "paramMotionResetTimer", "enum", title: "Motion Detection Reset Time", options: ["0" : "Disabled", "1" : "10 sec", "2" : "20 sec", "3" : "30 sec", "4" : "45 sec", "110" : "27 mins"], required: false
+		//
+		input "paramZSteps", "number", title: "Z-Wave Dimming % Per Step", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
+		input "paramZDuration", "number", title: "Z-Wave Dimming Interval Between Steps (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
+		input "paramPSteps", "number", title: "Physical Dimming % Per Step", multiple: false, defaultValue: "1", range: "1..99", required: false, displayDuringSetup: true
+		input "paramPDuration", "number", title: "Physical Dimming Interval Between Steps (in 10ms increments)", multiple: false, defaultValue: "3", range: "1..255", required: false, displayDuringSetup: true
+		//
+		input "paramSwitchMode", "enum", title: "Switch Mode Enable", description: "Physical switch buttons only do ON/OFF - no dimming", multiple: false, options: ["0" : "Disable", "1" : "Enable"], required: false, displayDuringSetup: true
+		input "paramDimUpRate", "enum", title: "Speed to Dim up the light to the default level", multiple: false, options: ["0" : "Quickly", "1" : "Slowly"], required: false, displayDuringSetup: true
+		//
+		input (
+			name: "requestedGroup2",
+			title: "Association Group 2 Members (Max of 5):",
+			type: "text",
+			required: false
+			)
+
+		input (
+			name: "requestedGroup3",
+			title: "Association Group 3 Members (Max of 4):",
+			type: "text",
+			required: false
+			)
+		input name: "useChildren", type: "bool", title: "Use Child Devices for Dimmer and Motion Capabilities", defaultValue: false
+		input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+		input name: "logDesc", type: "bool", title: "Enable descriptionText logging", defaultValue: true
+	}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Parse
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void parse(String description){
+    if (logEnable) log.debug "parse description: ${description}"
+    hubitat.zwave.Command cmd = zwave.parse(description,commandClassVersions)
+    if (cmd) {
+        zwaveEvent(cmd)
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Z-Wave Messages and Methods
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+String secure(String cmd){
+    return zwaveSecureEncap(cmd)
+}
+
+String secure(hubitat.zwave.Command cmd){
+    return zwaveSecureEncap(cmd)
+}
+
+void zwaveEvent(hubitat.zwave.commands.supervisionv1.SupervisionGet cmd){
+    hubitat.zwave.Command encapCmd = cmd.encapsulatedCommand(commandClassVersions)
+
+    if (encapCmd) {
+        zwaveEvent(encapCmd)
+    }
+    sendHubCommand(new hubitat.device.HubAction(secure(zwave.supervisionV1.supervisionReport(sessionID: cmd.sessionID, reserved: 0, moreStatusUpdates: false, status: 0xFF, duration: 0)), hubitat.device.Protocol.ZWAVE))
+}
+
+
+def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
+	//if (logEnable) log.debug "zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}"
+	log.warn "***** CRC-16 Encapsulation Command received: ${cmd} *****"
+	log.warn "***** Unused in this driver, please report to driver author *****"
+}
+
+def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
+	if (logEnable) log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
+
+	if (useChildren) {
+		def cd = fetchChild("Dimmer")
+		if (!cd) return
+
+		List<Map> evts = []
+
+		if (state.eventBasicType == "ON") {
+			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "digital"])
+		} else if (state.eventBasicType == "OFF") {
+			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "digital"])
+		}
+
+		// Send events to child
+		cd.parse(evts)
+	}
+
+	// Parent device attributes are always kept in sync too (even when using
+	// child devices), so existing apps/rules pointed at this device still work.
+	if (state.eventBasicType == "ON") {
+		if (logDesc) log.info "${device.displayName} was turned on"
+		sendEvent(name:"switch", value:"on", descriptionText:"${device.displayName} was turned on", type: "digital")
+	} else if (state.eventBasicType == "OFF") {
+		if (logDesc) log.info "${device.displayName} was turned off"
+		sendEvent(name:"switch", value:"off", descriptionText:"${device.displayName} was turned off", type: "digital")
+	}
+
+	// Reset Basic report type variable
+	state.eventBasicType = ""
+}
+
+def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
+	if (logEnable) log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
+
+	if (useChildren) {
+		def cd = fetchChild("Dimmer")
+		if (!cd) return
+
+		List<Map> evts = []
+
+		if (cmd.value == 255) {
+			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical", isStateChange: true])
+		} else if (cmd.value == 0) {
+			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical", isStateChange: true])
+		}
+
+		// Send events to child
+		cd.parse(evts)
+	}
+
+	// Parent device attributes are always kept in sync too (even when using
+	// child devices), so existing apps/rules pointed at this device still work.
+	if (cmd.value == 255) {
+		if (logDesc) log.info "${device.displayName} was turned on"
+		sendEvent(name:"switch", value:"on", descriptionText:"${device.displayName} was turned on", type: "physical", isStateChange: true)
+	} else if (cmd.value == 0) {
+		if (logDesc) log.info "${device.displayName} was turned off"
+		sendEvent(name:"switch", value:"off", descriptionText:"${device.displayName} was turned off", type: "physical", isStateChange: true)
+	}
+}
+
+def zwaveEvent(hubitat.zwave.commands.switchmultilevelv2.SwitchMultilevelReport cmd) {
+	if (logEnable) log.debug "---SwitchMultilevelReport v2--- ${device.displayName} sent ${cmd}"
+
+	if (useChildren) {
+		def cd = fetchChild("Dimmer")
+		if (!cd) return
+
+		List<Map> evts = []
+
+		if (cmd.value) {
+			evts.add([name:"level", value: cmd.value, descriptionText:"${cd.displayName} level was set to ${cmd.value}%", unit: "%", type: state.eventLevelType ? "digital" : "physical"])
+			evts.add([name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on", type: "physical", isStateChange: false])
+		} else {
+			evts.add([name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off", type: "physical", isStateChange: true])
+		}
+
+		// Send events to child
+		cd.parse(evts)
+	}
+
+	// Parent device attributes are always kept in sync too (even when using
+	// child devices), so existing apps/rules pointed at this device still work.
+	if (cmd.value) {
+		if (logDesc) log.info "${device.displayName} level was set to ${cmd.value}%"
+		sendEvent(name:"level", value: cmd.value, descriptionText:"${device.displayName} level was set to ${cmd.value}%", unit: "%", type: state.eventLevelType ? "digital" : "physical")
+		if (logDesc) log.info "${device.displayName} was turned on"
+		sendEvent(name:"switch", value:"on", descriptionText:"${device.displayName} was turned on", type: "physical", isStateChange: false)
+	} else {
+		if (logDesc) log.info "${device.displayName} was turned off"
+		sendEvent(name:"switch", value:"off", descriptionText:"${device.displayName} was turned off", type: "physical", isStateChange: true)
+	}
+
+	state.eventLevelType = 0
+}
+
+def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
+	if (logEnable) log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
+	if (cmd.groupingIdentifier == 3 && !cmd.nodeId.contains(zwaveHubNodeId)) {
+		// Hub association to group 3 (used for local double-tap support) was missing - re-add it
+		List<String> cmds = []
+		cmds.add(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format())
+		cmds.add(zwave.associationV2.associationGet(groupingIdentifier: 3).format())
+		// Send Commands
+		sendToDevice(cmds)
+	}
+}
+
+def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
+	if (logEnable) log.debug "---CONFIGURATION REPORT V1--- ${device.displayName} sent ${cmd}"
+
+	Integer reportValue = cmd.scaledConfigurationValue.toInteger()
+	String name = ""
+	def value = null
+
+	switch (cmd.parameterNumber) {
+		case 1:
+			name = "lightTimeout"
+			Map timeouts = [0:"5 seconds", 1:"1 minute", 5:"5 minutes", 15:"15 minutes", 30:"30 minutes", (-1):"disabled"]
+			value = timeouts[reportValue] ?: "error"
+			break
+		case 3:
+			name = "operatingMode"
+			Map modes = [1:"Manual", 2:"Vacancy", 3:"Occupancy"]
+			value = modes[reportValue] ?: "error"
+			break
+		case 5:
+			name = "invertButtons"
+			value = reportValue == 0 ? "Normal" : reportValue == 1 ? "Inverted" : "error"
+			break
+		case 6:
+			name = "motionSensorEnabled"
+			value = reportValue == 0 ? "Disabled" : reportValue == 1 ? "Enabled" : "error"
+			break
+		case 7:
+			name = "zwaveDimmingSteps"
+			value = reportValue
+			break
+		case 8:
+			name = "zwaveDimmingDuration"
+			value = reportValue
+			break
+		case 9:
+			name = "physicalDimmingSteps"
+			value = reportValue
+			break
+		case 10:
+			name = "physicalDimmingDuration"
+			value = reportValue
+			break
+		case 13:
+			name = "motionSensitivity"
+			Map sensitivities = [1:"High", 2:"Medium", 3:"Low"]
+			value = sensitivities[reportValue] ?: "error"
+			break
+		case 14:
+			name = "lightSensingEnabled"
+			value = reportValue == 0 ? "Disabled" : reportValue == 1 ? "Enabled" : "error"
+			break
+		case 15:
+			name = "motionResetTimer"
+			Map resetTimers = [0:"Disabled", 1:"10 seconds", 2:"20 seconds", 3:"30 seconds", 4:"45 seconds", 110:"27 minutes"]
+			value = resetTimers[reportValue] ?: "error"
+			break
+		case 16:
+			name = "switchModeEnabled"
+			value = reportValue == 0 ? "Disabled" : reportValue == 1 ? "Enabled" : "error"
+			break
+		case 17:
+			name = "defaultDimmerLevel"
+			value = reportValue
+			break
+		case 18:
+			name = "dimUpRate"
+			value = reportValue == 0 ? "Quickly" : reportValue == 1 ? "Slowly" : "error"
+			break
+		default:
+			if (logEnable) log.debug "Unhandled configuration parameter: ${cmd.parameterNumber} = ${reportValue}"
+			return
+	}
+
+	sendEvent(name: name, value: value)
+}
+
+def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
+	log.warn "***** SwitchBinaryReport *****"
+	log.warn "***** Unused in this driver, please report to driver author *****"
+}
+
+def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
+	log.info "---MANUFACTURER SPECIFIC REPORT V2--- ${device.displayName} sent ${cmd}"
+	log.info "manufacturerId:   ${cmd.manufacturerId}"
+	log.info "manufacturerName: ${cmd.manufacturerName}"
+	log.info "productId:        ${cmd.productId}"
+	log.info "productTypeId:    ${cmd.productTypeId}"
+	def msr = String.format("%04X-%04X-%04X", cmd.manufacturerId, cmd.productTypeId, cmd.productId)
+	updateDataValue("MSR", msr)
+	sendEvent(descriptionText: "$device.displayName MSR: $msr", isStateChange: false)
+}
+
+def zwaveEvent(hubitat.zwave.commands.versionv2.VersionReport cmd) {
+	def fw = "${cmd.applicationVersion}.${cmd.applicationSubVersion}"
+	updateDataValue("fw", fw)
+	if (logEnable) log.debug "---VERSION REPORT V2--- ${device.displayName} is running firmware version: $fw, Z-Wave version: ${cmd.zWaveProtocolVersion}.${cmd.zWaveProtocolSubVersion}"
+}
+
+def zwaveEvent(hubitat.zwave.commands.hailv1.Hail cmd) {
+	log.warn "***** Hail command received. *****"
+	log.warn "***** Unused in this driver, please report to driver author *****"
+}
+
+def zwaveEvent(hubitat.zwave.Command cmd) {
+	log.warn "${device.displayName} received unhandled command: ${cmd}"
+}
+def zwaveEvent(hubitat.zwave.commands.notificationv4.NotificationReport cmd) {
+	if (logEnable) log.debug "---NOTIFICATION REPORT V4--- ${device.displayName} sent ${cmd}"
+
+	if (cmd.notificationType != 0x07) return
+
+	if (useChildren) {
+		def cd = fetchChild("Motion Sensor")
+		if (!cd) return
+
+		List<Map> evts = []
+
+		if (cmd.event == 0x00) {
+			evts.add([name:"motion", value:"inactive", descriptionText:"${cd.displayName} motion inactive", type: "physical"])
+			cd.parse(evts)
+		} else if (cmd.event == 0x08) {
+			evts.add([name:"motion", value:"active", descriptionText:"${cd.displayName} motion active", type: "physical"])
+			cd.parse(evts)
+		}
+	}
+
+	// Parent device attributes are always kept in sync too (even when using
+	// child devices), so existing apps/rules pointed at this device still work.
+	if (cmd.event == 0x00) {
+		if (logDesc) log.info "${device.displayName} motion inactive"
+		sendEvent(name:"motion", value:"inactive", descriptionText:"${device.displayName} motion inactive", type: "physical")
+	} else if (cmd.event == 0x08) {
+		if (logDesc) log.info "${device.displayName} motion active"
+		sendEvent(name:"motion", value:"active", descriptionText:"${device.displayName} motion active", type: "physical")
+	}
+}
+
+def zwaveEvent(hubitat.zwave.commands.switchmultilevelv2.SwitchMultilevelSet cmd) {
+	log.warn "***** SwitchMultilevelSet Called. *****"
+	log.warn "***** Unused in this driver, please report to driver author *****"
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Component Child
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void componentRefresh(cd){
+	if (logEnable) log.info "received refresh request from ${cd.displayName}"
+	refresh()
+}
+
+void componentOn(cd){
+	if (logEnable) log.info "received on request from ${cd.displayName}"
+	state.eventLevelType = -1
+	on()
+}
+
+void componentOff(cd){
+	if (logEnable) log.info "received off request from ${cd.displayName}"
+	off()
+}
+
+void componentSetLevel(cd, level,transitionTime = null) {
+	if (logEnable) log.info "received setLevel(${level}, ${transitionTime}) request from ${cd.displayName}"
+	state.eventLevelType = -1
+
+	if (transitionTime == null) {
+		setLevel(level,0,cd)
+	} else {
+		setLevel(level,transitionTime,cd)
+	}
+}
+
+void componentStartLevelChange(cd, direction) {
+	if (logEnable) log.info "received startLevelChange(${direction}) request from ${cd.displayName}"
+	startLevelChange(direction, cd)
+}
+
+void componentStopLevelChange(cd) {
+	if (logEnable) log.info "received stopLevelChange request from ${cd.displayName}"
+	stopLevelChange()
+}
+
+def fetchChild(String type){
+	String thisId = device.id
+	def cd = getChildDevice("${thisId}-${type}")
+
+	if (!cd) {
+		log.warn "fetchChild - no child found for ${type}"
+	}
+
+	return cd
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Driver Commands / Functions
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void sendToDevice(List<String> cmds, Long delay = 300) {
+    sendHubCommand(new hubitat.device.HubMultiAction(commands(cmds, delay), hubitat.device.Protocol.ZWAVE))
+}
+
+void sendToDevice(String cmd, Long delay = 300) {
+    sendHubCommand(new hubitat.device.HubAction(zwaveSecureEncap(cmd), hubitat.device.Protocol.ZWAVE))
+}
+
+List<String> commands(List<String> cmds, Long delay = 300) {
+    return delayBetween(cmds.collect { zwaveSecureEncap(it) }, delay)
+}
+
+void on() {
+	if (logEnable) log.debug "Turn device ON"
+
+	state.eventBasicType = "ON"
+
+	List<String> cmds = []
+
+	cmds.add(zwave.basicV1.basicSet(value: 0xFF).format())
+	cmds.add(zwave.basicV1.basicGet().format())
+	// Send Commands
+	sendToDevice(cmds)
+
+	cmds = []
+	cmds.add("delay 10")
+	cmds.add(zwave.switchMultilevelV2.switchMultilevelGet().format())
+	// Send Commands
+	sendToDevice(cmds,3000)
+}
+
+void off() {
+	if (logEnable) log.debug "Turn device OFF"
+
+	state.eventBasicType = "OFF"
+
+	List<String> cmds = []
+
+	cmds.add(zwave.basicV1.basicSet(value: 0x00).format())
+	cmds.add(zwave.basicV1.basicGet().format())
+	// Send Commands
+	sendToDevice(cmds)
+}
+
+void setLevel(value, duration=null, cd=null) {
+	if (logEnable) log.debug "setLevel($value, $duration, $cd)"
+
+	if (duration==null) {
+		duration=0
+	}
+
+	def getStatusDelay
+
+    	// Clip to 7620s max on duration to stay within zwave parameter max value of 254
+    	duration = Math.min(duration.toInteger(), 7620)
+
+	//Convert seconds to minutes when duration is above 120s
+	if (duration > 120) {
+		duration = Math.round(duration / 60) + 127
+		getStatusDelay = ((duration - 127) * 60 * 1000 + 1000).toInteger()
+	} else {
+		getStatusDelay = (duration * 1000 + 1000).toInteger()
+	}
+
+	// Clip value to min/max of zwave spec
+	value = Math.max(Math.min(value.toInteger(), 99), 0)
+
+	// Update getStatusDelay calc for OFF - it takes longer to report.
+	if (value == 0) {
+		getStatusDelay += 2000
+        sendEvent(name:"switch", value:"off", descriptionText:"${device.displayName} was turned off", type: "digital", isStateChange: false)
+
+    } else {
+        sendEvent(name:"switch", value:"on", descriptionText:"${device.displayName} was turned on", type: "digital", isStateChange: false)
+    }
+
+	List<String> cmds = []
+
+	if (logEnable) log.debug "setLevel(value, duration) >> value: ${value}, duration: ${duration}, delay: ${getStatusDelay}"
+
+	cmds.add(zwave.switchMultilevelV2.switchMultilevelSet(value: value, dimmingDuration: duration).format())
+	cmds.add(zwave.switchMultilevelV2.switchMultilevelGet().format())
+	// Send Commands
+	sendToDevice(cmds,getStatusDelay)
+}
+
+void setDefaultDimmerLevel(value) {
+	if (logEnable) log.debug "Setting default dimmer level: ${value}"
+
+	value = Math.max(Math.min(value.toInteger(), 99), 0)
+
+	List<String> cmds = []
+
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: value , parameterNumber: 17, size: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 17).format())
+	// Send Commands
+	sendToDevice(cmds)
+}
+
+void startLevelChange(direction, cd=null) {
+	Boolean upDownVal = direction == "down" ? true : false
+	Integer startLevel = (useChildren && cd) ? cd.currentValue("level") : device.currentValue("level")
+
+	List<String> cmds = []
+	cmds.add(zwave.switchMultilevelV2.switchMultilevelStartLevelChange(ignoreStartLevel: true, startLevel: startLevel, upDown: upDownVal).format())
+	// Send Commands
+	sendToDevice(cmds)
+}
+
+void stopLevelChange() {
+	List<String> cmds = []
+
+	cmds.add(zwave.switchMultilevelV2.switchMultilevelStopLevelChange().format())
+	cmds.add(zwave.switchMultilevelV2.switchMultilevelGet().format())
+	// Send Commands
+	sendToDevice(cmds)
+}
+
+void setLightTimeout(value) {
+	if (logEnable) log.debug "Setting light timeout value: ${value}"
+
+	Map timeoutValues = ["5 seconds":0, "1 minute":1, "5 minutes":5, "15 minutes":15, "30 minutes":30, "disabled":255]
+
+	if (!timeoutValues.containsKey(value)) {
+		if (value) log.warn "setLightTimeout: unrecognized value '${value}'"
+		return
+	}
+
+	List<String> cmds = []
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: timeoutValues[value], parameterNumber: 1, size: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 1).format())
+	// Send Commands
+	sendToDevice(cmds)
+}
+
+void setOperatingMode(mode) {
+	if (logEnable) log.debug "Setting operating mode: ${mode}"
+
+	Map modes = ["Manual":1, "Vacancy":2, "Occupancy":3]
+
+	if (!modes.containsKey(mode)) {
+		log.warn "setOperatingMode: unrecognized value '${mode}'"
+		return
+	}
+
+	List<String> cmds = []
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: modes[mode], parameterNumber: 3, size: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 3).format())
+	// Send Commands
+	sendToDevice(cmds)
+}
+
+// Kept as thin wrappers for backward compatibility with existing rules/dashboards
+void Occupancy() { setOperatingMode("Occupancy") }
+void Vacancy() { setOperatingMode("Vacancy") }
+void Manual() { setOperatingMode("Manual") }
+
+void refresh() {
+	log.info "refresh() is called"
+
+	List<String> cmds = []
+
+	cmds.add(zwave.switchMultilevelV2.switchMultilevelGet().format())
+	cmds.add(zwave.notificationV4.notificationGet(notificationType: 7).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 3).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 5).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 6).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 7).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 8).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 9).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 10).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 13).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 14).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 15).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 16).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 17).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 18).format())
+	if (getDataValue("MSR") == null) {
+		cmds.add(zwave.manufacturerSpecificV1.manufacturerSpecificGet().format())
+	}
+
+	// Send Commands
+	log.info "Sending configuration parameters to the device..."
+	sendToDevice(cmds)
+}
+
+void installed() {
+	device.updateSetting("logEnable", [value: "true", type: "bool"])
+	runIn(1800,logsOff)
+	// Push full preference configuration (creates children if needed, sets all
+	// configuration parameters and associations), then read everything back.
+	updated()
+	refresh()
+}
+
+void updated() {
+	log.info "updated..."
+	log.warn "debug logging is: ${logEnable == true}"
+	log.warn "description logging is: ${logDesc == true}"
+	if (logEnable) runIn(1800,logsOff)
+
+	if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
+	state.lastUpdated = now()
+
+	state.clear()
+
+	List<String> cmds = []
+
+	if (useChildren) {
+		// See if Child Devices are Created, if not then create them
+		String thisId = device.id
+
+		def cd = getChildDevice("${thisId}-Dimmer")
+		if (!cd) {
+			cd = addChildDevice("hubitat", "Generic Component Dimmer", "${thisId}-Dimmer", [name: "${device.displayName} Dimmer", isComponent: true])
+		}
+
+		cd = getChildDevice("${thisId}-Motion Sensor")
+		if (!cd) {
+			cd = addChildDevice("hubitat", "Generic Component Motion Sensor", "${thisId}-Motion Sensor", [name: "${device.displayName} Motion Sensor", isComponent: true])
+		}
+	} else {
+		// Delete Any children if they exist
+		List<com.hubitat.app.ChildDeviceWrapper> myChildren = getChildDevices()
+
+		if (myChildren) {
+			for (myChild in myChildren) {
+				deleteChildDevice(myChild.deviceNetworkId)
+			}
+		}
+	}
+
+    // Get light timeout parameter
+    cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 1).format())
+
+    // Get mode parameter
+    cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 3).format())
+
+	// Set Inverted param
+	if (paramInverted==null) {
+		paramInverted = 0
+	}
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: paramInverted.toInteger(), parameterNumber: 5, size: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 5).format())
+
+	// Set Motion Enabled param
+	if (paramMotionEnabled==null) {
+		paramMotionEnabled = 1
+	}
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: paramMotionEnabled.toInteger(), parameterNumber: 6, size: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 6).format())
+
+	// Set Z Steps
+	if (paramZSteps==null) {
+		paramZSteps = 1
+	}
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: paramZSteps.toInteger(), parameterNumber: 7, size: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 7).format())
+
+	// Set Z Duration
+	if (paramZDuration==null) {
+		paramZDuration = 3
+	}
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: paramZDuration.toInteger(), parameterNumber: 8, size: 2).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 8).format())
+
+	// Set P Steps
+	if (paramPSteps==null) {
+		paramPSteps = 1
+	}
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: paramPSteps.toInteger(), parameterNumber: 9, size: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 9).format())
+
+	// Set P Duration
+	if (paramPDuration==null) {
+		paramPDuration = 3
+	}
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: paramPDuration.toInteger(), parameterNumber: 10, size: 2).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 10).format())
+
+	// Set Motion Sensitivity param
+	if (paramMotionSensitivity==null) {
+		paramMotionSensitivity = 2
+	}
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: paramMotionSensitivity.toInteger(), parameterNumber: 13, size: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 13).format())
+
+	// Set Light Sense param
+	if (paramLightSense==null) {
+		paramLightSense = 1
+	}
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: paramLightSense.toInteger(), parameterNumber: 14, size: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 14).format())
+
+	// Set Motion Reset Timer param
+	if (paramMotionResetTimer==null) {
+		paramMotionResetTimer = 2
+	}
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: paramMotionResetTimer.toInteger(), parameterNumber: 15, size: 2).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 15).format())
+
+	// Set Switch Mode
+	if (paramSwitchMode==null) {
+		paramSwitchMode = 0
+	}
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: paramSwitchMode.toInteger(), parameterNumber: 16, size: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 16).format())
+
+	// Set Dim Up Rate
+	if (paramDimUpRate==null) {
+		paramDimUpRate = 0
+	}
+	cmds.add(zwave.configurationV1.configurationSet(scaledConfigurationValue: paramDimUpRate.toInteger(), parameterNumber: 18, size: 1).format())
+	cmds.add(zwave.configurationV1.configurationGet(parameterNumber: 18).format())
+
+	// Association groups
+	cmds.addAll(baseAssociationCommands())
+
+	// Add endpoints to groups 2 and 3
+	def nodes = []
+	if (settings.requestedGroup2 != state.currentGroup2) {
+		nodes = parseAssocGroupList(settings.requestedGroup2, 2)
+		cmds.add(zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: []).format())
+		cmds.add(zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes).format())
+		cmds.add(zwave.associationV2.associationGet(groupingIdentifier: 2).format())
+		state.currentGroup2 = settings.requestedGroup2
+	}
+
+	if (settings.requestedGroup3 != state.currentGroup3) {
+		nodes = parseAssocGroupList(settings.requestedGroup3, 3)
+		cmds.add(zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: []).format())
+		cmds.add(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes).format())
+		cmds.add(zwave.associationV2.associationGet(groupingIdentifier: 3).format())
+		state.currentGroup3 = settings.requestedGroup3
+	}
+
+	// Send Commands
+	log.info "Sending configuration parameters to the device..."
+	sendToDevice(cmds)
+}
+
+void configure() {
+	log.info "configure triggered"
+
+	state.clear()
+
+	List<String> cmds = baseAssociationCommands()
+
+	// Send Commands
+	log.info "Sending configuration parameters to the device..."
+	sendToDevice(cmds)
+
+	refresh()
+}
+
+// Association group 1 (lifeline) and group 3 (local double-tap) always point at the
+// hub; group 2 is left alone here since it's fully user-managed via requestedGroup2.
+// Shared by configure() and updated() to avoid keeping two copies in sync.
+private List<String> baseAssociationCommands() {
+	List<String> cmds = []
+	cmds.add(zwave.associationV2.associationSet(groupingIdentifier: 1, nodeId: zwaveHubNodeId).format())
+	cmds.add(zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: zwaveHubNodeId).format())
+	cmds.add(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format())
+	return cmds
+}
+
+private parseAssocGroupList(list, group) {
+	def nodes = group == 2 ? [] : [zwaveHubNodeId]
+	if (list) {
+		def nodeList = list.split(',')
+		def max = group == 2 ? 5 : 4
+		def count = 0
+
+		nodeList.each { node ->
+		    node = node.trim()
+
+		    if ( count >= max) {
+			    log.warn "Association Group ${group}: Number of members is greater than ${max}! The following member was discarded: ${node}"
+		    } else if (node.matches("\\p{XDigit}+")) {
+			    def nodeId = Integer.parseInt(node,16)
+			    if (nodeId == zwaveHubNodeId) {
+				    log.warn "Association Group ${group}: Adding the hub as an association is not allowed (it would break double-tap)."
+			    } else if (nodeId > 0 && nodeId < 256) {
+				    nodes << nodeId
+				    count++
+			    } else {
+				    log.warn "Association Group ${group}: Invalid member: ${node}"
+			    }
+		    } else {
+			    log.warn "Association Group ${group}: Invalid member: ${node}"
+		    }
+		}
+	}
+	return nodes
+}
+
+void DebugLogging(value) {
+	if (!value) return
+
+	Map durations = ["30m":1800, "1h":3600, "3h":10800, "6h":21600, "12h":43200, "24h":86400]
+
+	unschedule(logsOff)
+
+	if (value == "OFF") {
+		logsOff()
+		return
+	}
+
+	log.debug "debug logging is enabled."
+	device.updateSetting("logEnable",[value:"true",type:"bool"])
+
+	if (value == "ON") return
+
+	Integer seconds = durations[value]
+	if (seconds) {
+		runIn(seconds, logsOff)
+	} else {
+		log.warn "DebugLogging: unrecognized value '${value}'"
+	}
+}
+
+void logsOff(){
+	log.warn "debug logging disabled..."
+	device.updateSetting("logEnable",[value:"false",type:"bool"])
+}
