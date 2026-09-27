@@ -32,6 +32,10 @@
  *                          - Removed unused switchBinaryGet() poll in refresh() (its report was
  *                            already discarded), dead state variables, and leftover commented-out
  *                            code.
+ *  1.2.1 (09/27/2026) - Added a dedupe guard in the BasicReport handler: some hub Z-Wave
+ *                        stacks deliver a single physical Basic Report to parse() twice
+ *                        (once as a raw mesh frame, once as a synchronous API echo), which
+ *                        was showing up as duplicate "was turned on/off" events/log lines.
 */
 
 import groovy.transform.Field
@@ -169,6 +173,18 @@ def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 	if (logEnable) log.debug "---BASIC REPORT V1--- ${device.displayName} sent ${cmd}"
+
+	// Some hub Z-Wave stacks deliver a single physical Basic Report to parse() twice -
+	// once as a raw mesh frame and once as a synchronous API echo of the same value.
+	// Ignore an identical value that arrives again within a short window so it isn't
+	// processed (and logged/sent) a second time as if it were a distinct event.
+	Long nowTime = now()
+	if (state.lastBasicReportValue == cmd.value && state.lastBasicReportTime != null && (nowTime - state.lastBasicReportTime) < 1000) {
+		if (logEnable) log.debug "Ignoring duplicate BasicReport (value: ${cmd.value})"
+		return
+	}
+	state.lastBasicReportValue = cmd.value
+	state.lastBasicReportTime = nowTime
 
 	if (useChildren) {
 		def cd = fetchChild("Dimmer")
