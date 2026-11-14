@@ -13,6 +13,7 @@
  *  2.2.0 (08/29/2020) - Added number of button config to configure
  *  2.3.0 (02/13/2021) - Added Alternate Exclusion mode to preferences.
  *  2.3.1 (03/08/2022) - Added setIndicatorBehavior command. Now users can control LED indicator behavior through custom actions.
+ *  2.3.2 (11/14/2026) - Fix held-down descriptionText (said Up instead of Down). Thanks Heatvent / Matt.
 */
 
 import groovy.transform.Field
@@ -216,7 +217,7 @@ def zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cm
     if ((cmd.keyAttributes == 2) && (cmd.sceneNumber == 2)) {
 		if (logEnable) log.debug "Down Held Triggered"
 		if (logDesc) log.info "$device.displayName had Down Held (button 2) [physical]"
-		result << sendEvent([name: "held", value: 2, descriptionText: "$device.displayName had Up held (button 2) [physical]", type: "physical", isStateChange: true])
+		result << sendEvent([name: "held", value: 2, descriptionText: "$device.displayName had Down held (button 2) [physical]", type: "physical", isStateChange: true])
     }        
     // Double Tap Up
     if ((cmd.keyAttributes == 3) && (cmd.sceneNumber == 1)) {
